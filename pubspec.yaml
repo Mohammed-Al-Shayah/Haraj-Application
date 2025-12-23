@@ -1,0 +1,70 @@
+name: haraj_adan_app
+description: "An app linking buyers and sellers with ads."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  localize_and_translate: ^6.0.8
+  shared_preferences: ^2.5.3
+  flutter_svg: ^2.1.0
+  http: ^1.4.0
+  dio: ^5.8.0+1
+  get: ^4.7.2
+  flutter_dotenv: ^6.0.0
+  google_maps_flutter: ^2.12.2
+  permission_handler: ^12.0.0+1
+  url_launcher: ^6.3.1
+  image_picker: ^1.1.2
+  pinput: ^6.0.1
+  country_code_picker: ^3.4.1
+  google_sign_in: ^7.2.0
+  mapbox_maps_flutter: ^2.12.0
+  auto_size_text: ^3.0.0
+  cached_network_image: ^3.4.1
+  geolocator: ^11.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+
+  uses-material-design: true
+
+  assets:
+    - assets/icons/
+    - assets/images/
+    - assets/lang/
+    - .env
+    - assets/
+    - assets/fonts/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-ExtraBold.ttf
+        - asset: assets/fonts/Inter-Bold.ttf
+        - asset: assets/fonts/Inter-SemiBold.ttf
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+        - asset: assets/fonts/Inter-Black.ttf
+        - asset: assets/fonts/Inter-Light.ttf
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-ExtraBold.ttf
+        - asset: assets/fonts/Cairo-Bold.ttf
+        - asset: assets/fonts/Cairo-SemiBold.ttf
+        - asset: assets/fonts/Cairo-Regular.ttf
+        - asset: assets/fonts/Cairo-Medium.ttf
+        - asset: assets/fonts/Cairo-Black.ttf
+        - asset: assets/fonts/Cairo-Light.ttf
