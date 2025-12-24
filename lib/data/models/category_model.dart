@@ -7,6 +7,7 @@ class CategoryModel {
   final String iconPath;
   final String name;
   final String nameEn;
+  final int adsCount;
   final List<CategoryModel> children;
   final List<SubCategoryModel> subCategories;
   final String? exclusiveOfferCover;
@@ -17,6 +18,7 @@ class CategoryModel {
     required this.iconPath,
     required this.name,
     required this.nameEn,
+    this.adsCount = 0,
     this.children = const [],
     required this.subCategories,
     this.exclusiveOfferCover,
@@ -24,10 +26,10 @@ class CategoryModel {
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     final rawImage = json['image']?.toString() ?? '';
-    final fullImage = rawImage.isNotEmpty &&
-            !rawImage.toLowerCase().startsWith('http')
-        ? '${ApiEndpoints.imageUrl}$rawImage'
-        : rawImage;
+    final fullImage =
+        rawImage.isNotEmpty && !rawImage.toLowerCase().startsWith('http')
+            ? '${ApiEndpoints.imageUrl}$rawImage'
+            : rawImage;
 
     final children = json['children'] is List ? json['children'] as List : [];
 
@@ -36,36 +38,41 @@ class CategoryModel {
       title: json['name'] ?? json['title'] ?? '',
       name: json['name']?.toString() ?? '',
       nameEn: json['name_en']?.toString() ?? '',
+      adsCount: json['adsCount'] is int ? json['adsCount'] as int : 0,
       iconPath: fullImage,
-      children: children
-          .whereType<Map<String, dynamic>>()
-          .map(CategoryModel.fromJson)
-          .toList(),
-      subCategories: children
-          .whereType<Map<String, dynamic>>()
-          .map(SubCategoryModel.fromJson)
-          .toList(),
+      children:
+          children
+              .whereType<Map<String, dynamic>>()
+              .map(CategoryModel.fromJson)
+              .toList(),
+      subCategories:
+          children
+              .whereType<Map<String, dynamic>>()
+              .map(SubCategoryModel.fromJson)
+              .toList(),
       exclusiveOfferCover: json['exclusiveOfferCover']?.toString(),
     );
   }
 
   CategoryEntity toEntity() => CategoryEntity(
-        id: id,
-        title: title,
-        iconPath: iconPath,
-        subCategories: subCategories.map((e) => e.toEntity()).toList(),
-        exclusiveOfferCover: exclusiveOfferCover,
-      );
+    id: id,
+    title: title,
+    iconPath: iconPath,
+    subCategories: subCategories.map((e) => e.toEntity()).toList(),
+    exclusiveOfferCover: exclusiveOfferCover,
+  );
 }
 
 class SubCategoryModel {
   final int id;
   final String title;
+  final int adsCount;
   final List<SubSubCategoryModel> subSubCategories;
 
   const SubCategoryModel({
     required this.id,
     required this.title,
+    this.adsCount = 0,
     this.subSubCategories = const [],
   });
 
@@ -74,28 +81,27 @@ class SubCategoryModel {
     return SubCategoryModel(
       id: json['id'] ?? 0,
       title: json['name'] ?? json['title'] ?? '',
-      subSubCategories: children
-          .whereType<Map<String, dynamic>>()
-          .map(SubSubCategoryModel.fromJson)
-          .toList(),
+      adsCount: json['adsCount'] is int ? json['adsCount'] as int : 0,
+      subSubCategories:
+          children
+              .whereType<Map<String, dynamic>>()
+              .map(SubSubCategoryModel.fromJson)
+              .toList(),
     );
   }
 
   SubCategoryEntity toEntity() => SubCategoryEntity(
-        id: id,
-        title: title,
-        subSubCategories: subSubCategories.map((e) => e.toEntity()).toList(),
-      );
+    id: id,
+    title: title,
+    subSubCategories: subSubCategories.map((e) => e.toEntity()).toList(),
+  );
 }
 
 class SubSubCategoryModel {
   final int id;
   final String title;
 
-  const SubSubCategoryModel({
-    required this.id,
-    required this.title,
-  });
+  const SubSubCategoryModel({required this.id, required this.title});
 
   factory SubSubCategoryModel.fromJson(Map<String, dynamic> json) {
     return SubSubCategoryModel(

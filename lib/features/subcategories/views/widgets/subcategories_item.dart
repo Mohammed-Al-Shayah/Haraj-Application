@@ -7,17 +7,26 @@ import '../../../../core/theme/color.dart';
 import '../../../../core/theme/typography.dart';
 import 'package:get/get.dart';
 import '../../../../domain/entities/category_entity.dart';
+import '../../../filters/models/enums.dart';
 
 class SubcategoriesItem extends StatelessWidget {
   final SubCategoryEntity subcategories;
   final bool isLast;
   final bool isPostAdFlow;
+  final String? parentCategoryName;
+  final String? parentCategoryNameEn;
+  final AdType? parentAdType;
+  final int? parentCategoryId;
 
   const SubcategoriesItem({
     super.key,
     required this.subcategories,
     required this.isLast,
     this.isPostAdFlow = false,
+    this.parentCategoryName,
+    this.parentCategoryNameEn,
+    this.parentAdType,
+    this.parentCategoryId,
   });
 
   @override
@@ -32,7 +41,32 @@ class SubcategoriesItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        isExpanded.value = !isExpanded.value;
+        final hasChildren = subcategories.subSubCategories.isNotEmpty;
+        if (!hasChildren) {
+          if (isPostAdFlow) {
+            Get.toNamed(
+              Routes.postAdScreen,
+              arguments: {
+                'categoryTitle': subcategories.title,
+                'categoryId': parentCategoryId ?? subcategories.id,
+                'subCategoryId': subcategories.id,
+                'adType': parentAdType,
+              },
+            );
+          } else {
+            Get.toNamed(
+              Routes.adsResultScreen,
+              arguments: {
+                'categoryTitle': subcategories.title,
+                'categoryId': parentCategoryId ?? subcategories.id,
+                'subCategoryId': subcategories.id,
+                'adType': parentAdType,
+              },
+            );
+          }
+        } else {
+          isExpanded.value = !isExpanded.value;
+        }
       },
       child: Column(
         children: [
@@ -52,7 +86,7 @@ class SubcategoriesItem extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    '0',
+                    subcategories.adsCount.toString(),
                     style: AppTypography.normal14.copyWith(
                       color: AppColors.gray500,
                     ),
@@ -102,15 +136,27 @@ class SubcategoriesItem extends StatelessWidget {
                           subcategories.subSubCategories.map((subSub) {
                             return InkWell(
                               onTap: () {
-                                print('hiiiii');
                                 Get.toNamed(
                                   isPostAdFlow
                                       ? Routes.postAdScreen
                                       : Routes.adsResultScreen,
                                   arguments: {
                                     'categoryTitle': subcategories.title,
-                                    if (isPostAdFlow)
+                                    'adType': parentAdType,
+                                    if (!isPostAdFlow)
+                                      ...{
+                                        'categoryId': parentCategoryId ??
+                                            subcategories.id,
+                                        'subCategoryId': subcategories.id,
+                                        'subSubCategoryId': subSub.id,
+                                      },
+                                    if (isPostAdFlow) ...{
                                       'subCategoryTitle': subSub.title,
+                                      'subSubCategoryId': subSub.id,
+                                      'categoryId':
+                                          parentCategoryId ?? subcategories.id,
+                                      'subCategoryId': subcategories.id,
+                                    },
                                   },
                                 );
                               },

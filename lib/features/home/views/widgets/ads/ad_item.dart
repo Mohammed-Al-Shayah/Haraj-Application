@@ -66,13 +66,15 @@ class AdItem extends StatelessWidget {
                             if (createdAt != null) ...[
                               SvgPicture.asset(AppAssets.timeIcon),
                               const SizedBox(width: 4),
-                              Text(
-                                createdAt!,
-                                style: AppTypography.normal12.copyWith(
-                                  color: AppColors.gray500,
+                              Expanded(
+                                child: Text(
+                                  createdAt!,
+                                  style: AppTypography.normal12.copyWith(
+                                    color: AppColors.gray500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              const Spacer(),
                             ],
                             if (likesCount != null) ...[
                               Row(
@@ -112,13 +114,15 @@ class AdItem extends StatelessWidget {
                         children: [
                           SvgPicture.asset(AppAssets.locationIcon),
                           const SizedBox(width: 4),
-                          Text(
-                            location,
-                            style: AppTypography.normal12.copyWith(
-                              color: AppColors.gray500,
+                          Expanded(
+                            child: Text(
+                              location,
+                              style: AppTypography.normal12.copyWith(
+                                color: AppColors.gray500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const Spacer(),
                           Text(
                             '${currencySymbol ?? '\$'}$price',
                             style: AppTypography.bold12.copyWith(

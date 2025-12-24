@@ -22,11 +22,13 @@ class CategoryEntity {
 class SubCategoryEntity {
   final int id;
   final String title;
+  final int adsCount;
   final List<SubSubCategoryEntity> subSubCategories;
 
   SubCategoryEntity({
     required this.id,
     required this.title,
+    this.adsCount = 0,
     this.subSubCategories = const [],
   });
 }

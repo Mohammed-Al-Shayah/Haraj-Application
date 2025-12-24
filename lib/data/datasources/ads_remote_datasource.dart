@@ -3,7 +3,12 @@ import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/data/models/ad_model.dart';
 
 abstract class AdsRemoteDataSource {
-  Future<List<AdModel>> getAds(String query);
+  Future<List<AdModel>> getAds(
+    String query, {
+    int? categoryId,
+    int? subCategoryId,
+    int? subSubCategoryId,
+  });
 }
 
 class AdsRemoteDataSourceImpl implements AdsRemoteDataSource {
@@ -12,10 +17,33 @@ class AdsRemoteDataSourceImpl implements AdsRemoteDataSource {
   AdsRemoteDataSourceImpl(this.apiClient);
 
   @override
-  Future<List<AdModel>> getAds(String query) async {
+  Future<List<AdModel>> getAds(
+    String query, {
+    int? categoryId,
+    int? subCategoryId,
+    int? subSubCategoryId,
+  }) async {
+    final params = <String, dynamic>{};
+    if (query.isNotEmpty) params['search'] = query;
+
+    // Pick the most specific category id available.
+    final effectiveCategoryId = subSubCategoryId ?? subCategoryId ?? categoryId;
+
+    // Use category ads endpoint when category is known; fallback to /ads otherwise.
+    final String endpoint =
+        effectiveCategoryId != null
+            ? ApiEndpoints.categoryAds(effectiveCategoryId)
+            : ApiEndpoints.createAd;
+
+    if (effectiveCategoryId != null) {
+      params['includeChildren'] = 0;
+      params['page'] = 0;
+      params['limit'] = 0;
+    }
+
     final response = await apiClient.get(
-      ApiEndpoints.adsHome,
-      queryParams: query.isNotEmpty ? {'search': query} : null,
+      endpoint,
+      queryParams: params.isEmpty ? null : params,
     );
 
     final List<dynamic> list = _extractList(response);
@@ -31,6 +59,9 @@ class AdsRemoteDataSourceImpl implements AdsRemoteDataSource {
     if (response is Map<String, dynamic>) {
       final data = response['data'];
       if (data is List) return List<dynamic>.from(data);
+      if (data is Map && data['ads'] is List) {
+        return List<dynamic>.from(data['ads'] as List);
+      }
       return const <dynamic>[];
     }
 

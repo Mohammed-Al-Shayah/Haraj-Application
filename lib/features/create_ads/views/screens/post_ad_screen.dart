@@ -4,6 +4,7 @@ import 'package:haraj_adan_app/features/create_ads/controllers/create_ads_contro
 import 'package:haraj_adan_app/features/create_ads/views/widgets/photos_form.dart';
 import 'package:haraj_adan_app/features/create_ads/views/widgets/steps_section.dart';
 import 'package:haraj_adan_app/features/create_ads/views/widgets/post_ad_details_form.dart';
+import 'package:haraj_adan_app/features/filters/models/enums.dart';
 import '../../../../core/widgets/main_bar.dart';
 import '../../../../core/widgets/side_menu.dart';
 import '../widgets/form_buttons.dart';
@@ -18,6 +19,8 @@ class PostAdScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final args = Get.arguments ?? {};
     final String categoryTitle = args['categoryTitle'] ?? 'Category';
+    final AdType? adType =
+        args['adType'] as AdType? ?? _resolveAdTypeFromTitle(categoryTitle);
 
     return Scaffold(
       key: scaffoldKey,
@@ -40,7 +43,10 @@ class PostAdScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   padding: const EdgeInsets.all(16.0),
-                  child: _buildStepForm(controller.currentStep.value),
+                  child: _buildStepForm(
+                    controller.currentStep.value,
+                    adType,
+                  ),
                 ),
               ),
             ),
@@ -54,14 +60,30 @@ class PostAdScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStepForm(int step) {
+  Widget _buildStepForm(int step, AdType? adType) {
     switch (step) {
       case 1:
-        return PostAdDetailsForm(controller: controller);
+        return PostAdDetailsForm(
+          controller: controller,
+          adType: adType,
+        );
       case 2:
         return PhotosForm(controller: controller);
       default:
         return const SizedBox();
     }
+  }
+
+  AdType? _resolveAdTypeFromTitle(String title) {
+    final normalized = title.toLowerCase();
+    if (normalized.contains('عقار') || normalized.contains('real estate')) {
+      return AdType.real_estates;
+    }
+    if (normalized.contains('مركبات') ||
+        normalized.contains('سيارة') ||
+        normalized.contains('vehicles')) {
+      return AdType.vehicles;
+    }
+    return null;
   }
 }

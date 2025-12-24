@@ -24,4 +24,13 @@ class ApiEndpoints {
 
   static String likeAd(int adId) => '$baseUrl/ads/likes/$adId';
   static String removeLike(int likeId) => '$baseUrl/ads/likes/$likeId';
+
+  static String categoriesParents = '$baseUrl/categories/parents';
+  static String categoryAttributes(int categoryId) => '$baseUrl/categories/$categoryId/attributes';
+
+  static String featuredSettings = '$baseUrl/ads/featured-settings';
+  static String discounts = '$baseUrl/ads/discounts';
+
+  static String createAd = '$baseUrl/ads';
+  static String categoryAds(int categoryId) => '$baseUrl/categories/$categoryId/ads';
 }

@@ -13,6 +13,19 @@ class AdController extends GetxController {
   var filteredAds = <AdEntity>[].obs;
   var searchState = SearchState.initial.obs;
   var selectedAppearance = 'List'.obs;
+  int? categoryId;
+  int? subCategoryId;
+  int? subSubCategoryId;
+
+  void setCategoryFilters({
+    int? categoryId,
+    int? subCategoryId,
+    int? subSubCategoryId,
+  }) {
+    this.categoryId = categoryId;
+    this.subCategoryId = subCategoryId;
+    this.subSubCategoryId = subSubCategoryId;
+  }
 
   void filterAds(String query) async {
     searchQuery.value = query;
@@ -21,6 +34,9 @@ class AdController extends GetxController {
       List<AdEntity> ads = await repository.fetchFilteredAds(
         query.isEmpty ? '' : query,
         selectedAppearance.value,
+        categoryId: categoryId,
+        subCategoryId: subCategoryId,
+        subSubCategoryId: subSubCategoryId,
       );
       filteredAds.value = ads;
       searchState.value = SearchState.success;

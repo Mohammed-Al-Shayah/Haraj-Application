@@ -10,6 +10,7 @@ import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/core/theme/assets.dart';
 import 'package:haraj_adan_app/core/theme/color.dart';
 import 'package:haraj_adan_app/core/theme/typography.dart';
+import 'package:haraj_adan_app/features/filters/models/enums.dart';
 
 class CategoryItem extends StatelessWidget {
   final CategoryModel category;
@@ -40,6 +41,7 @@ class CategoryItem extends StatelessWidget {
         currentLanguage == 'en' && category.nameEn.isNotEmpty
             ? category.nameEn
             : category.name;
+    final adType = _resolveAdType(category);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -47,10 +49,30 @@ class CategoryItem extends StatelessWidget {
         Scaffold.maybeOf(context)?.isDrawerOpen == true
             ? Navigator.of(context).pop()
             : null;
-        Get.toNamed(
-          Routes.subcategoriesScreen,
-          arguments: {'category': category, 'isPostAdFlow': isPostAdFlow},
-        );
+        if (isPostAdFlow) {
+          if (category.children.isEmpty) {
+            Get.toNamed(
+              Routes.postAdScreen,
+              arguments: {
+                'category': category,
+                'categoryTitle': displayName,
+                'categoryId': category.id,
+                'adType': adType,
+              },
+            );
+          } else {
+            isExpanded.toggle();
+          }
+        } else {
+          Get.toNamed(
+            Routes.subcategoriesScreen,
+            arguments: {
+              'category': category,
+              'isPostAdFlow': isPostAdFlow,
+              'adType': adType,
+            },
+          );
+        }
       },
       child: Column(
         children: [
@@ -127,15 +149,30 @@ class CategoryItem extends StatelessWidget {
                               .map(
                                 (sub) => InkWell(
                                   onTap: () {
-                                    Get.toNamed(
-                                      Routes.postAdScreen,
-                                      arguments: {
-                                        'categoryTitle':
-                                            currentLanguage == 'en'
-                                                ? sub.nameEn
-                                                : sub.name,
-                                      },
-                                    );
+                                    final childAdType = _resolveAdType(sub);
+                                    if (isPostAdFlow) {
+                                      Get.toNamed(
+                                        Routes.postAdScreen,
+                                        arguments: {
+                                          'category': sub,
+                                          'categoryTitle':
+                                              currentLanguage == 'en'
+                                                  ? sub.nameEn
+                                                  : sub.name,
+                                          'categoryId': sub.id,
+                                          'adType': childAdType,
+                                        },
+                                      );
+                                    } else {
+                                      Get.toNamed(
+                                        Routes.subcategoriesScreen,
+                                        arguments: {
+                                          'category': sub,
+                                          'isPostAdFlow': isPostAdFlow,
+                                          'adType': childAdType,
+                                        },
+                                      );
+                                    }
                                   },
                                   borderRadius: BorderRadius.circular(8),
                                   splashColor: AppColors.primary.withAlpha(25),
@@ -159,6 +196,14 @@ class CategoryItem extends StatelessWidget {
                                       ),
                                       child: Row(
                                         children: [
+                                          Text(
+                                            sub.adsCount.toString(),
+                                            style: AppTypography.normal14
+                                                .copyWith(
+                                                  color: AppColors.gray500,
+                                                ),
+                                          ),
+                                          const SizedBox(width: 12),
                                           const SizedBox(width: 1),
                                           Expanded(
                                             child: Text(
@@ -193,5 +238,31 @@ class CategoryItem extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  AdType? _resolveAdType(CategoryModel category) {
+    final normalized = '${category.name} ${category.nameEn}'
+        .toLowerCase()
+        .replaceAll('_', ' ');
+
+    if (normalized.contains('real estate') ||
+        normalized.contains('realestate') ||
+        normalized.contains('real_estate') ||
+        normalized.contains('عقار') ||
+        normalized.contains('عقارات')) {
+      return AdType.real_estates;
+    }
+
+    if (normalized.contains('vehicle') ||
+        normalized.contains('vehicles') ||
+        normalized.contains('car') ||
+        normalized.contains('cars') ||
+        normalized.contains('سيارة') ||
+        normalized.contains('سيارات') ||
+        normalized.contains('مركبات')) {
+      return AdType.vehicles;
+    }
+
+    return null;
   }
 }

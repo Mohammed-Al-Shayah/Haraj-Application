@@ -66,7 +66,7 @@ class HomeRepositoryImpl implements HomeRepository {
       name: e.name,
       nameEn: e.nameEn.isNotEmpty ? e.nameEn : e.name,
       image: e.iconPath,
-      adsCount: e.subCategories.length,
+      adsCount: e.adsCount,
       children: e.subCategories
           .map(
             (sub) => ui_category.CategoryModel(
@@ -74,7 +74,7 @@ class HomeRepositoryImpl implements HomeRepository {
               name: sub.title,
               nameEn: sub.title,
               image: '',
-              adsCount: sub.subSubCategories.length,
+              adsCount: sub.adsCount,
               children: const [],
             ),
           )

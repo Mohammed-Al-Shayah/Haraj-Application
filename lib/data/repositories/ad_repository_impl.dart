@@ -10,9 +10,17 @@ class AdRepositoryImpl implements AdRepository {
   @override
   Future<List<AdEntity>> fetchFilteredAds(
     String query,
-    String appearance,
-  ) async {
-    final ads = await remoteDataSource.getAds(query);
+    String appearance, {
+    int? categoryId,
+    int? subCategoryId,
+    int? subSubCategoryId,
+  }) async {
+    final ads = await remoteDataSource.getAds(
+      query,
+      categoryId: categoryId,
+      subCategoryId: subCategoryId,
+      subSubCategoryId: subSubCategoryId,
+    );
 
     if (appearance == 'On Map') {
       return ads.where((ad) => ad.latitude != 0 && ad.longitude != 0).toList();

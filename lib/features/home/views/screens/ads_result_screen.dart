@@ -13,6 +13,8 @@ import '../../../../core/widgets/main_bar.dart';
 import '../../../../data/datasources/ads_remote_datasource.dart';
 import '../../../../data/models/ad_model.dart';
 import '../../../../data/repositories/ad_repository_impl.dart';
+import '../../../filters/models/enums.dart';
+import '../../../filters/views/screens/real_estate_filter.dart';
 import '../../../filters/views/screens/vehicle_filter.dart';
 import '../../../../core/widgets/side_menu.dart';
 import '../widgets/ads/ad_item.dart';
@@ -30,6 +32,17 @@ class AdsResultScreen extends StatelessWidget {
     final arguments = Get.arguments as Map<String, dynamic>?;
     final categoryTitle =
         arguments?['categoryTitle'] as String? ?? AppStrings.searchResult;
+    final AdType? passedAdType = arguments?['adType'] as AdType?;
+    final int? categoryId = arguments?['categoryId'] as int?;
+    final int? subCategoryId = arguments?['subCategoryId'] as int?;
+    final int? subSubCategoryId = arguments?['subSubCategoryId'] as int?;
+    final parentCategoryName =
+        arguments?['parentCategoryName'] as String? ?? '';
+    final parentCategoryNameEn =
+        arguments?['parentCategoryNameEn'] as String? ?? '';
+    final adType =
+        passedAdType ??
+        _resolveAdType(categoryTitle, parentCategoryName, parentCategoryNameEn);
 
     final controller = Get.put(
       AdController(
@@ -37,6 +50,11 @@ class AdsResultScreen extends StatelessWidget {
           remoteDataSource: AdsRemoteDataSourceImpl(ApiClient(client: Dio())),
         ),
       ),
+    );
+    controller.setCategoryFilters(
+      categoryId: categoryId,
+      subCategoryId: subCategoryId,
+      subSubCategoryId: subSubCategoryId,
     );
 
     /// Load all ads when coming from category (no query)
@@ -89,12 +107,7 @@ class AdsResultScreen extends StatelessWidget {
                     children: [
                       FilterSortSelector(
                         assetIcon: AppAssets.filterIcon,
-                        onPress: () {
-                          Get.bottomSheet(
-                            const VehicleFilter(),
-                            isScrollControlled: true,
-                          );
-                        },
+                        onPress: () => _openFilterBottomSheet(adType),
                       ),
                       const SizedBox(width: 8),
                       FilterSortSelector(
@@ -242,5 +255,56 @@ class AdsResultScreen extends StatelessWidget {
       SortBottomSheet(controller: controller),
       isScrollControlled: true,
     );
+  }
+
+  void _openFilterBottomSheet(AdType type) {
+    final bottomSheet =
+        type == AdType.real_estates
+            ? const RealEstateFilter()
+            : const VehicleFilter();
+    Get.bottomSheet(bottomSheet, isScrollControlled: true);
+  }
+
+  AdType _resolveAdType(
+    String categoryTitle,
+    String parentName,
+    String parentNameEn,
+  ) {
+    final candidates =
+        <String>[
+          categoryTitle,
+          parentName,
+          parentNameEn,
+        ].map(_normalizeName).where((e) => e.isNotEmpty).toList();
+
+    final joined = candidates.join(' ');
+
+    if (joined.contains('real estate') ||
+        joined.contains('realestate') ||
+        joined.contains('real_estate') ||
+        joined.contains('عقار') ||
+        joined.contains('عقارات')) {
+      return AdType.real_estates;
+    }
+
+    if (joined.contains('vehicle') ||
+        joined.contains('vehicles') ||
+        joined.contains('car') ||
+        joined.contains('cars') ||
+        joined.contains('سيارة') ||
+        joined.contains('سيارات') ||
+        joined.contains('مركبات')) {
+      return AdType.vehicles;
+    }
+
+    return AdType.vehicles;
+  }
+
+  String _normalizeName(String input) {
+    return input
+        .toLowerCase()
+        .replaceAll(RegExp(r'[_-]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 }

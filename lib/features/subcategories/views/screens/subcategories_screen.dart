@@ -9,6 +9,7 @@ import '../../../../core/theme/strings.dart';
 import '../../../../core/widgets/main_bar.dart';
 import '../../../../core/widgets/side_menu.dart';
 import '../../../../domain/entities/category_entity.dart';
+import '../../../filters/models/enums.dart';
 import '../../../home/controllers/home_controller.dart';
 import '../../../home/views/widgets/featured_ads_section.dart';
 import '../widgets/exclusive_offer_card.dart';
@@ -19,8 +20,21 @@ class SubcategoriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final category = Get.arguments['category'] as CategoryModel;
-    final bool isPostAdFlow = Get.arguments['isPostAdFlow'] ?? false;
+    final args = (Get.arguments ?? {}) as Map?;
+    final category = args?['category'];
+    if (category is! CategoryModel) {
+      return Scaffold(
+        appBar: MainBar(
+          title: AppStrings.categorySelection,
+          menu: true,
+          scaffoldKey: GlobalKey<ScaffoldState>(),
+        ),
+        body: const Center(child: Text('Category not found')),
+      );
+    }
+
+    final bool isPostAdFlow = args?['isPostAdFlow'] ?? false;
+    final AdType? adType = args?['adType'] as AdType?;
     final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
     final HomeController controller = Get.find<HomeController>();
     final currentLanguage = LocalizeAndTranslate.getLanguageCode();
@@ -87,10 +101,23 @@ class SubcategoriesScreen extends StatelessWidget {
                       return SubCategoryEntity(
                         id: child.id,
                         title: isEnglish ? child.nameEn : child.name,
-                        subSubCategories: [],
+                        adsCount: child.adsCount,
+                        subSubCategories:
+                            (child.children)
+                                .map(
+                                  (sub) => SubSubCategoryEntity(
+                                    id: sub.id,
+                                    title: isEnglish ? sub.nameEn : sub.name,
+                                  ),
+                                )
+                                .toList(),
                       );
                     }).toList(),
                 isPostAdFlow: isPostAdFlow,
+                parentCategoryName: category.name,
+                parentCategoryNameEn: category.nameEn,
+                parentAdType: adType,
+                parentCategoryId: category.id,
               );
             }),
 
