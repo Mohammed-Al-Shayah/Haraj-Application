@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/core/theme/typography.dart';
+import 'package:haraj_adan_app/core/widgets/category/category_card.dart';
 import 'package:haraj_adan_app/features/home/models/category.model.dart';
 import 'package:localize_and_translate/localize_and_translate.dart';
+
 import '../../../../core/theme/color.dart';
 import '../../../../core/theme/strings.dart';
 import '../../../../core/widgets/main_bar.dart';
@@ -22,6 +24,7 @@ class SubcategoriesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final args = (Get.arguments ?? {}) as Map?;
     final category = args?['category'];
+
     if (category is! CategoryModel) {
       return Scaffold(
         appBar: MainBar(
@@ -37,9 +40,11 @@ class SubcategoriesScreen extends StatelessWidget {
     final AdType? adType = args?['adType'] as AdType?;
     final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
     final HomeController controller = Get.find<HomeController>();
+
     final currentLanguage = LocalizeAndTranslate.getLanguageCode();
     final bool isArabic = currentLanguage.startsWith('ar');
     final bool isEnglish = currentLanguage.startsWith('en');
+
     final String text =
         isArabic
             ? '${AppStrings.all} ${AppStrings.ads} "${category.name}"'
@@ -80,72 +85,80 @@ class SubcategoriesScreen extends StatelessWidget {
               ),
             ),
 
-            Obx(() {
-              if (controller.isLoadingCategories.value) {
-                return const Padding(
-                  padding: EdgeInsets.all(40.0),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              if (controller.categories.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(40.0),
-                  child: Center(child: Text("لا توجد تصنيفات فرعية")),
-                );
-              }
-
-              return SubcategoriesCard(
-                categorySelection:
-                    category.children.map((child) {
-                      return SubCategoryEntity(
-                        id: child.id,
-                        title: isEnglish ? child.nameEn : child.name,
-                        adsCount: child.adsCount,
-                        subSubCategories:
-                            (child.children)
-                                .map(
-                                  (sub) => SubSubCategoryEntity(
-                                    id: sub.id,
-                                    title: isEnglish ? sub.nameEn : sub.name,
-                                  ),
-                                )
-                                .toList(),
-                      );
-                    }).toList(),
-                isPostAdFlow: isPostAdFlow,
-                parentCategoryName: category.name,
-                parentCategoryNameEn: category.nameEn,
+            if (isPostAdFlow)
+              CategoryCard(
+                categories: RxList<CategoryModel>.from(category.children),
+                isPostAdFlow: true,
                 parentAdType: adType,
-                parentCategoryId: category.id,
-              );
-            }),
+              )
+            else
+              Obx(() {
+                if (controller.isLoadingCategories.value) {
+                  return const Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
 
-            !isPostAdFlow
-                ? Column(
-                  children: [
-                    Obx(() {
-                      final banners = controller.banners;
-                      final offers =
-                          banners.isNotEmpty
-                              ? banners.map((banner) {
-                                return {
-                                  "imageUrl":
-                                      "${ApiEndpoints.imageUrl}${banner.image}",
-                                };
-                              }).toList()
-                              : [
-                                {"imageUrl": "https://picsum.photos/400/200?1"},
-                                {"imageUrl": "https://picsum.photos/400/200?2"},
-                                {"imageUrl": "https://picsum.photos/400/200?3"},
-                              ];
+                if (category.children.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: Center(child: Text("لا توجد تصنيفات فرعية")),
+                  );
+                }
 
-                      return ExclusiveOfferSlider(offers: offers);
-                    }),
-                    FeaturedAdsSection(controller: controller),
-                  ],
-                )
-                : const SizedBox.shrink(),
+                return SubcategoriesCard(
+                  categorySelection:
+                      category.children.map((child) {
+                        return SubCategoryEntity(
+                          id: child.id,
+                          title: isEnglish ? child.nameEn : child.name,
+                          adsCount: child.adsCount,
+                          subSubCategories:
+                              child.children
+                                  .map(
+                                    (sub) => SubSubCategoryEntity(
+                                      id: sub.id,
+                                      title: isEnglish ? sub.nameEn : sub.name,
+                                    ),
+                                  )
+                                  .toList(),
+                        );
+                      }).toList(),
+                  isPostAdFlow: false,
+                  parentCategoryName: category.name,
+                  parentCategoryNameEn: category.nameEn,
+                  parentAdType: adType,
+                  parentCategoryId: category.id,
+                );
+              }),
+
+            if (!isPostAdFlow)
+              Column(
+                children: [
+                  Obx(() {
+                    final banners = controller.banners;
+                    final offers =
+                        banners.isNotEmpty
+                            ? banners
+                                .map(
+                                  (banner) => {
+                                    "imageUrl":
+                                        "${ApiEndpoints.imageUrl}${banner.image}",
+                                  },
+                                )
+                                .toList()
+                            : [
+                              {"imageUrl": "https://picsum.photos/400/200?1"},
+                              {"imageUrl": "https://picsum.photos/400/200?2"},
+                              {"imageUrl": "https://picsum.photos/400/200?3"},
+                            ];
+
+                    return ExclusiveOfferSlider(offers: offers);
+                  }),
+                  FeaturedAdsSection(controller: controller),
+                ],
+              ),
           ],
         ),
       ),

@@ -1,79 +1,63 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:haraj_adan_app/core/network/endpoints.dart';
-import 'package:haraj_adan_app/features/home/models/category.model.dart';
-import 'package:localize_and_translate/localize_and_translate.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:localize_and_translate/localize_and_translate.dart';
+
+import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/core/theme/assets.dart';
 import 'package:haraj_adan_app/core/theme/color.dart';
 import 'package:haraj_adan_app/core/theme/typography.dart';
+
+import 'package:haraj_adan_app/features/home/models/category.model.dart';
 import 'package:haraj_adan_app/features/filters/models/enums.dart';
 
 class CategoryItem extends StatelessWidget {
   final CategoryModel category;
   final bool isLast;
-  final RxBool isExpanded = false.obs;
   final bool isPostAdFlow;
+
+  /// ✅ النوع اللي جاي من الأب (مثلاً: عقارات => real_estates)
+  final AdType? inheritedAdType;
 
   CategoryItem({
     super.key,
     required this.category,
     required this.isLast,
     required this.isPostAdFlow,
+    this.inheritedAdType,
   });
 
   @override
   Widget build(BuildContext context) {
-    final currentLanguage = LocalizeAndTranslate.getLanguageCode();
-    final arrowIcon =
+    final String currentLanguage = LocalizeAndTranslate.getLanguageCode();
+    final String arrowIcon =
         currentLanguage == 'en'
             ? AppAssets.arrowRightIcon
             : AppAssets.arrowLeftIcon;
-    final imageUrl =
+
+    final String imageUrl =
         category.image.startsWith('http')
             ? category.image
             : '${ApiEndpoints.imageUrl}${category.image}';
 
-    final displayName =
+    final String displayName =
         currentLanguage == 'en' && category.nameEn.isNotEmpty
             ? category.nameEn
             : category.name;
-    final adType = _resolveAdType(category);
+    final AdType? adType = inheritedAdType ?? _resolveAdType(category);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        Scaffold.maybeOf(context)?.isDrawerOpen == true
-            ? Navigator.of(context).pop()
-            : null;
-        if (isPostAdFlow) {
-          if (category.children.isEmpty) {
-            Get.toNamed(
-              Routes.postAdScreen,
-              arguments: {
-                'category': category,
-                'categoryTitle': displayName,
-                'categoryId': category.id,
-                'adType': adType,
-              },
-            );
-          } else {
-            isExpanded.toggle();
-          }
-        } else {
-          Get.toNamed(
-            Routes.subcategoriesScreen,
-            arguments: {
-              'category': category,
-              'isPostAdFlow': isPostAdFlow,
-              'adType': adType,
-            },
-          );
-        }
-      },
+      onTap:
+          () => _onTapCategory(
+            context: context,
+            category: category,
+            displayName: displayName,
+            adType: adType,
+          ),
       child: Column(
         children: [
           const SizedBox(height: 16),
@@ -107,141 +91,119 @@ class CategoryItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Obx(() {
-                return Transform.rotate(
-                  angle:
-                      isExpanded.value
-                          ? (currentLanguage == 'ar' ? -3.14 / 2 : 3.14 / 2)
-                          : 0,
-                  child: SvgPicture.asset(
-                    arrowIcon,
-                    height: 20,
-                    width: 20,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.primary,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                );
-              }),
+              SvgPicture.asset(
+                arrowIcon,
+                height: 20,
+                width: 20,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.primary,
+                  BlendMode.srcIn,
+                ),
+              ),
             ],
           ),
-
           const SizedBox(height: 16),
-          Obx(() {
-            return AnimatedCrossFade(
-              firstChild:
-                  isLast
-                      ? const SizedBox.shrink()
-                      : Container(color: AppColors.gray300, height: 1),
-              secondChild: Column(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12.0),
-                    decoration: BoxDecoration(
-                      color: AppColors.gray100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      children:
-                          category.children
-                              .map(
-                                (sub) => InkWell(
-                                  onTap: () {
-                                    final childAdType = _resolveAdType(sub);
-                                    if (isPostAdFlow) {
-                                      Get.toNamed(
-                                        Routes.postAdScreen,
-                                        arguments: {
-                                          'category': sub,
-                                          'categoryTitle':
-                                              currentLanguage == 'en'
-                                                  ? sub.nameEn
-                                                  : sub.name,
-                                          'categoryId': sub.id,
-                                          'adType': childAdType,
-                                        },
-                                      );
-                                    } else {
-                                      Get.toNamed(
-                                        Routes.subcategoriesScreen,
-                                        arguments: {
-                                          'category': sub,
-                                          'isPostAdFlow': isPostAdFlow,
-                                          'adType': childAdType,
-                                        },
-                                      );
-                                    }
-                                  },
-                                  borderRadius: BorderRadius.circular(8),
-                                  splashColor: AppColors.primary.withAlpha(25),
-                                  highlightColor: Colors.transparent,
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 6.0,
-                                    ),
-                                    child: Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 14,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        border: Border.all(
-                                          color: AppColors.gray300,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Text(
-                                            sub.adsCount.toString(),
-                                            style: AppTypography.normal14
-                                                .copyWith(
-                                                  color: AppColors.gray500,
-                                                ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          const SizedBox(width: 1),
-                                          Expanded(
-                                            child: Text(
-                                              currentLanguage == 'en'
-                                                  ? sub.nameEn
-                                                  : sub.name,
-                                              style: AppTypography.normal14
-                                                  .copyWith(
-                                                    color: AppColors.gray800,
-                                                  ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                    ),
-                  ),
-                  if (isLast) const SizedBox(height: 16),
-                ],
-              ),
-              crossFadeState:
-                  isExpanded.value
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 300),
-            );
-          }),
+          if (!isLast) Container(color: AppColors.gray300, height: 1),
         ],
       ),
     );
   }
 
+  void _onTapCategory({
+    required BuildContext context,
+    required CategoryModel category,
+    required String displayName,
+    required AdType? adType,
+  }) {
+    // اغلاق drawer لو مفتوح
+    if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
+      Navigator.of(context).pop();
+    }
+
+    // ✅ Browse flow: زي ما هو
+    if (!isPostAdFlow) {
+      Get.toNamed(
+        Routes.subcategoriesScreen,
+        arguments: {
+          'category': category,
+          'isPostAdFlow': false,
+          'adType': adType,
+        },
+      );
+      return;
+    }
+
+    // ✅ PostAd flow: لو فيه children روح شاشة subcategories (وبنفس الوقت ورّث النوع)
+    if (category.children.isNotEmpty) {
+      Get.toNamed(
+        Routes.subcategoriesScreen,
+        arguments: {
+          'category': category,
+          'isPostAdFlow': true,
+          'adType': adType,
+        },
+      );
+      return;
+    }
+
+    // ✅ Leaf => افتح PostAd مباشرة + realEstateType مضبوط
+    Get.toNamed(
+      Routes.postAdScreen,
+      arguments: {
+        'category': category,
+        'categoryTitle': displayName,
+        'categoryId': category.id,
+        'adType': adType,
+        'realEstateType':
+            adType == AdType.real_estates
+                ? _mapRealEstateType(displayName)
+                : null,
+      },
+    );
+  }
+
+  RealEstateType _mapRealEstateType(String name) {
+    final String n = name.toLowerCase();
+
+    // ✅ مهم: زود "منازل" و "منزل" لأنها غالباً بتيجي من الـ API بدل "بيوت"
+    if (n.contains('بيوت') ||
+        n.contains('بيت') ||
+        n.contains('منازل') ||
+        n.contains('منزل') ||
+        n.contains('house')) {
+      return RealEstateType.houses;
+    }
+
+    if (n.contains('ارض') ||
+        n.contains('أراضي') ||
+        n.contains('اراضي') ||
+        n.contains('land')) {
+      return RealEstateType.lands;
+    }
+
+    if (n.contains('فيلا') ||
+        n.contains('فلل') ||
+        n.contains('فلة') ||
+        n.contains('villa')) {
+      return RealEstateType.villas;
+    }
+
+    if (n.contains('شقة') || n.contains('شقق') || n.contains('apartment')) {
+      return RealEstateType.apartments;
+    }
+
+    if (n.contains('عمارة') ||
+        n.contains('عمارات') ||
+        n.contains('مباني') ||
+        n.contains('building')) {
+      return RealEstateType.buildings;
+    }
+
+    return RealEstateType.apartments;
+  }
+
   AdType? _resolveAdType(CategoryModel category) {
-    final normalized = '${category.name} ${category.nameEn}'
+    final String normalized = '${category.name} ${category.nameEn}'
         .toLowerCase()
         .replaceAll('_', ' ');
 
@@ -249,7 +211,21 @@ class CategoryItem extends StatelessWidget {
         normalized.contains('realestate') ||
         normalized.contains('real_estate') ||
         normalized.contains('عقار') ||
-        normalized.contains('عقارات')) {
+        normalized.contains('عقارات') ||
+        normalized.contains('بيت') ||
+        normalized.contains('بيوت') ||
+        normalized.contains('منزل') ||
+        normalized.contains('منازل') ||
+        normalized.contains('شقة') ||
+        normalized.contains('شقق') ||
+        normalized.contains('فيلا') ||
+        normalized.contains('فلل') ||
+        normalized.contains('فلة') ||
+        normalized.contains('ارض') ||
+        normalized.contains('اراضي') ||
+        normalized.contains('أراضي') ||
+        normalized.contains('building') ||
+        normalized.contains('house')) {
       return AdType.real_estates;
     }
 
@@ -259,7 +235,10 @@ class CategoryItem extends StatelessWidget {
         normalized.contains('cars') ||
         normalized.contains('سيارة') ||
         normalized.contains('سيارات') ||
-        normalized.contains('مركبات')) {
+        normalized.contains('مركبة') ||
+        normalized.contains('مركبات') ||
+        normalized.contains('عربية') ||
+        normalized.contains('عربيات')) {
       return AdType.vehicles;
     }
 

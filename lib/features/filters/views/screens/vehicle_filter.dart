@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide Trans;
+import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:localize_and_translate/localize_and_translate.dart';
 import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/features/filters/controllers/filter_controller.dart';
@@ -12,7 +13,16 @@ import 'package:haraj_adan_app/features/filters/views/widgets/from_to_field.dart
 import 'package:haraj_adan_app/features/filters/views/widgets/select_items.dart';
 
 class VehicleFilter extends StatelessWidget {
-  const VehicleFilter({super.key});
+  const VehicleFilter({
+    super.key,
+    required this.categoryId,
+    required this.categoryTitle,
+    required this.adType,
+  });
+
+  final int categoryId;
+  final String categoryTitle;
+  final AdType adType;
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +33,17 @@ class VehicleFilter extends StatelessWidget {
         init: FilterController(AdType.vehicles),
         builder: (controller) {
           return FilterTemplate(
+            onApplyFilter: () {
+              Get.back();
+              Get.toNamed(
+                Routes.postAdScreen,
+                arguments: {
+                  'categoryId': categoryId,
+                  'categoryTitle': categoryTitle,
+                  'adType': adType,
+                },
+              );
+            },
             onResetFilter: () {
               controller.adVehicle.value = AdVehicleFilterModel.initialize();
             },

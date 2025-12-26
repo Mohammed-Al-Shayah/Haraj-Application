@@ -393,4 +393,44 @@ class AppStrings {
   static String get cancel => 'cancel'.tr();
   static String get back => 'back'.tr();
   static String get publish => 'publish'.tr();
+
+  // Real estate extras
+  static String get buildingAge => 'building_age'.tr();
+  static String get buildingAgeLessThan5 => 'building_age.lessThan5'.tr();
+  static String get buildingAgeBetween5And15 =>
+      'building_age.between5And15'.tr();
+  static String get buildingAgeMoreThan15 => 'building_age.moreThan15'.tr();
+  static String get internalFeatures => 'internal_features'.tr();
+  static String get gardenFeature => 'garden_feature'.tr();
+  static String get telephoneLine => 'telephone_line'.tr();
+  static String get internetLine => 'internet_line'.tr();
+  static String get builtInDishwasher => 'built_in_dishwasher'.tr();
+  static String get ceramicTiles => 'ceramic_tiles'.tr();
+  static String get nearTo => 'near_to'.tr();
+  static String get nearAirport => 'near_airport'.tr();
+  static String get nearBeach => 'near_beach'.tr();
+  static String get nearDowntown => 'near_downtown'.tr();
+  static String get nearHospital => 'near_hospital'.tr();
+  static String get nearAmusement => 'near_amusement'.tr();
+  static String get nearSchool => 'near_school'.tr();
+  static String get nearSupermarket => 'near_supermarket'.tr();
+  static String get nearMosque => 'near_mosque'.tr();
+  static String get nearMall => 'near_mall'.tr();
+  static String get nearClothingCenter => 'near_clothing_center'.tr();
+  static String get nearRestaurant => 'near_restaurant'.tr();
+  static String get nearCafe => 'near_cafe'.tr();
+  static String get nearFireStation => 'near_fire_station'.tr();
+  static String get nearPoliceStation => 'near_police_station'.tr();
+  static String get shopOpenings => 'shop_openings'.tr();
+  static String get shopOpeningsOne => 'shop_openings.one'.tr();
+  static String get shopOpeningsTwo => 'shop_openings.two'.tr();
+  static String get shopOpeningsThree => 'shop_openings.three'.tr();
+  static String get shopOpeningsFour => 'shop_openings.four'.tr();
+  static String get shopOpeningsFive => 'shop_openings.five'.tr();
+  static String get shopOpeningsSix => 'shop_openings.six'.tr();
+  static String get shopOpeningsSeven => 'shop_openings.seven'.tr();
+  static String get shopOpeningsEight => 'shop_openings.eight'.tr();
+  static String get shopOpeningsNine => 'shop_openings.nine'.tr();
+  static String get shopOpeningsMoreThanNine =>
+      'shop_openings.more_than_nine'.tr();
 }

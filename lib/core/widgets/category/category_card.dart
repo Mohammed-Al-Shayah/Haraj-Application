@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/theme/color.dart';
+import 'package:haraj_adan_app/features/filters/models/enums.dart';
 import '../../../features/home/models/category.model.dart';
 import 'category_item.dart';
 
@@ -9,11 +10,14 @@ class CategoryCard extends StatelessWidget {
   final bool isDrawer;
   final bool isPostAdFlow;
 
+  final AdType? parentAdType;
+
   const CategoryCard({
     super.key,
     required this.categories,
     this.isDrawer = false,
     this.isPostAdFlow = false,
+    this.parentAdType,
   });
 
   @override
@@ -41,6 +45,7 @@ class CategoryCard extends StatelessWidget {
                 category: categories[index],
                 isLast: index == categories.length - 1,
                 isPostAdFlow: isPostAdFlow,
+                inheritedAdType: parentAdType,
               ),
           ],
         ),

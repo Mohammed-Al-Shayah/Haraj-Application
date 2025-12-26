@@ -22,6 +22,8 @@ class AdRealEstateFilterModel {
   List<RealEstateBuilding>? realEstateBuilding;
   List<RealEstateFinishing>? realEstateFinishing;
   List<GroundSystem>? groundSystem;
+  BuildingAge? buildingAge;
+  ShopOpenings? shopOpenings;
   List<int>? streetsAroundCount;
   int? currencyId;
 
@@ -46,6 +48,8 @@ class AdRealEstateFilterModel {
     this.realEstateBuilding,
     this.realEstateFinishing,
     this.groundSystem,
+    this.buildingAge,
+    this.shopOpenings,
     this.streetsAroundCount,
     this.currencyId,
   });
@@ -71,6 +75,8 @@ class AdRealEstateFilterModel {
     List<RealEstateBuilding>? realEstateBuilding,
     List<RealEstateFinishing>? realEstateFinishing,
     List<GroundSystem>? groundSystem,
+    BuildingAge? buildingAge,
+    ShopOpenings? shopOpenings,
     List<int>? streetsAroundCount,
     int? currencyId,
   }) {
@@ -101,6 +107,8 @@ class AdRealEstateFilterModel {
       realEstateFinishing:
           realEstateFinishing ?? [RealEstateFinishing.full_finishing],
       groundSystem: groundSystem ?? [GroundSystem.residential],
+      buildingAge: buildingAge ?? BuildingAge.lessThan5,
+      shopOpenings: shopOpenings ?? ShopOpenings.one,
       streetsAroundCount: streetsAroundCount ?? [0],
       currencyId: currencyId,
     );

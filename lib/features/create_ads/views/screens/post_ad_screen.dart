@@ -9,23 +9,60 @@ import '../../../../core/widgets/main_bar.dart';
 import '../../../../core/widgets/side_menu.dart';
 import '../widgets/form_buttons.dart';
 
-class PostAdScreen extends StatelessWidget {
-  PostAdScreen({super.key});
+class PostAdScreen extends StatefulWidget {
+  const PostAdScreen({super.key});
 
+  @override
+  State<PostAdScreen> createState() => _PostAdScreenState();
+}
+
+class _PostAdScreenState extends State<PostAdScreen> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-  final CreateAdsController controller = Get.put(CreateAdsController());
+
+  late final CreateAdsController controller;
+
+  late final Map _args;
+  AdType? _adType;
+  int? _categoryId;
+  String _categoryTitle = 'Category';
+  RealEstateType? _initialRealEstateType;
+
+  @override
+  void initState() {
+    super.initState();
+
+    controller =
+        Get.isRegistered<CreateAdsController>()
+            ? Get.find<CreateAdsController>()
+            : Get.put(CreateAdsController());
+
+    _args = (Get.arguments ?? {}) as Map;
+
+    _adType = _args['adType'] as AdType?;
+    _categoryId = _args['categoryId'] as int?;
+    _categoryTitle = (_args['categoryTitle'] ?? 'Category').toString();
+    _initialRealEstateType = _args['realEstateType'] as RealEstateType?;
+
+    debugPrint('=== PostAdScreen args ===');
+    debugPrint('adType=$_adType');
+    debugPrint('categoryId=$_categoryId');
+    debugPrint('categoryTitle=$_categoryTitle');
+    debugPrint('realEstateType=$_initialRealEstateType');
+
+    controller.initFromArgs(
+      adTypeArg: _adType,
+      initialRealEstateType: _initialRealEstateType,
+      categoryIdArg: _categoryId,
+      categoryTitleArg: _categoryTitle,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final args = Get.arguments ?? {};
-    final String categoryTitle = args['categoryTitle'] ?? 'Category';
-    final AdType? adType =
-        args['adType'] as AdType? ?? _resolveAdTypeFromTitle(categoryTitle);
-
     return Scaffold(
       key: scaffoldKey,
       appBar: MainBar(
-        title: categoryTitle,
+        title: _categoryTitle,
         menu: true,
         scaffoldKey: scaffoldKey,
       ),
@@ -43,10 +80,7 @@ class PostAdScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   padding: const EdgeInsets.all(16.0),
-                  child: _buildStepForm(
-                    controller.currentStep.value,
-                    adType,
-                  ),
+                  child: _buildStepForm(controller.currentStep.value),
                 ),
               ),
             ),
@@ -60,30 +94,19 @@ class PostAdScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStepForm(int step, AdType? adType) {
+  Widget _buildStepForm(int step) {
     switch (step) {
       case 1:
         return PostAdDetailsForm(
           controller: controller,
-          adType: adType,
+          adType: _adType,
+          categoryId: _categoryId,
+          categoryTitle: _categoryTitle,
         );
       case 2:
         return PhotosForm(controller: controller);
       default:
         return const SizedBox();
     }
-  }
-
-  AdType? _resolveAdTypeFromTitle(String title) {
-    final normalized = title.toLowerCase();
-    if (normalized.contains('عقار') || normalized.contains('real estate')) {
-      return AdType.real_estates;
-    }
-    if (normalized.contains('مركبات') ||
-        normalized.contains('سيارة') ||
-        normalized.contains('vehicles')) {
-      return AdType.vehicles;
-    }
-    return null;
   }
 }

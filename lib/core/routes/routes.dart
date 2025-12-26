@@ -1,5 +1,6 @@
 import 'package:get/get_navigation/src/routes/get_route.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/features/create_ads/views/screens/post_ad_categories_screen.dart';
 import 'package:haraj_adan_app/features/my_account/binding/wallet_binding.dart';
 import '../../features/my_account/views/screens/deposit_screen.dart';
 import '../../features/my_account/views/screens/wallet_screen.dart';
@@ -70,6 +71,7 @@ class Routes {
   static const String selectAdScreen = '/select-ad-screen';
   static const String successPostedScreen = '/success-posted-screen';
   static const String postAdScreen = '/post-ad-screen';
+  static const String postAdCategoriesScreen = '/post-ad-categories';
 
   static List<GetPage> routes = [
     /// Authentication Screens
@@ -141,7 +143,7 @@ class Routes {
     GetPage(
       name: Routes.depositScreen,
       page: () => const DepositScreen(),
-      binding: WalletBinding(), 
+      binding: WalletBinding(),
     ),
 
     /// Create Ads Screens
@@ -150,6 +152,11 @@ class Routes {
     GetPage(
       name: Routes.successPostedScreen,
       page: () => SuccessPostedScreen(),
+    ),
+
+    GetPage(
+      name: Routes.postAdCategoriesScreen,
+      page: () => const PostAdCategoriesScreen(),
     ),
   ];
 }

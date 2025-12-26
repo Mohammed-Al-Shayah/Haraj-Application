@@ -33,6 +33,8 @@ class AdsResultScreen extends StatelessWidget {
     final categoryTitle =
         arguments?['categoryTitle'] as String? ?? AppStrings.searchResult;
     final AdType? passedAdType = arguments?['adType'] as AdType?;
+    final RealEstateType? passedRealEstateType =
+        arguments?['realEstateType'] as RealEstateType?;
     final int? categoryId = arguments?['categoryId'] as int?;
     final int? subCategoryId = arguments?['subCategoryId'] as int?;
     final int? subSubCategoryId = arguments?['subSubCategoryId'] as int?;
@@ -43,6 +45,13 @@ class AdsResultScreen extends StatelessWidget {
     final adType =
         passedAdType ??
         _resolveAdType(categoryTitle, parentCategoryName, parentCategoryNameEn);
+    final realEstateType =
+        passedRealEstateType ??
+        _resolveRealEstateType(
+          categoryTitle,
+          parentCategoryName,
+          parentCategoryNameEn,
+        );
 
     final controller = Get.put(
       AdController(
@@ -107,7 +116,9 @@ class AdsResultScreen extends StatelessWidget {
                     children: [
                       FilterSortSelector(
                         assetIcon: AppAssets.filterIcon,
-                        onPress: () => _openFilterBottomSheet(adType),
+                        onPress:
+                            () =>
+                                _openFilterBottomSheet(adType, realEstateType),
                       ),
                       const SizedBox(width: 8),
                       FilterSortSelector(
@@ -257,11 +268,31 @@ class AdsResultScreen extends StatelessWidget {
     );
   }
 
-  void _openFilterBottomSheet(AdType type) {
+  void _openFilterBottomSheet(
+    AdType type, [
+    RealEstateType? initialRealEstateType,
+  ]) {
+    final args = Get.arguments as Map<String, dynamic>?;
+
+    final String categoryTitle =
+        args?['categoryTitle'] as String? ?? AppStrings.searchResult;
+
+    final int categoryId = (args?['categoryId'] as int?) ?? 0;
+
     final bottomSheet =
         type == AdType.real_estates
-            ? const RealEstateFilter()
-            : const VehicleFilter();
+            ? RealEstateFilter(
+              categoryId: categoryId,
+              categoryTitle: categoryTitle,
+              adType: AdType.real_estates,
+              initialType: initialRealEstateType,
+            )
+            : VehicleFilter(
+              categoryId: categoryId,
+              categoryTitle: categoryTitle,
+              adType: AdType.vehicles,
+            );
+
     Get.bottomSheet(bottomSheet, isScrollControlled: true);
   }
 
@@ -283,7 +314,17 @@ class AdsResultScreen extends StatelessWidget {
         joined.contains('realestate') ||
         joined.contains('real_estate') ||
         joined.contains('عقار') ||
-        joined.contains('عقارات')) {
+        joined.contains('عقارات') ||
+        joined.contains('بيت') ||
+        joined.contains('بيوت') ||
+        joined.contains('شقة') ||
+        joined.contains('شقق') ||
+        joined.contains('فيلا') ||
+        joined.contains('فلل') ||
+        joined.contains('فلة') ||
+        joined.contains('ارض') ||
+        joined.contains('اراضي') ||
+        joined.contains('أراضي')) {
       return AdType.real_estates;
     }
 
@@ -293,11 +334,45 @@ class AdsResultScreen extends StatelessWidget {
         joined.contains('cars') ||
         joined.contains('سيارة') ||
         joined.contains('سيارات') ||
-        joined.contains('مركبات')) {
+        joined.contains('مركبة') ||
+        joined.contains('مركبات') ||
+        joined.contains('عربية') ||
+        joined.contains('عربيات')) {
       return AdType.vehicles;
     }
 
     return AdType.vehicles;
+  }
+
+  RealEstateType? _resolveRealEstateType(
+    String categoryTitle,
+    String parentName,
+    String parentNameEn,
+  ) {
+    final joined = <String>[
+      categoryTitle,
+      parentName,
+      parentNameEn,
+    ].map(_normalizeName).where((e) => e.isNotEmpty).join(' ');
+
+    if (joined.contains('house')) {
+      return RealEstateType.houses;
+    }
+    if (joined.contains('apartment') ||
+        joined.contains('apart') ) {
+      return RealEstateType.apartments;
+    }
+    if (joined.contains('building')) {
+      return RealEstateType.buildings;
+    }
+    if (joined.contains('land')) {
+      return RealEstateType.lands;
+    }
+    if (joined.contains('villa')) {
+      return RealEstateType.villas;
+    }
+
+    return null;
   }
 
   String _normalizeName(String input) {
