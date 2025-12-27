@@ -1,12 +1,13 @@
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/domain/repositories/post_ad_repository.dart';
+import 'package:haraj_adan_app/features/home/models/category.model.dart';
 
 class PostAdCategoriesController extends GetxController {
   final PostAdRepository repo;
   PostAdCategoriesController(this.repo);
 
   final isLoading = false.obs;
-  final parents = <dynamic>[].obs;
+  final parents = <CategoryModel>[].obs;
 
   @override
   void onInit() {
@@ -17,14 +18,28 @@ class PostAdCategoriesController extends GetxController {
   Future<void> loadCategories() async {
     isLoading(true);
     try {
-      parents.assignAll(await repo.getParentCategories());
+      final raw = await repo.getParentCategories();
+      final list = raw
+          .whereType<Map<String, dynamic>>()
+          .map(CategoryModel.fromJson)
+          .toList();
+      parents.assignAll(list);
     } finally {
       isLoading(false);
     }
   }
 
-  void onSelectChildCategory(int childCategoryId) {
-    // ✅ rule: only child IDs
-    Get.toNamed('/post-ad', arguments: {'categoryId': childCategoryId});
+  void onSelectCategory(CategoryModel category) {
+    // Business rule: only non-root categories are valid for posting.
+    // Root categories are the ones with parent_id == null.
+    if (category.parentId == null) {
+      Get.snackbar('Error', 'Please choose a sub-category');
+      return;
+    }
+
+    Get.toNamed('/post-ad', arguments: {
+      'categoryId': category.id,
+      'categoryTitle': category.title,
+    });
   }
 }

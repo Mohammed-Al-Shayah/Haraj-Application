@@ -355,11 +355,18 @@ class AdsResultScreen extends StatelessWidget {
       parentNameEn,
     ].map(_normalizeName).where((e) => e.isNotEmpty).join(' ');
 
+    if (joined.contains('shop') ||
+        joined.contains('store') ||
+        joined.contains('commercial') ||
+        joined.contains('محل') ||
+        joined.contains('محلات تجارية') ||
+        joined.contains('تجاري')) {
+      return RealEstateType.shops;
+    }
     if (joined.contains('house')) {
       return RealEstateType.houses;
     }
-    if (joined.contains('apartment') ||
-        joined.contains('apart') ) {
+    if (joined.contains('apartment') || joined.contains('apart')) {
       return RealEstateType.apartments;
     }
     if (joined.contains('building')) {

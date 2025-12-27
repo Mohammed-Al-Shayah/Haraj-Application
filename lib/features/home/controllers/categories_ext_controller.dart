@@ -14,6 +14,7 @@ extension HomeCategoriesExtension on HomeController {
           final fallbackNameEn = c.nameEn.isNotEmpty ? c.nameEn : c.name;
           return ui_category.CategoryModel(
             id: c.id,
+            parentId: c.parentId,
             name: c.name,
             nameEn: fallbackNameEn,
             image: c.image,

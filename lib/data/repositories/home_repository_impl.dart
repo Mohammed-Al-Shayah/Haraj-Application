@@ -63,6 +63,7 @@ class HomeRepositoryImpl implements HomeRepository {
   ui_category.CategoryModel _mapCategory(data_cat.CategoryModel e) {
     return ui_category.CategoryModel(
       id: e.id,
+      parentId: e.parentId,
       name: e.name,
       nameEn: e.nameEn.isNotEmpty ? e.nameEn : e.name,
       image: e.iconPath,
@@ -71,11 +72,24 @@ class HomeRepositoryImpl implements HomeRepository {
           .map(
             (sub) => ui_category.CategoryModel(
               id: sub.id,
+              parentId: sub.parentId ?? e.id,
               name: sub.title,
               nameEn: sub.title,
               image: '',
               adsCount: sub.adsCount,
-              children: const [],
+              children: sub.subSubCategories
+                  .map(
+                    (child) => ui_category.CategoryModel(
+                      id: child.id,
+                      parentId: sub.id,
+                      name: child.title,
+                      nameEn: child.title,
+                      image: '',
+                      adsCount: 0,
+                      children: const [],
+                    ),
+                  )
+                  .toList(),
             ),
           )
           .toList(),

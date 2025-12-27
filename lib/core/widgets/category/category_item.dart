@@ -1,10 +1,13 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/data/datasources/categories_remote_datasource.dart';
 import 'package:localize_and_translate/localize_and_translate.dart';
 
+import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/core/theme/assets.dart';
@@ -14,6 +17,9 @@ import 'package:haraj_adan_app/core/theme/typography.dart';
 import 'package:haraj_adan_app/features/home/models/category.model.dart';
 import 'package:haraj_adan_app/features/filters/models/enums.dart';
 
+import 'package:haraj_adan_app/data/repositories/categories_repository_impl.dart';
+import 'package:haraj_adan_app/features/home/controllers/category_leaf_controller.dart';
+
 class CategoryItem extends StatelessWidget {
   final CategoryModel category;
   final bool isLast;
@@ -22,7 +28,7 @@ class CategoryItem extends StatelessWidget {
   /// ✅ النوع اللي جاي من الأب (مثلاً: عقارات => real_estates)
   final AdType? inheritedAdType;
 
-  CategoryItem({
+  const CategoryItem({
     super.key,
     required this.category,
     required this.isLast,
@@ -47,17 +53,19 @@ class CategoryItem extends StatelessWidget {
         currentLanguage == 'en' && category.nameEn.isNotEmpty
             ? category.nameEn
             : category.name;
+
     final AdType? adType = inheritedAdType ?? _resolveAdType(category);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap:
-          () => _onTapCategory(
-            context: context,
-            category: category,
-            displayName: displayName,
-            adType: adType,
-          ),
+      onTap: () async {
+        await _onTapCategory(
+          context: context,
+          category: category,
+          displayName: displayName,
+          adType: adType,
+        );
+      },
       child: Column(
         children: [
           const SizedBox(height: 16),
@@ -109,12 +117,12 @@ class CategoryItem extends StatelessWidget {
     );
   }
 
-  void _onTapCategory({
+  Future<void> _onTapCategory({
     required BuildContext context,
     required CategoryModel category,
     required String displayName,
     required AdType? adType,
-  }) {
+  }) async {
     // اغلاق drawer لو مفتوح
     if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
       Navigator.of(context).pop();
@@ -133,7 +141,8 @@ class CategoryItem extends StatelessWidget {
       return;
     }
 
-    // ✅ PostAd flow: لو فيه children روح شاشة subcategories (وبنفس الوقت ورّث النوع)
+    // ✅ PostAd flow:
+    // 1) لو local عنده children => افتح subcategories
     if (category.children.isNotEmpty) {
       Get.toNamed(
         Routes.subcategoriesScreen,
@@ -146,13 +155,29 @@ class CategoryItem extends StatelessWidget {
       return;
     }
 
-    // ✅ Leaf => افتح PostAd مباشرة + realEstateType مضبوط
+    // 2) local leaf => ✅ VERIFY from server (مطلب العميل)
+    final CategoryModel verified = await _verifyLeafFromServer(category);
+
+    // لو السيرفر قال إن إلها children => ممنوع PostAd مباشرة
+    if (verified.children.isNotEmpty) {
+      Get.toNamed(
+        Routes.subcategoriesScreen,
+        arguments: {
+          'category': verified,
+          'isPostAdFlow': true,
+          'adType': adType,
+        },
+      );
+      return;
+    }
+
+    // 3) server leaf => افتح PostAd
     Get.toNamed(
       Routes.postAdScreen,
       arguments: {
-        'category': category,
+        'category': verified,
         'categoryTitle': displayName,
-        'categoryId': category.id,
+        'categoryId': verified.id,
         'adType': adType,
         'realEstateType':
             adType == AdType.real_estates
@@ -162,10 +187,39 @@ class CategoryItem extends StatelessWidget {
     );
   }
 
+  Future<CategoryModel> _verifyLeafFromServer(CategoryModel category) async {
+    // init leaf controller once
+    final CategoryLeafController leafCtrl = Get.put(
+      CategoryLeafController(
+        repo: CategoriesRepositoryImpl(
+          CategoriesRemoteDataSourceImpl(ApiClient(client: Dio())),
+        ),
+      ),
+      permanent: true,
+    );
+
+    CategoryModel result = category;
+
+    try {
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+
+      final fresh = await leafCtrl.fetchFreshCategory(category.id);
+      if (fresh != null) {
+        result = fresh;
+      }
+    } finally {
+      if (Get.isDialogOpen == true) Get.back();
+    }
+
+    return result;
+  }
+
   RealEstateType _mapRealEstateType(String name) {
     final String n = name.toLowerCase();
 
-    // ✅ مهم: زود "منازل" و "منزل" لأنها غالباً بتيجي من الـ API بدل "بيوت"
     if (n.contains('بيوت') ||
         n.contains('بيت') ||
         n.contains('منازل') ||

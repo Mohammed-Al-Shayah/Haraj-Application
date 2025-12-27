@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:haraj_adan_app/data/datasources/post_ad_remote_datasource.dart';
 import 'package:haraj_adan_app/domain/repositories/post_ad_repository.dart';
 
-
 class PostAdRepositoryImpl implements PostAdRepository {
   final PostAdRemoteDataSource remote;
   PostAdRepositoryImpl(this.remote);
@@ -36,20 +35,21 @@ class PostAdRepositoryImpl implements PostAdRepository {
     required List<File> images,
     required List<Map<String, dynamic>> attributes,
     Map<String, dynamic>? featured,
-  }) =>
-      remote.createAd(
-        userId: userId,
-        categoryId: categoryId,
-        title: title,
-        titleEn: titleEn,
-        price: price,
-        currencyId: currencyId,
-        descr: descr,
-        lat: lat,
-        lng: lng,
-        address: address,
-        images: images,
-        attributes: attributes,
-        featured: featured,
-      );
+  }) async {
+    return remote.createAd(
+      userId: userId,
+      categoryId: categoryId,
+      title: title,
+      titleEn: titleEn,
+      price: price,
+      currencyId: currencyId,
+      descr: descr,
+      lat: lat,
+      lng: lng,
+      address: address,
+      images: images,
+      attributes: attributes,
+      featured: featured,
+    );
+  }
 }

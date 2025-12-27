@@ -396,10 +396,10 @@ class AppStrings {
 
   // Real estate extras
   static String get buildingAge => 'building_age'.tr();
-  static String get buildingAgeLessThan5 => 'building_age.lessThan5'.tr();
+  static String get buildingAgeLessThan5 => 'building_age_lessThan5'.tr();
   static String get buildingAgeBetween5And15 =>
-      'building_age.between5And15'.tr();
-  static String get buildingAgeMoreThan15 => 'building_age.moreThan15'.tr();
+      'building_age_between5And15'.tr();
+  static String get buildingAgeMoreThan15 => 'building_age_moreThan15'.tr();
   static String get internalFeatures => 'internal_features'.tr();
   static String get gardenFeature => 'garden_feature'.tr();
   static String get telephoneLine => 'telephone_line'.tr();
@@ -421,6 +421,10 @@ class AppStrings {
   static String get nearCafe => 'near_cafe'.tr();
   static String get nearFireStation => 'near_fire_station'.tr();
   static String get nearPoliceStation => 'near_police_station'.tr();
+  static String get nearBank => 'near_bank'.tr();
+  static String get nearPopularMarket => 'near_popular_market'.tr();
+  static String get nearUniversity => 'near_university'.tr();
+  static String get nearGym => 'near_gym'.tr();
   static String get shopOpenings => 'shop_openings'.tr();
   static String get shopOpeningsOne => 'shop_openings.one'.tr();
   static String get shopOpeningsTwo => 'shop_openings.two'.tr();
@@ -433,4 +437,38 @@ class AppStrings {
   static String get shopOpeningsNine => 'shop_openings.nine'.tr();
   static String get shopOpeningsMoreThanNine =>
       'shop_openings.more_than_nine'.tr();
+  static String get apartmentFeatures => 'apartment_features'.tr();
+  static String get aptFeatureAc => 'apt_feature_ac'.tr();
+  static String get aptFeatureCameras => 'apt_feature_cameras'.tr();
+  static String get aptFeatureGenerator => 'apt_feature_generator'.tr();
+  static String get aptFeatureEnsuiteBathroom =>
+      'apt_feature_ensuite_bathroom'.tr();
+  static String get aptFeatureArabicToilet =>
+      'apt_feature_arabic_toilet'.tr();
+  static String get aptFeatureInternetLine =>
+      'apt_feature_internet_line'.tr();
+  static String get aptFeatureLandline => 'apt_feature_landline'.tr();
+
+  // Commercial shops
+  static String get commercialCategory => 'commercial_category'.tr();
+  static String get commercialCategoryMulti => 'commercial_category_multi'.tr();
+  static String get commercialCategoryOffices =>
+      'commercial_category_offices'.tr();
+  static String get commercialCategoryRetail =>
+      'commercial_category_retail'.tr();
+  static String get commercialCategoryHospitality =>
+      'commercial_category_hospitality'.tr();
+  static String get businessActive => 'business_active'.tr();
+  static String get readyForWork => 'ready_for_work'.tr();
+  static String get commercialOwner => 'commercial_owner'.tr();
+  static String get commercialOwnerOwner => 'commercial_owner_owner'.tr();
+  static String get commercialOwnerAgency => 'commercial_owner_agency'.tr();
+  static String get commercialOwnerOther => 'commercial_owner_other'.tr();
+  static String get commercialInternalFeatures =>
+      'commercial_internal_features'.tr();
+  static String get commercialElevator => 'commercial_elevator'.tr();
+  static String get commercialCameras => 'commercial_cameras'.tr();
+  static String get commercialGenerator => 'commercial_generator'.tr();
+  static String get commercialLandline => 'commercial_landline'.tr();
+  static String get commercialInternetLine => 'commercial_internet_line'.tr();
 }

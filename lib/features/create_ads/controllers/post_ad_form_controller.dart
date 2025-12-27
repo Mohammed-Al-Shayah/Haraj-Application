@@ -1,49 +1,62 @@
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/domain/repositories/post_ad_repository.dart';
+import 'package:haraj_adan_app/features/create_ads/controllers/create_ads_controller.dart';
+import 'package:haraj_adan_app/features/filters/models/enums.dart';
+import 'package:haraj_adan_app/core/routes/routes.dart';
+import 'package:localize_and_translate/localize_and_translate.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PostAdFormController extends GetxController {
+  PostAdFormController({required this.repo, required this.categoryId});
+
+  // Dependencies
   final PostAdRepository repo;
   final int categoryId;
 
-  PostAdFormController({required this.repo, required this.categoryId});
-
   // Form fields
-  final title = ''.obs;
-  final titleEn = ''.obs;
-  final price = ''.obs;
-  final descr = ''.obs;
-  final currencyId = 1.obs;
+  final RxString title = ''.obs;
+  final RxString titleEn = ''.obs;
+  final RxString price = ''.obs;
+  final RxString descr = ''.obs;
+  final RxInt currencyId = 1.obs;
 
-  final lat = ''.obs;
-  final lng = ''.obs;
-  final address = ''.obs;
+  final RxString lat = ''.obs;
+  final RxString lng = ''.obs;
+  final RxString address = ''.obs;
 
-  final images = <File>[].obs;
+  final RxList<File> images = <File>[].obs;
 
-  // Dynamic attributes from API
-  final attributesSchema = <dynamic>[].obs; // raw
-  final selectedAttributes =
-      <int, dynamic>{}.obs; // category_attribute_id -> value
+  // Attributes
+  final RxList<dynamic> attributesSchema = <dynamic>[].obs;
 
-  // Featured
-  final featuredPricePerDay = 0.0.obs;
-  final featuredDefaultDays = 0.obs;
-  final discounts = <dynamic>[].obs;
-  final selectedDiscountId = RxnInt();
-  final selectedDiscountPercentage = 0.0.obs;
-  final selectedDiscountPeriod = 0.obs;
-  final isFeaturedEnabled = false.obs;
+  // Selected values keyed by attribute_id:
 
-  // Wallet balance (read from prefs/user data)
-  final walletBalance = 0.0.obs;
+  final RxMap<int, dynamic> selectedAttributes = <int, dynamic>{}.obs;
 
-  // Loading
-  final isLoading = false.obs;
-  final isSubmitting = false.obs;
+  // Featured / Discounts
+  final RxDouble featuredPricePerDay = 0.0.obs;
+  final RxInt featuredDefaultDays = 0.obs;
 
+  final RxList<dynamic> discounts = <dynamic>[].obs;
+  final RxnInt selectedDiscountId = RxnInt();
+  final RxDouble selectedDiscountPercentage = 0.0.obs;
+  final RxInt selectedDiscountPeriod = 0.obs;
+
+  final RxBool isFeaturedEnabled = false.obs;
+
+  // Wallet / Loading
+  final RxDouble walletBalance = 0.0.obs;
+
+  final RxBool isLoading = false.obs;
+  final RxBool isSubmitting = false.obs;
+
+  // Lifecycle
   @override
   void onInit() {
     super.onInit();
@@ -51,6 +64,11 @@ class PostAdFormController extends GetxController {
   }
 
   Future<void> _init() async {
+    if (categoryId <= 0) {
+      Get.snackbar('Error', 'Category is required before posting an ad');
+      return;
+    }
+
     isLoading(true);
     try {
       await _loadWalletBalance();
@@ -62,19 +80,32 @@ class PostAdFormController extends GetxController {
     }
   }
 
+  // Parsing helpers
+  double _asDouble(dynamic v) {
+    if (v == null) return 0.0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0.0;
+  }
+
+  int _asInt(dynamic v) {
+    if (v == null) return 0;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString()) ?? 0;
+  }
+
+  // Loaders
   Future<void> _loadWalletBalance() async {
-    // حسب مشروعك: انت مخزن _userData في prefs
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('_userData');
     if (userJson == null) return;
 
-    final user = jsonDecode(userJson);
+    final dynamic user = jsonDecode(userJson);
+    final dynamic walletList = (user is Map) ? user['user_wallet'] : null;
 
-    // حاول تدور على balance من user_wallet
-    final walletList = user['user_wallet'];
     if (walletList is List && walletList.isNotEmpty) {
-      final bal = walletList.first['balance'];
-      walletBalance.value = double.tryParse(bal.toString()) ?? 0.0;
+      final dynamic bal = walletList.first['balance'];
+      walletBalance.value = _asDouble(bal);
     }
   }
 
@@ -82,146 +113,582 @@ class PostAdFormController extends GetxController {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('_userData');
     if (userJson == null) return null;
-    final user = jsonDecode(userJson);
-    final id = user['id'] ?? user['user_id'];
+
+    final dynamic user = jsonDecode(userJson);
+    final dynamic id = (user is Map) ? (user['id'] ?? user['user_id']) : null;
+
     if (id is num) return id.toInt();
     if (id is String) return int.tryParse(id);
     return null;
   }
 
   Future<void> _loadAttributes() async {
-    final res = await repo.getCategoryAttributes(categoryId);
-    final list = (res['category_attributes'] as List?) ?? [];
+    if (kDebugMode) debugPrint('Loading attributes for categoryId=$categoryId');
+
+    // NOTE: Remote layer returns response['data'] directly (category object).
+    final Map<String, dynamic> category = await repo.getCategoryAttributes(
+      categoryId,
+    );
+
+    final List<dynamic> list =
+        (category['category_attributes'] as List?) ?? <dynamic>[];
+
     attributesSchema.assignAll(list);
   }
 
   Future<void> _loadFeaturedSettings() async {
-    final res = await repo.getFeaturedSettings();
-    featuredPricePerDay.value =
-        (res['featured_ad_price'] as num?)?.toDouble() ?? 0.0;
-    featuredDefaultDays.value =
-        (res['featured_ad_days_count'] as num?)?.toInt() ?? 0;
+    // NOTE: Remote layer returns response['data'] directly.
+    final Map<String, dynamic> data = await repo.getFeaturedSettings();
+
+    // featured_ad_price can be string: "100"
+    featuredPricePerDay.value = _asDouble(data['featured_ad_price']);
+    featuredDefaultDays.value = _asInt(data['featured_ad_days_count']);
   }
 
   Future<void> _loadDiscounts() async {
     discounts.assignAll(await repo.getDiscounts());
   }
 
-  // Featured price formula (حسب العميل)
+  // Location
+  Future<Position?> _getCurrentPosition() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return null;
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return null;
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      return null;
+    }
+    return Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+  }
+
+  Future<void> ensureLocationIfEmpty() async {
+    if (lat.isNotEmpty && lng.isNotEmpty) return;
+    final pos = await _getCurrentPosition();
+    if (pos != null) {
+      lat.value = pos.latitude.toString();
+      lng.value = pos.longitude.toString();
+    }
+  }
+
+  // Normalization / Finders (for auto-mapping specs -> attributes)
+  String _normalize(String v) {
+    return v
+        .toLowerCase()
+        .replaceAll(RegExp(r'[_]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  Map<String, dynamic>? _findAttr(List<String> candidates) {
+    if (attributesSchema.isEmpty) return null;
+
+    final List<String> cands = candidates.map(_normalize).toList();
+
+    for (final raw in attributesSchema) {
+      if (raw is! Map) continue;
+
+      final String name = _normalize((raw['name'] ?? '').toString());
+      final String nameEn = _normalize((raw['name_en'] ?? '').toString());
+
+      if (cands.contains(name) || cands.contains(nameEn)) {
+        return Map<String, dynamic>.from(raw);
+      }
+    }
+    return null;
+  }
+
+  int? _findValueId(Map<String, dynamic> attr, List<String> candidates) {
+    final List<dynamic> values =
+        (attr['category_attributes_values'] as List?) ?? <dynamic>[];
+
+    if (values.isEmpty) return null;
+
+    final List<String> cands = candidates.map(_normalize).toList();
+
+    for (final v in values) {
+      if (v is! Map) continue;
+
+      final String name = _normalize((v['name'] ?? '').toString());
+      final String nameEn = _normalize((v['name_en'] ?? '').toString());
+
+      if (cands.contains(name) || cands.contains(nameEn)) {
+        return _asInt(v['id']);
+      }
+    }
+    return null;
+  }
+
+  bool _isCheckbox(Map<String, dynamic> attr) {
+    final dynamic typeObj = attr['category_attributes_types'];
+    final String code =
+        (typeObj is Map ? (typeObj['code'] ?? '') : '').toString().trim();
+    return code.toLowerCase() == 'checkbox';
+  }
+
+  // ============================================================
+  // Setters (write into selectedAttributes)
+  // ============================================================
+  void _setText(Map<String, dynamic>? attr, dynamic value) {
+    if (attr == null || value == null) return;
+
+    final int id = _asInt(attr['id']);
+    if (id <= 0) return;
+
+    final String s = value.toString().trim();
+    if (s.isEmpty) return;
+
+    selectedAttributes[id] = s;
+  }
+
+  void _setSelect(Map<String, dynamic>? attr, List<String> valueCandidates) {
+    if (attr == null) return;
+
+    final int id = _asInt(attr['id']);
+    if (id <= 0) return;
+
+    final int? valId = _findValueId(attr, valueCandidates);
+    if (valId == null || valId <= 0) return;
+
+    selectedAttributes[id] = valId;
+  }
+
+  void _setCheckbox(
+    Map<String, dynamic>? attr,
+    List<List<String>> valuesCandidates,
+  ) {
+    if (attr == null) return;
+
+    final int id = _asInt(attr['id']);
+    if (id <= 0) return;
+
+    final List<int> out = <int>[];
+
+    for (final c in valuesCandidates) {
+      final int? valId = _findValueId(attr, c);
+      if (valId != null && valId > 0 && !out.contains(valId)) out.add(valId);
+    }
+
+    if (out.isNotEmpty) {
+      selectedAttributes[id] = out;
+    }
+  }
+
+  void _setSelectOrCheckbox(
+    Map<String, dynamic>? attr,
+    List<List<String>> valuesCandidates,
+  ) {
+    if (attr == null) return;
+
+    if (_isCheckbox(attr)) {
+      _setCheckbox(attr, valuesCandidates);
+      return;
+    }
+
+    // If it's radio/select, pick first candidate group only.
+    if (valuesCandidates.isNotEmpty) {
+      _setSelect(attr, valuesCandidates.first);
+    }
+  }
+
+  // Mappers (business mapping -> candidates)
+  List<String> _currencyCandidatesById(int id) {
+    if (id == CurrencyOption.rialYemeni.index) {
+      return <String>['ريال', 'ريال يمني', 'yemeni rial', 'rial'];
+    }
+    if (id == CurrencyOption.dollarUsd.index) {
+      return <String>['usd', 'dollar', 'دولار', 'us dollar'];
+    }
+    if (id == CurrencyOption.poundEgp.index) {
+      return <String>['egp', 'pound', 'جنيه', 'جنية', 'egyptian pound'];
+    }
+    if (id == CurrencyOption.euro.index) {
+      return <String>['euro', 'يورو'];
+    }
+    return <String>[];
+  }
+
+  List<String> _nearbyCandidates(NearbyPlace v) {
+    switch (v) {
+      case NearbyPlace.airport:
+        return <String>['airport', 'مطار'];
+      case NearbyPlace.beach:
+        return <String>['seaside', 'beach', 'شاطئ البحر'];
+      case NearbyPlace.downtown:
+        return <String>['city center', 'مركز المدينة'];
+      case NearbyPlace.hospital:
+        return <String>['hospital', 'مستشفى'];
+      case NearbyPlace.amusement:
+        return <String>['night clubs', 'ملاهي'];
+      case NearbyPlace.school:
+        return <String>['school', 'مدرسة'];
+      case NearbyPlace.supermarket:
+        return <String>['supermarket', 'سوبر ماركت'];
+      case NearbyPlace.mosque:
+        return <String>['mosque', 'مسجد'];
+      case NearbyPlace.mall:
+        return <String>['mall', 'مول'];
+      case NearbyPlace.clothingCenter:
+        return <String>['clothing center', 'مركز ملابس'];
+      case NearbyPlace.restaurant:
+        return <String>['restaurant', 'مطعم'];
+      case NearbyPlace.cafe:
+        return <String>['cafe', 'مقهى', 'كوفي'];
+      case NearbyPlace.fireStation:
+        return <String>['fire station', 'إطفاء'];
+      case NearbyPlace.policeStation:
+        return <String>['police', 'شرطة', 'مركز شرطة'];
+      case NearbyPlace.bank:
+        return <String>['bank', 'بنك'];
+      case NearbyPlace.popularMarket:
+        return <String>['popular market', 'سوق شعبي'];
+      case NearbyPlace.university:
+        return <String>['university', 'جامعة'];
+      case NearbyPlace.gym:
+        return <String>['gym', 'نادي رياضي'];
+    }
+  }
+
+  // Sync Specs -> Attributes
+  void syncRealEstateSpecsToAttributes(dynamic specs) {
+    if (attributesSchema.isEmpty || specs == null) return;
+
+    // Basic numeric/text
+    _setText(
+      _findAttr(<String>[
+        'rooms',
+        'room',
+        'عدد الغرف',
+        'غرف',
+        'number of rooms',
+      ]),
+      specs.realEstateRooms,
+    );
+
+    _setText(
+      _findAttr(<String>[
+        'bathroom',
+        'bathrooms',
+        'عدد الحمامات',
+        'number of bathrooms',
+      ]),
+      specs.realEstateBaths,
+    );
+
+    _setText(
+      _findAttr(<String>['floor', 'floors', 'عدد الطوابق', 'floors count']),
+      specs.realEstateFloors,
+    );
+
+    final String spaceText = specs.realEstateSpace?.text ?? '';
+    _setText(
+      _findAttr(<String>['space', 'area', 'مساحة', 'المساحة']),
+      spaceText.isNotEmpty ? spaceText : null,
+    );
+
+    // Furnishing
+    final furnAttr = _findAttr(<String>[
+      'furnishing',
+      'التأثيث',
+      'furnishing type',
+    ]);
+    if (specs.realEstateFurnitureType is List &&
+        specs.realEstateFurnitureType.isNotEmpty) {
+      final furn = specs.realEstateFurnitureType.first;
+      if (furn == RealEstateFurnitureType.yes) {
+        _setSelect(furnAttr, <String>['furnished', 'مؤثث']);
+      } else if (furn == RealEstateFurnitureType.no) {
+        _setSelect(furnAttr, <String>['unfurnished', 'غير مؤثث']);
+      } else if (furn == RealEstateFurnitureType.semi_furnished) {
+        _setSelect(furnAttr, <String>['semi furnished', 'شبه مؤثث']);
+      }
+    }
+
+    // Finishing
+    final finishAttr = _findAttr(<String>[
+      'finishing',
+      'التشطيب',
+      'finishing type',
+    ]);
+    if (specs.realEstateFinishing is List &&
+        specs.realEstateFinishing.isNotEmpty) {
+      final fin = specs.realEstateFinishing.first;
+      if (fin == RealEstateFinishing.full_finishing) {
+        _setSelect(finishAttr, <String>['finished', 'مشطبة', 'مشطب']);
+      } else if (fin == RealEstateFinishing.part_finishing) {
+        _setSelect(finishAttr, <String>[
+          'semi finished',
+          'شبه مشطبة',
+          'شبه مشطب',
+        ]);
+      } else if (fin == RealEstateFinishing.without_finishing) {
+        _setSelect(finishAttr, <String>['unfinished', 'غير مشطب', 'غير مشطبة']);
+      }
+    }
+
+    // Currency (checkbox OR select based on schema type)
+    final currencyAttr = _findAttr(<String>['currency', 'العملة']);
+    final List<String> curCands = _currencyCandidatesById(currencyId.value);
+    if (currencyAttr != null && curCands.isNotEmpty) {
+      _setSelectOrCheckbox(currencyAttr, <List<String>>[curCands]);
+    }
+
+    // Ad Type (sale/rent/exchange)
+    final adTypeAttr = _findAttr(<String>[
+      'ad type',
+      'نوع الاعلان',
+      'نوع الإعلان',
+    ]);
+    if (adTypeAttr != null &&
+        specs.adCategory is List &&
+        specs.adCategory.isNotEmpty) {
+      final cat = specs.adCategory.first;
+      if (cat == AdCategory.sell) {
+        _setSelect(adTypeAttr, <String>['sale', 'بيع']);
+      } else if (cat == AdCategory.rent) {
+        _setSelect(adTypeAttr, <String>['rent', 'إيجار', 'ايجار']);
+      } else if (cat == AdCategory.Switch) {
+        _setSelect(adTypeAttr, <String>[
+          'exchange',
+          'بدل',
+          'استبدال',
+          'إستبدال',
+        ]);
+      }
+    }
+
+    // Building Age
+    final ageAttr = _findAttr(<String>[
+      'building age',
+      'عمر المبنى',
+      'عمر البناء',
+    ]);
+    if (specs.buildingAge != null) {
+      switch (specs.buildingAge) {
+        case BuildingAge.lessThan5:
+          _setSelect(ageAttr, <String>['under 5 years', 'أقل من 5 سنوات']);
+          break;
+        case BuildingAge.between5And15:
+          _setSelect(ageAttr, <String>['between 5 and 15', 'بين 5 و 15 سنة']);
+          break;
+        case BuildingAge.moreThan15:
+          _setSelect(ageAttr, <String>['more than 15', 'أكثر من 15 سنة']);
+          break;
+      }
+    }
+
+    // Nearby: from CreateAdsController (take first)
+    if (Get.isRegistered<CreateAdsController>()) {
+      final ctrl = Get.find<CreateAdsController>();
+      if (ctrl.nearbyPlaces.isNotEmpty) {
+        final nearAttr = _findAttr(<String>['قريبة من', 'close to', 'near']);
+        final List<String> cands = _nearbyCandidates(ctrl.nearbyPlaces.first);
+        if (nearAttr != null && cands.isNotEmpty) {
+          _setSelect(nearAttr, cands);
+        }
+      }
+    }
+  }
+
+  // Featured math
   double calculateFeaturedFinalPrice() {
-    final perDay = featuredPricePerDay.value;
-    final defaultDays = featuredDefaultDays.value;
+    final double perDay = featuredPricePerDay.value;
+    final int defaultDays = featuredDefaultDays.value;
 
-    final discountPeriod = selectedDiscountPeriod.value;
-    final discountPct = selectedDiscountPercentage.value;
+    final int extraDays = selectedDiscountPeriod.value;
+    final double pct = selectedDiscountPercentage.value;
 
-    final totalDays = defaultDays + discountPeriod;
-    final gross = perDay * totalDays;
-    final discountAmount = gross * (discountPct / 100.0);
-    final finalPrice = gross - discountAmount;
+    final int totalDays = defaultDays + extraDays;
+    final double gross = perDay * totalDays;
+    final double discount = gross * (pct / 100.0);
 
-    return finalPrice;
+    return gross - discount;
   }
 
   bool canPayFeatured() {
     if (!isFeaturedEnabled.value) return true;
-    final finalPrice = calculateFeaturedFinalPrice();
-    return walletBalance.value >= finalPrice;
+    return walletBalance.value >= calculateFeaturedFinalPrice();
   }
 
-  // Validation rules
+  void setFeaturedEnabled(bool enabled) {
+    isFeaturedEnabled.value = enabled;
+    if (!enabled) {
+      selectDiscount(null);
+    }
+  }
+
+  // Validation + Payload
   bool validateRequiredAttributes() {
-    for (final attr in attributesSchema) {
-      if (attr is! Map) continue;
-      final isRequired = attr['is_required'] == true;
-      if (!isRequired) continue;
+    for (final raw in attributesSchema) {
+      if (raw is! Map) continue;
+      if (raw['is_required'] != true) continue;
 
-      final id = (attr['id'] as num?)?.toInt() ?? 0;
-      final value = selectedAttributes[id];
+      final int id = _asInt(raw['id']);
+      if (id <= 0) continue;
 
-      final ok = value != null && value.toString().trim().isNotEmpty;
+      final dynamic v = selectedAttributes[id];
+
+      // Required can be:
+      // - int (valueId)
+      // - List<int> (checkbox)
+      // - String (text/number)
+      final bool ok =
+          v != null &&
+          ((v is List) ? v.isNotEmpty : v.toString().trim().isNotEmpty);
+
       if (!ok) return false;
     }
     return true;
   }
 
-  // Build attributes payload (حسب العميل)
   List<Map<String, dynamic>> buildAttributesPayload() {
-    final List<Map<String, dynamic>> out = [];
+    final List<Map<String, dynamic>> out = <Map<String, dynamic>>[];
 
     for (final entry in selectedAttributes.entries) {
-      final attrId = entry.key;
-      final value = entry.value;
+      final int attrId = entry.key;
+      final dynamic value = entry.value;
 
-      // value ممكن يكون:
-      // - String/num للنص/رقم => text
-      // - int للقيم (select/radio/checkbox) => category_attribute_value_id
-      // - List<int> للـ checkbox multiple => عدة entries
-      if (value is List<int>) {
-        for (final v in value) {
-          out.add({
-            "category_attribute_id": attrId,
-            "category_attribute_value_id": v,
+      if (attrId <= 0) continue;
+
+      final String type = _attrTypeCode(attrId);
+
+      if (type == 'checkbox') {
+        final List<int> values =
+            value is List ? value.whereType<int>().toList() : <int>[];
+        for (final int v in values) {
+          if (v <= 0) continue;
+          out.add(<String, dynamic>{
+            'category_attribute_id': attrId,
+            'category_attribute_value_id': v,
           });
         }
-      } else if (value is int) {
-        out.add({
-          "category_attribute_id": attrId,
-          "category_attribute_value_id": value,
+        continue;
+      }
+
+      if (type == 'select' || type == 'radio') {
+        final List<int> values = <int>[];
+        if (value is int) values.add(value);
+        if (value is List) values.addAll(value.whereType<int>());
+        if (values.isNotEmpty && values.first > 0) {
+          out.add(<String, dynamic>{
+            'category_attribute_id': attrId,
+            'category_attribute_value_id': values.first,
+          });
+        }
+        continue;
+      }
+
+      // text / number or unknown -> send as text
+      final String txt = value.toString().trim();
+      if (txt.isNotEmpty) {
+        out.add(<String, dynamic>{
+          'category_attribute_id': attrId,
+          'text': txt,
         });
-      } else {
-        out.add({"category_attribute_id": attrId, "text": value.toString()});
       }
     }
 
     return out;
   }
 
+  String _attrTypeCode(int id) {
+    for (final raw in attributesSchema) {
+      if (raw is! Map) continue;
+      final int attrId = _asInt(raw['id']);
+      if (attrId != id) continue;
+      final dynamic typeObj = raw['category_attributes_types'];
+      return (typeObj is Map ? (typeObj['code'] ?? '') : '')
+          .toString()
+          .toLowerCase();
+    }
+    return '';
+  }
+
   Map<String, dynamic>? buildFeaturedPayload() {
     if (!isFeaturedEnabled.value) return null;
 
-    return {
-      "status": true,
+    return <String, dynamic>{
+      'status': true,
       if (selectedDiscountId.value != null)
-        "discount_id": selectedDiscountId.value,
+        'discount_id': selectedDiscountId.value,
     };
   }
 
+  // Submit
   Future<void> submit() async {
-    // basic validation
+    // Auto-sync real-estate specs BEFORE validating required attributes.
+    if (Get.isRegistered<CreateAdsController>()) {
+      final createAdsCtrl = Get.find<CreateAdsController>();
+      if (createAdsCtrl.adType.value == AdType.real_estates) {
+        syncRealEstateSpecsToAttributes(createAdsCtrl.adRealEstateSpecs.value);
+      }
+    }
+
     if (title.value.trim().isEmpty) {
-      Get.snackbar("Error", "Title is required");
+      Get.snackbar(
+        _t('Error', 'خطأ'),
+        _t('Title is required', 'العنوان مطلوب'),
+      );
       return;
     }
+
     if (price.value.trim().isEmpty || double.tryParse(price.value) == null) {
-      Get.snackbar("Error", "Price is invalid");
+      Get.snackbar(
+        _t('Error', 'خطأ'),
+        _t('Price is invalid', 'السعر غير صالح'),
+      );
       return;
     }
+
     if (images.isEmpty) {
-      Get.snackbar("Error", "At least one image is required");
+      Get.snackbar(
+        _t('Error', 'خطأ'),
+        _t('At least one image is required', 'مطلوب صورة واحدة على الأقل'),
+      );
       return;
     }
+
     if (!validateRequiredAttributes()) {
-      Get.snackbar("Error", "Please fill required attributes");
+      Get.snackbar(
+        _t('Error', 'خطأ'),
+        _t('Please fill required attributes', 'يرجى تعبئة الحقول المطلوبة'),
+      );
       return;
     }
 
-    // featured wallet validation (حسب العميل)
     if (isFeaturedEnabled.value && !canPayFeatured()) {
-      Get.snackbar("Error", "Insufficient Funds");
+      Get.snackbar(
+        _t('Error', 'خطأ'),
+        _t('Insufficient Funds', 'الرصيد غير كافٍ'),
+      );
       return;
     }
 
-    final userId = await _getUserId();
+    final int? userId = await _getUserId();
     if (userId == null) {
-      Get.snackbar("Error", "User not found, login again");
+      Get.snackbar(
+        _t('Error', 'خطأ'),
+        _t(
+          'User not found, login again',
+          'المستخدم غير موجود، يرجى إعادة تسجيل الدخول',
+        ),
+      );
       return;
     }
 
     isSubmitting(true);
     try {
       final attrs = buildAttributesPayload();
-      final featured = buildFeaturedPayload();
+      if (kDebugMode) {
+        debugPrint('PostAd submit attrs: ${jsonEncode(attrs)}');
+      }
 
       await repo.createAd(
         userId: userId,
@@ -236,25 +703,50 @@ class PostAdFormController extends GetxController {
         address: address.value,
         images: images.toList(),
         attributes: attrs,
-        featured: featured,
+        featured: buildFeaturedPayload(),
       );
 
-      Get.snackbar("Success", "Ad created successfully");
-      Get.back(); // أو Go to success screen
+      Get.snackbar(
+        _t('Success', 'تم بنجاح'),
+        _t('Ad created successfully', 'تم إنشاء الإعلان بنجاح'),
+      );
+      Get.offAllNamed(Routes.successPostedScreen);
     } catch (e) {
-      Get.snackbar("Error", "Failed to submit ad");
+      String message = _t('Failed to submit ad', 'فشل إرسال الإعلان');
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map && data['message'] is String) {
+          message = data['message'].toString();
+        }
+        if (kDebugMode) {
+          debugPrint('submit error response: ${e.response?.data}');
+        }
+      }
+      Get.snackbar(_t('Error', 'خطأ'), message);
+      if (kDebugMode) debugPrint('submit error: $e');
     } finally {
       isSubmitting(false);
     }
   }
 
-  // discount selection helper
+  // Discount selection
   void selectDiscount(dynamic discount) {
+    if (discount == null) {
+      selectedDiscountId.value = null;
+      selectedDiscountPercentage.value = 0.0;
+      selectedDiscountPeriod.value = 0;
+      return;
+    }
+
     if (discount is! Map) return;
 
-    selectedDiscountId.value = (discount['id'] as num?)?.toInt();
-    selectedDiscountPercentage.value =
-        (discount['percentage'] as num?)?.toDouble() ?? 0.0;
-    selectedDiscountPeriod.value = (discount['period'] as num?)?.toInt() ?? 0;
+    selectedDiscountId.value = _asInt(discount['id']);
+    selectedDiscountPercentage.value = _asDouble(discount['percentage']);
+    selectedDiscountPeriod.value = _asInt(discount['period']);
+  }
+
+  String _t(String en, String ar) {
+    final lang = LocalizeAndTranslate.getLanguageCode();
+    return lang.startsWith('ar') ? ar : en;
   }
 }

@@ -27,6 +27,11 @@ class CategoriesRepository {
     final children = json['children'] is List ? json['children'] as List : [];
     return CategoryModel(
       id: json['id'] ?? 0,
+      parentId: json['parent_id'] == null
+          ? null
+          : (json['parent_id'] is num
+              ? (json['parent_id'] as num).toInt()
+              : int.tryParse(json['parent_id'].toString())),
       name: json['name'] ?? '',
       nameEn: json['name_en'] ?? '',
       image: json['image']?.toString() ?? '',

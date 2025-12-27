@@ -4,7 +4,6 @@ import 'package:dio/dio.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
 
-
 abstract class PostAdRemoteDataSource {
   Future<List<dynamic>> getParentCategories();
   Future<Map<String, dynamic>> getCategoryAttributes(int categoryId);
@@ -13,7 +12,7 @@ abstract class PostAdRemoteDataSource {
 
   Future<Map<String, dynamic>> createAd({
     required int userId,
-    required int categoryId, 
+    required int categoryId,
     required String title,
     String? titleEn,
     required num price,
@@ -38,7 +37,12 @@ class PostAdRemoteDataSourceImpl implements PostAdRemoteDataSource {
       ApiEndpoints.categoriesParents,
       queryParams: {'includes': 'children'},
     );
-    return (res['data'] as List?) ?? [];
+
+    // API can return either List or Map. We normalize it to List.
+    final data = res['data'];
+    if (data is List) return data;
+    if (data is Map<String, dynamic>) return <dynamic>[data];
+    return <dynamic>[];
   }
 
   @override
@@ -86,7 +90,8 @@ class PostAdRemoteDataSourceImpl implements PostAdRemoteDataSource {
       MapEntry('lat', lat),
       MapEntry('lng', lng),
       MapEntry('address', address),
-      MapEntry('ad_categories', '[${categoryId.toString()}]'), // JSON string
+      // Must be JSON.stringified. :contentReference[oaicite:1]{index=1}
+      MapEntry('ad_categories', _encodeJson(<int>[categoryId])),
       MapEntry('attributes', _encodeJson(attributes)),
     ]);
 

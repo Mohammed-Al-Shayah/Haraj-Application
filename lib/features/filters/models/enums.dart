@@ -70,7 +70,8 @@ enum RealEstateType {
   buildings,
   houses,
   lands,
-  villas;
+  villas,
+  shops;
 
   @override
   toString() {
@@ -187,6 +188,69 @@ enum InternalFeature {
   }
 }
 
+enum CommercialCategory {
+  multiUnits,
+  offices,
+  retail,
+  hospitality;
+
+  @override
+  String toString() {
+    switch (this) {
+      case CommercialCategory.multiUnits:
+        return 'commercial_category_multi'.tr();
+      case CommercialCategory.offices:
+        return 'commercial_category_offices'.tr();
+      case CommercialCategory.retail:
+        return 'commercial_category_retail'.tr();
+      case CommercialCategory.hospitality:
+        return 'commercial_category_hospitality'.tr();
+    }
+  }
+}
+
+enum CommercialOwnerType {
+  owner,
+  agency,
+  other;
+
+  @override
+  String toString() {
+    switch (this) {
+      case CommercialOwnerType.owner:
+        return 'commercial_owner_owner'.tr();
+      case CommercialOwnerType.agency:
+        return 'commercial_owner_agency'.tr();
+      case CommercialOwnerType.other:
+        return 'commercial_owner_other'.tr();
+    }
+  }
+}
+
+enum CommercialInternalFeature {
+  elevator,
+  cameras,
+  generator,
+  landline,
+  internetLine;
+
+  @override
+  String toString() {
+    switch (this) {
+      case CommercialInternalFeature.elevator:
+        return 'commercial_elevator'.tr();
+      case CommercialInternalFeature.cameras:
+        return 'commercial_cameras'.tr();
+      case CommercialInternalFeature.generator:
+        return 'commercial_generator'.tr();
+      case CommercialInternalFeature.landline:
+        return 'commercial_landline'.tr();
+      case CommercialInternalFeature.internetLine:
+        return 'commercial_internet_line'.tr();
+    }
+  }
+}
+
 enum NearbyPlace {
   airport,
   beach,
@@ -201,7 +265,11 @@ enum NearbyPlace {
   restaurant,
   cafe,
   fireStation,
-  policeStation;
+  policeStation,
+  bank,
+  popularMarket,
+  university,
+  gym;
 
   @override
   String toString() {
@@ -234,6 +302,14 @@ enum NearbyPlace {
         return 'near_fire_station'.tr();
       case NearbyPlace.policeStation:
         return 'near_police_station'.tr();
+      case NearbyPlace.bank:
+        return 'near_bank'.tr();
+      case NearbyPlace.popularMarket:
+        return 'near_popular_market'.tr();
+      case NearbyPlace.university:
+        return 'near_university'.tr();
+      case NearbyPlace.gym:
+        return 'near_gym'.tr();
     }
   }
 }
@@ -294,6 +370,36 @@ enum ShopOpenings {
         return 'shop_openings.nine'.tr();
       case ShopOpenings.moreThanNine:
         return 'shop_openings.more_than_nine'.tr();
+    }
+  }
+}
+
+enum ApartmentFeature {
+  ac,
+  cameras,
+  generator,
+  ensuiteBathroom,
+  arabicToilet,
+  internetLine,
+  landline;
+
+  @override
+  String toString() {
+    switch (this) {
+      case ApartmentFeature.ac:
+        return 'apt_feature_ac'.tr();
+      case ApartmentFeature.cameras:
+        return 'apt_feature_cameras'.tr();
+      case ApartmentFeature.generator:
+        return 'apt_feature_generator'.tr();
+      case ApartmentFeature.ensuiteBathroom:
+        return 'apt_feature_ensuite_bathroom'.tr();
+      case ApartmentFeature.arabicToilet:
+        return 'apt_feature_arabic_toilet'.tr();
+      case ApartmentFeature.internetLine:
+        return 'apt_feature_internet_line'.tr();
+      case ApartmentFeature.landline:
+        return 'apt_feature_landline'.tr();
     }
   }
 }

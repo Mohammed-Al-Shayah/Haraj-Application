@@ -26,6 +26,8 @@ class SelectItemsWidget<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selected = Set<T>.from(selectedItems);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -37,10 +39,10 @@ class SelectItemsWidget<T> extends StatelessWidget {
           runSpacing: 10,
           children: [
             ...items.map(
-              (i) => SelectItem(
+              (i) => _SelectItem(
                 text: i,
-                onChanged: onChanged,
-                isSelect: selectedItems.contains(i),
+                isSelect: selected.contains(i),
+                onTap: () => onChanged.call(i),
               ),
             ),
             if (textFieldLabel != null)
@@ -51,12 +53,10 @@ class SelectItemsWidget<T> extends StatelessWidget {
                   Text(textFieldLabel!, style: AppTypography.bold16),
                   const SizedBox(width: 10),
                   SizedBox(
-                    // margin: const EdgeInsets.only(top: 10),
                     width: 80,
                     child: InputField(
                       onChanged: onTextChanged,
                       keyboardType: TextInputType.number,
-                      // isRequired: false, keyboardType: TextInputType.number, controller: controller!,
                     ),
                   ),
                 ],
@@ -68,40 +68,54 @@ class SelectItemsWidget<T> extends StatelessWidget {
   }
 }
 
-class SelectItem<T> extends StatelessWidget {
+class _SelectItem<T> extends StatelessWidget {
   final T text;
   final bool isSelect;
-  final Function(T?) onChanged;
+  final VoidCallback onTap;
 
-  const SelectItem({
-    super.key,
+  const _SelectItem({
     required this.text,
     required this.isSelect,
-    required this.onChanged,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged.call(text),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: isSelect ? AppColors.primary : AppColors.gray200,
-          borderRadius: BorderRadius.circular(5),
-        ),
-        child:
-            ["none", "0", "null"].contains(text.toString().toLowerCase())
-                ? Icon(
-                  Icons.block,
-                  color: isSelect ? AppColors.white : AppColors.black75,
-                )
-                : Text(
-                  text.toString(),
-                  style: AppTypography.bold16.copyWith(
-                    color: isSelect ? AppColors.white : AppColors.black75,
+    const selectedColor = Color(0xFF0B5CAB); // darker blue highlight
+    const borderColor = Color(0xFFCBD5E1);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelect ? selectedColor : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: isSelect ? selectedColor : borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12.withOpacity(0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child:
+              ["none", "0", "null"].contains(text.toString().toLowerCase())
+                  ? Icon(
+                    Icons.block,
+                    color: isSelect ? Colors.white : AppColors.black75,
+                  )
+                  : Text(
+                    text.toString(),
+                    style: AppTypography.bold16.copyWith(
+                      color: isSelect ? Colors.white : AppColors.black75,
+                    ),
                   ),
-                ),
+        ),
       ),
     );
   }

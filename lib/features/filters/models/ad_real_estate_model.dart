@@ -24,6 +24,12 @@ class AdRealEstateFilterModel {
   List<GroundSystem>? groundSystem;
   BuildingAge? buildingAge;
   ShopOpenings? shopOpenings;
+  List<ApartmentFeature>? apartmentFeatures;
+  CommercialCategory? commercialCategory;
+  bool? businessActive;
+  bool? readyForWork;
+  CommercialOwnerType? commercialOwnerType;
+  List<CommercialInternalFeature>? commercialInternalFeatures;
   List<int>? streetsAroundCount;
   int? currencyId;
 
@@ -50,6 +56,12 @@ class AdRealEstateFilterModel {
     this.groundSystem,
     this.buildingAge,
     this.shopOpenings,
+    this.apartmentFeatures,
+    this.commercialCategory,
+    this.businessActive,
+    this.readyForWork,
+    this.commercialOwnerType,
+    this.commercialInternalFeatures,
     this.streetsAroundCount,
     this.currencyId,
   });
@@ -77,6 +89,12 @@ class AdRealEstateFilterModel {
     List<GroundSystem>? groundSystem,
     BuildingAge? buildingAge,
     ShopOpenings? shopOpenings,
+    List<ApartmentFeature>? apartmentFeatures,
+    CommercialCategory? commercialCategory,
+    bool? businessActive,
+    bool? readyForWork,
+    CommercialOwnerType? commercialOwnerType,
+    List<CommercialInternalFeature>? commercialInternalFeatures,
     List<int>? streetsAroundCount,
     int? currencyId,
   }) {
@@ -109,6 +127,14 @@ class AdRealEstateFilterModel {
       groundSystem: groundSystem ?? [GroundSystem.residential],
       buildingAge: buildingAge ?? BuildingAge.lessThan5,
       shopOpenings: shopOpenings ?? ShopOpenings.one,
+      apartmentFeatures: apartmentFeatures ?? [],
+      commercialCategory: commercialCategory ?? CommercialCategory.multiUnits,
+      businessActive: businessActive ?? true,
+      readyForWork: readyForWork ?? true,
+      commercialOwnerType:
+          commercialOwnerType ?? CommercialOwnerType.owner,
+      commercialInternalFeatures:
+          commercialInternalFeatures ?? [],
       streetsAroundCount: streetsAroundCount ?? [0],
       currencyId: currencyId,
     );

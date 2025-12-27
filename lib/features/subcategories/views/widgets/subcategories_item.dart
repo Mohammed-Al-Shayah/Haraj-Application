@@ -44,6 +44,10 @@ class SubcategoriesItem extends StatelessWidget {
         final hasChildren = subcategories.subSubCategories.isNotEmpty;
         if (!hasChildren) {
           if (isPostAdFlow) {
+            final realEstateType =
+                parentAdType == AdType.real_estates
+                    ? _resolveRealEstateType(subcategories.title)
+                    : null;
             Get.toNamed(
               Routes.postAdScreen,
               arguments: {
@@ -51,6 +55,7 @@ class SubcategoriesItem extends StatelessWidget {
                 'categoryId': subcategories.id,
                 'subCategoryId': subcategories.id,
                 'adType': parentAdType,
+                if (realEstateType != null) 'realEstateType': realEstateType,
               },
             );
           } else {
@@ -148,19 +153,18 @@ class SubcategoriesItem extends StatelessWidget {
                                   arguments: {
                                     'categoryTitle': subcategories.title,
                                     'adType': parentAdType,
-                                    if (parentAdType == AdType.real_estates)
-                                      ...{
-                                        'realEstateType': _resolveRealEstateType(
-                                          subSub.title,
-                                        ),
-                                      },
-                                    if (!isPostAdFlow)
-                                      ...{
-                                        'categoryId': parentCategoryId ??
-                                            subcategories.id,
-                                        'subCategoryId': subcategories.id,
-                                        'subSubCategoryId': subSub.id,
-                                      },
+                                    if (parentAdType ==
+                                        AdType.real_estates) ...{
+                                      'realEstateType': _resolveRealEstateType(
+                                        subSub.title,
+                                      ),
+                                    },
+                                    if (!isPostAdFlow) ...{
+                                      'categoryId':
+                                          parentCategoryId ?? subcategories.id,
+                                      'subCategoryId': subcategories.id,
+                                      'subSubCategoryId': subSub.id,
+                                    },
                                     if (isPostAdFlow) ...{
                                       'subCategoryTitle': subSub.title,
                                       'subSubCategoryId': subSub.id,
@@ -232,6 +236,15 @@ class SubcategoriesItem extends StatelessWidget {
     final normalized =
         title.toLowerCase().replaceAll(RegExp(r'[_-]+'), ' ').trim();
 
+    // Shops (commercial stores)
+    if (normalized.contains('shop') ||
+        normalized.contains('store') ||
+        normalized.contains('commercial') ||
+        normalized.contains('محل') ||
+        normalized.contains('محلات تجارية') ||
+        normalized.contains('تجاري')) {
+      return RealEstateType.shops;
+    }
     if (normalized.contains('house')) return RealEstateType.houses;
     if (normalized.contains('villa')) return RealEstateType.villas;
     if (normalized.contains('land')) return RealEstateType.lands;

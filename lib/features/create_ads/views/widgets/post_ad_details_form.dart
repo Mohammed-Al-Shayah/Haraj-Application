@@ -2,555 +2,512 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/core/widgets/input_field.dart';
+import 'package:haraj_adan_app/core/theme/typography.dart';
+import 'package:haraj_adan_app/core/theme/color.dart';
 import 'package:haraj_adan_app/features/create_ads/controllers/create_ads_controller.dart';
-import 'package:haraj_adan_app/features/create_ads/views/widgets/condition_status.dart';
+import 'package:haraj_adan_app/features/create_ads/controllers/post_ad_form_controller.dart';
 import 'package:haraj_adan_app/features/filters/models/enums.dart';
-import 'package:haraj_adan_app/features/filters/views/widgets/from_to_field.dart';
 import 'package:haraj_adan_app/features/filters/views/widgets/select_items.dart';
+import 'package:localize_and_translate/localize_and_translate.dart';
 
 class PostAdDetailsForm extends StatelessWidget {
   const PostAdDetailsForm({
     super.key,
+
     required this.controller,
+
+    this.postForm,
+
     this.adType,
+
     this.categoryId,
+
     this.categoryTitle,
   });
 
   final CreateAdsController controller;
+
+  final PostAdFormController? postForm;
+
   final AdType? adType;
+
   final int? categoryId;
+
   final String? categoryTitle;
 
   @override
   Widget build(BuildContext context) {
+    Widget content() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+
+        children: [
+          // Basic info
+          InputField(
+            controller: controller.titleCtrl,
+
+            keyboardType: TextInputType.text,
+
+            labelText: AppStrings.adNameText,
+
+            hintText: AppStrings.adNameHint,
+
+            onChanged: (v) => postForm?.title.value = v,
+          ),
+
+          const SizedBox(height: 20),
+
+          InputField(
+            controller: controller.locationCtrl,
+
+            keyboardType: TextInputType.text,
+
+            labelText: AppStrings.locationText,
+
+            hintText: AppStrings.locationText,
+
+            onChanged: (v) => postForm?.address.value = v,
+          ),
+
+          const SizedBox(height: 20),
+
+          InputField(
+            controller: controller.priceCtrl,
+
+            keyboardType: TextInputType.number,
+
+            labelText: AppStrings.priceText,
+
+            hintText: AppStrings.priceText,
+
+            onChanged: (v) => postForm?.price.value = v,
+          ),
+
+          const SizedBox(height: 20),
+
+          InputField(
+            controller: controller.descriptionCtrl,
+
+            keyboardType: TextInputType.text,
+
+            labelText: AppStrings.descriptionText,
+
+            hintText: AppStrings.descriptionHint,
+
+            maxLines: 5,
+
+            onChanged: (v) => postForm?.descr.value = v,
+          ),
+
+          const SizedBox(height: 15),
+
+          // ConditionStatus(controller: controller),
+          const SizedBox(height: 20),
+
+          // Currency (shared for all types)
+          Obx(() {
+            final specs = controller.adRealEstateSpecs.value;
+
+            final int currentId =
+                postForm?.currencyId.value ??
+                specs.currencyId ??
+                _currencyId(CurrencyOption.rialYemeni);
+
+            final CurrencyOption currentOpt = _currencyFromId(currentId);
+
+            return SelectItemsWidget<CurrencyOption>(
+              title: AppStrings.currency,
+
+              items: CurrencyOption.values,
+
+              onChanged: (v) {
+                if (v == null) return;
+
+                final int id = _currencyId(v);
+
+                postForm?.currencyId.value = id;
+
+                controller.adRealEstateSpecs.update((val) {
+                  val!.currencyId = id;
+                });
+              },
+
+              selectedItems: [currentOpt],
+            );
+          }),
+
+          const SizedBox(height: 20),
+
+          // Payment system (shared for all types)
+          Obx(() {
+            final specs = controller.adRealEstateSpecs.value;
+
+            return SelectItemsWidget<PaySystem>(
+              controller: specs.realEstatePartsYears,
+
+              textFieldLabel:
+                  specs.paySystem == PaySystem.cash
+                      ? null
+                      : "${AppStrings.yearCount}: ",
+
+              title: AppStrings.paySystem,
+
+              items: PaySystem.values,
+
+              onChanged: (v) {
+                if (v == null) return;
+
+                controller.adRealEstateSpecs.update((val) {
+                  val!.paySystem = v;
+
+                  if (v == PaySystem.cash) {
+                    val.realEstatePartsYears?.text = "";
+                  }
+                });
+              },
+
+              selectedItems: [specs.paySystem ?? PaySystem.cash],
+            );
+          }),
+
+          const SizedBox(height: 20),
+
+          if (postForm != null) ...[
+            _AttributesSection(form: postForm!),
+            const SizedBox(height: 15),
+            _FeaturedSection(form: postForm!),
+            const SizedBox(height: 15),
+          ],
+        ],
+      );
+    }
+
+    if (postForm != null) {
+      return Obx(() {
+        if (postForm!.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return content();
+      });
+    }
+
+    return content();
+  }
+
+  int _currencyId(CurrencyOption opt) {
+    switch (opt) {
+      case CurrencyOption.rialYemeni:
+        return 1;
+
+      case CurrencyOption.poundEgp:
+        return 2;
+
+      case CurrencyOption.dollarUsd:
+        return 3;
+
+      case CurrencyOption.euro:
+        return 4;
+    }
+  }
+
+  CurrencyOption _currencyFromId(int id) {
+    switch (id) {
+      case 2:
+        return CurrencyOption.poundEgp;
+
+      case 3:
+        return CurrencyOption.dollarUsd;
+
+      case 4:
+        return CurrencyOption.euro;
+
+      case 1:
+      default:
+        return CurrencyOption.rialYemeni;
+    }
+  }
+}
+
+class _AttributesSection extends StatelessWidget {
+  const _AttributesSection({required this.form});
+
+  final PostAdFormController form;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final attrs = form.attributesSchema;
+
+      if (attrs.isEmpty) return const SizedBox.shrink();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+
+        children: [
+          for (final attr in attrs) ...[
+            _AttributeField(attr: attr as Map, form: form),
+
+            const SizedBox(height: 16),
+          ],
+        ],
+      );
+    });
+  }
+}
+
+class _AttributeField extends StatelessWidget {
+  const _AttributeField({required this.attr, required this.form});
+
+  final Map attr;
+  final PostAdFormController form;
+
+  @override
+  Widget build(BuildContext context) {
+    final int id = (attr['id'] as num?)?.toInt() ?? 0;
+    final String code =
+        (attr['category_attributes_types']?['code'] ?? '').toString();
+    final bool isArabic =
+        LocalizeAndTranslate.getLanguageCode().toLowerCase().startsWith('ar');
+    final String rawName = (attr['name'] ?? '').toString();
+    final String rawNameEn = (attr['name_en'] ?? '').toString();
+    final String label =
+        isArabic ? (rawName.isNotEmpty ? rawName : rawNameEn) : (rawNameEn.isNotEmpty ? rawNameEn : rawName);
+    final bool requiredAttr = attr['is_required'] == true;
+    final List values = (attr['category_attributes_values'] as List?) ?? [];
+    String valueLabel(Map v) {
+      final String n = (v['name'] ?? '').toString();
+      final String ne = (v['name_en'] ?? '').toString();
+      return isArabic ? (n.isNotEmpty ? n : ne) : (ne.isNotEmpty ? ne : n);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Basic info
-        InputField(
-          controller: controller.titleCtrl,
-          keyboardType: TextInputType.text,
-          labelText: AppStrings.adNameText,
-          hintText: AppStrings.adNameHint,
+        Row(
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            if (requiredAttr)
+              const Text(' *', style: TextStyle(color: Colors.red)),
+          ],
         ),
-        const SizedBox(height: 20),
-        InputField(
-          controller: controller.locationCtrl,
-          keyboardType: TextInputType.text,
-          labelText: AppStrings.locationText,
-          hintText: AppStrings.locationText,
-        ),
-        const SizedBox(height: 20),
-        InputField(
-          controller: controller.priceCtrl,
-          keyboardType: TextInputType.number,
-          labelText: AppStrings.priceText,
-          hintText: AppStrings.priceText,
-        ),
-        const SizedBox(height: 20),
-        InputField(
-          controller: controller.descriptionCtrl,
-          keyboardType: TextInputType.text,
-          labelText: AppStrings.descriptionText,
-          hintText: AppStrings.descriptionHint,
-          maxLines: 5,
-        ),
-        const SizedBox(height: 15),
-        ConditionStatus(controller: controller),
-        const SizedBox(height: 20),
-        Obx(() {
-          return SelectItemsWidget<CurrencyOption>(
-            title: AppStrings.currency,
-            items: CurrencyOption.values,
-            onChanged: (v) {
-              controller.adRealEstateSpecs.update((val) {
-                if (v == null) return;
-                val!.currencyId = v.index;
-              });
-            },
-            selectedItems: [
-              CurrencyOption.values[controller
-                      .adRealEstateSpecs
-                      .value
-                      .currencyId ??
-                  CurrencyOption.rialYemeni.index],
-            ],
-          );
-        }),
-        const SizedBox(height: 15),
-        if (adType == AdType.vehicles) ...[
-          _VehicleSpecs(controller: controller),
-          const SizedBox(height: 20),
-        ],
-        if (adType == AdType.real_estates) ...[
-          _RealEstateSpecs(controller: controller),
-          const SizedBox(height: 20),
-        ],
+        const SizedBox(height: 8),
+        if (code == 'text' || code == 'number')
+          TextFormField(
+            keyboardType:
+                code == 'number' ? TextInputType.number : TextInputType.text,
+            decoration: InputDecoration(
+              hintText: label,
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 10,
+              ),
+            ),
+            onChanged: (v) => form.selectedAttributes[id] = v,
+          )
+        else if (code == 'select' || code == 'radio')
+          Obx(() {
+            final selectedId = form.selectedAttributes[id] as int?;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  values.map((v) {
+                    final int valId = (v['id'] as num?)?.toInt() ?? 0;
+                    final String title =
+                        v is Map ? valueLabel(v) : v.toString();
+                    final bool isSelected = valId == selectedId;
+                    return _pillChip(
+                      title: title,
+                      isSelected: isSelected,
+                      onTap: () => form.selectedAttributes[id] = valId,
+                    );
+                  }).toList(),
+            );
+          })
+        else if (code == 'checkbox')
+          Obx(() {
+            final current =
+                (form.selectedAttributes[id] as List?)?.cast<int>().toList() ??
+                <int>[];
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  values.map((v) {
+                    final int valId = (v['id'] as num?)?.toInt() ?? 0;
+                    final String title =
+                        v is Map ? valueLabel(v) : v.toString();
+                    final bool isSelected = current.contains(valId);
+                    return _pillChip(
+                      title: title,
+                      isSelected: isSelected,
+                      onTap: () {
+                        final updated = List<int>.from(current);
+                        if (isSelected) {
+                          updated.remove(valId);
+                        } else {
+                          updated.add(valId);
+                        }
+                        form.selectedAttributes[id] = updated;
+                      },
+                    );
+                  }).toList(),
+            );
+          })
+        else
+          TextFormField(
+            decoration: InputDecoration(
+              hintText: label,
+              border: const OutlineInputBorder(),
+            ),
+            onChanged: (v) => form.selectedAttributes[id] = v,
+          ),
       ],
     );
   }
 }
 
-class _VehicleSpecs extends StatelessWidget {
-  const _VehicleSpecs({required this.controller});
-  final CreateAdsController controller;
+Widget _pillChip({
+  required String title,
+  required bool isSelected,
+  required VoidCallback onTap,
+}) {
+  const Color selectedColor = Color(0xFF0B5CAB);
+  const Color borderColor = Color(0xFFCBD5E1);
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      // children: [
-      //   Obx(() {
-      //     return SelectItemsWidget<VehicleType>(
-      //       title: AppStrings.theType,
-      //       items: VehicleType.values,
-      //       onChanged: (v) {
-      //         if (v != null) controller.vehicleType.value = v;
-      //       },
-      //       selectedItems: [controller.vehicleType.value],
-      //     );
-      //   }),
-      //   const SizedBox(height: 20),
-
-      //   Obx(() {
-      //     return SelectItemsWidget<AdCategory>(
-      //       title: AppStrings.adType,
-      //       items: AdCategory.values,
-      //       onChanged: (v) {
-      //         if (v != null) controller.adCategory.value = v;
-      //       },
-      //       selectedItems: [controller.adCategory.value],
-      //     );
-      //   }),
-      //   const SizedBox(height: 20),
-
-      //   FromToField(
-      //     title: AppStrings.wolked,
-      //     from: controller.vehicleWalkedKilo,
-      //     to: TextEditingController(),
-      //   ),
-      //   const SizedBox(height: 20),
-
-      //   FromToField(
-      //     title: AppStrings.yearMade,
-      //     from: controller.vehicleMadeYear,
-      //     to: TextEditingController(),
-      //   ),
-      //   const SizedBox(height: 20),
-
-      //   Obx(() {
-      //     return SelectItemsWidget<String>(
-      //       title: AppStrings.machine,
-      //       items: const ["1.3", "1.6", "1.9"],
-      //       onChanged: (v) {
-      //         if (v != null) controller.vehicleMachine.value = v;
-      //       },
-      //       selectedItems: [controller.vehicleMachine.value],
-      //     );
-      //   }),
-      //   const SizedBox(height: 20),
-
-      //   Obx(() {
-      //     return SelectItemsWidget<JerType>(
-      //       title: AppStrings.jerType,
-      //       items: JerType.values,
-      //       onChanged: (v) {
-      //         if (v != null) controller.vehicleJerType.value = v;
-      //       },
-      //       selectedItems: [controller.vehicleJerType.value],
-      //     );
-      //   }),
-      //   const SizedBox(height: 20),
-
-      //   Obx(() {
-      //     return SelectItemsWidget<FuelType>(
-      //       title: AppStrings.fuelType,
-      //       items: FuelType.values,
-      //       onChanged: (v) {
-      //         if (v == null) return;
-      //         if (controller.vehicleFuelTypes.contains(v)) {
-      //           controller.vehicleFuelTypes.remove(v);
-      //         } else {
-      //           controller.vehicleFuelTypes.add(v);
-      //         }
-      //       },
-      //       selectedItems: controller.vehicleFuelTypes.toList(),
-      //     );
-      //   }),
-      // ],
-    );
-  }
+  return Material(
+    color: Colors.transparent,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? selectedColor : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? selectedColor : borderColor),
+        ),
+        child: Text(
+          title,
+          style: AppTypography.bold16.copyWith(
+            color: isSelected ? Colors.white : AppColors.black75,
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
-class _RealEstateSpecs extends StatelessWidget {
-  const _RealEstateSpecs({required this.controller});
+class _FeaturedSection extends StatelessWidget {
+  const _FeaturedSection({required this.form});
 
-  final CreateAdsController controller;
+  final PostAdFormController form;
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final specs = controller.adRealEstateSpecs.value;
-      final type = controller.adRealEstateSpecs.value.realEstateType;
+      final bool enabled = form.isFeaturedEnabled.value;
+      final double pricePerDay = form.featuredPricePerDay.value;
+      final int defaultDays = form.featuredDefaultDays.value;
+      final double wallet = form.walletBalance.value;
+      final int? selectedId = form.selectedDiscountId.value;
+      final int totalDays = defaultDays + form.selectedDiscountPeriod.value;
+      final double finalPrice = form.calculateFeaturedFinalPrice();
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SelectItemsWidget<AdCategory>(
-            title: AppStrings.adType,
-            items: AdCategory.values,
-            onChanged: (v) {
-              if (v == null) return;
-              controller.adRealEstateSpecs.update((val) {
-                if (!val!.adCategory!.contains(v)) {
-                  val.adCategory!.clear();
-                  val.adCategory!.add(v);
-                }
-              });
-            },
-            selectedItems: specs.adCategory!,
+          Text(
+            _t('Featured Ad', 'إعلان مميز'),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
-          const SizedBox(height: 20),
-          if (type == RealEstateType.lands) ...[
-            SelectItemsWidget<GroundSystem>(
-              title: AppStrings.groundSystem,
-              items: GroundSystem.values,
-              onChanged: (v) {
-                if (v == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  if (!val!.groundSystem!.contains(v)) {
-                    val.groundSystem!.clear();
-                    val.groundSystem!.add(v);
-                  }
-                });
-              },
-              selectedItems: specs.groundSystem!,
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          if ([
-            RealEstateType.buildings,
-            RealEstateType.houses,
-          ].contains(type)) ...[
-            Obx(() {
-              return SelectItemsWidget<BuildingAge>(
-                title: AppStrings.buildingAge,
-                items: BuildingAge.values,
-                onChanged: (v) {
-                  if (v == null) return;
-                  controller.adRealEstateSpecs.update((val) {
-                    val!.buildingAge = v;
-                  });
-                },
-                selectedItems: [
-                  controller.adRealEstateSpecs.value.buildingAge ??
-                      BuildingAge.lessThan5,
-                ],
-              );
-            }),
-            const SizedBox(height: 20),
-            SelectItemsWidget<int>(
-              textFieldLabel:
-                  type == RealEstateType.buildings
-                      ? "${AppStrings.more}: "
-                      : null,
-              controller: specs.realEstateFloorsController,
-              onTextChanged: (v) {
-                final value = int.tryParse((v ?? '').trim());
-                if (value == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  val!.realEstateFloors = value;
-                });
-              },
-              title: AppStrings.floorCount,
-              items: [
-                1,
-                2,
-                3,
-                if (type == RealEstateType.buildings) ...[4, 5, 6],
-              ],
-              onChanged: (v) {
-                if (v == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  val!.realEstateFloors = v;
-                  val.realEstateFloorsController?.text = "";
-                });
-              },
-              selectedItems: [specs.realEstateFloors ?? 1],
-            ),
-            const SizedBox(height: 20),
-
-            SelectItemsWidget<RealEstateFinishing>(
-              title: AppStrings.finishingType,
-              items: RealEstateFinishing.values,
-              onChanged: (v) {
-                if (v == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  if (!val!.realEstateFinishing!.contains(v)) {
-                    val.realEstateFinishing!.clear();
-                    val.realEstateFinishing!.add(v);
-                  }
-                });
-              },
-              selectedItems: specs.realEstateFinishing!,
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // ✅ شقق + بيوت
-          if ([
-            RealEstateType.apartments,
-            RealEstateType.houses,
-          ].contains(type)) ...[
-            SelectItemsWidget<RealEstateFurnitureType>(
-              title: AppStrings.furnetureType,
-              items: RealEstateFurnitureType.values,
-              onChanged: (v) {
-                if (v == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  if (!val!.realEstateFurnitureType!.contains(v)) {
-                    val.realEstateFurnitureType!.clear();
-                    val.realEstateFurnitureType!.add(v);
-                  }
-                });
-              },
-              selectedItems: specs.realEstateFurnitureType!,
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // ✅ (مش عمارات + مش أراضي)
-          if (![
-            RealEstateType.buildings,
-            RealEstateType.lands,
-          ].contains(type)) ...[
-            SelectItemsWidget<int>(
-              textFieldLabel: "${AppStrings.more}: ",
-              controller: specs.realEstateRoomsController,
-              onTextChanged: (v) {
-                final value = int.tryParse((v ?? '').trim());
-                if (value == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  val!.realEstateRooms = value;
-                });
-              },
-              title: AppStrings.roomCount,
-              items: const [1, 2, 3, 4, 5, 6],
-              onChanged: (v) {
-                if (v == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  val!.realEstateRooms = v;
-                  val.realEstateRoomsController?.text = "";
-                });
-              },
-              selectedItems: [specs.realEstateRooms ?? 1],
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          SelectItemsWidget<PaySystem>(
-            controller: specs.realEstatePartsYears,
-            textFieldLabel:
-                specs.paySystem == PaySystem.cash
-                    ? null
-                    : "${AppStrings.yearCount}: ",
-            title: AppStrings.paySystem,
-            items: PaySystem.values,
-            onChanged: (v) {
-              if (v == null) return;
-              controller.adRealEstateSpecs.update((val) {
-                val!.paySystem = v;
-              });
-            },
-            selectedItems: [specs.paySystem ?? PaySystem.cash],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${_t('Default days', 'الأيام الافتراضية')}: $defaultDays    ${_t('Price/day', 'السعر/اليوم')}: ${pricePerDay.toStringAsFixed(2)}',
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  '${_t('Wallet', 'المحفظة')}: ${wallet.toStringAsFixed(2)}',
+                  textAlign: TextAlign.end,
+                ),
+              ),
+            ],
           ),
-
-          const SizedBox(height: 20),
-
-          // ✅ المساحة (مش شقق)
-          if (type != RealEstateType.apartments) ...[
-            FromToField(
-              title: AppStrings.space,
-              from: specs.realEstateSpace!,
-              to: specs.realEstateSpaceTo!,
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(_t('Promote this ad', 'ترقية الإعلان')),
+            subtitle: Text(
+              _t(
+                'Enable featured ad before submitting',
+                'فعّل الإعلان المميز قبل النشر',
+              ),
             ),
-            const SizedBox(height: 20),
+            value: enabled,
+            onChanged: form.setFeaturedEnabled,
+          ),
+          if (enabled) ...[
+            if (form.discounts.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                _t('Discounts', 'الخصومات'),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children:
+                    form.discounts.map((d) {
+                      if (d is! Map) return const SizedBox.shrink();
+                      final int id = (d['id'] as num?)?.toInt() ?? 0;
+                      final num pct = d['percentage'] ?? 0;
+                      final num period = d['period'] ?? 0;
+                      final bool isSelected = id == selectedId;
+                      final String label = _t(
+                        '${pct.toString()}% for ${period.toString()} days',
+                        '${pct.toString()}% لمدة ${period.toString()} يوم',
+                      );
+                      return ChoiceChip(
+                        label: Text(label),
+                        selected: isSelected,
+                        onSelected: (v) => form.selectDiscount(v ? d : null),
+                      );
+                    }).toList(),
+              ),
+            ] else ...[
+              const SizedBox(height: 8),
+              Text(_t('No discounts available', 'لا توجد خصومات متاحة')),
+            ],
+            const SizedBox(height: 8),
+            Text('${_t('Total days', 'إجمالي الأيام')}: $totalDays'),
+            Text(
+              '${_t('Final price', 'السعر النهائي')}: ${finalPrice.toStringAsFixed(2)}',
+            ),
+            if (!form.canPayFeatured())
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  _t(
+                    'Insufficient balance for featured ad',
+                    'الرصيد غير كاف? للإعلان المميز',
+                  ),
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
           ],
-
-          // ✅ أراضي فقط (عدد الشوارع)
-          if (type == RealEstateType.lands) ...[
-            SelectItemsWidget<int>(
-              title: AppStrings.aroundStreets,
-              items: const [0, 1, 2, 3, 4],
-              onChanged: (v) {
-                if (v == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  if (val!.streetsAroundCount!.contains(v)) {
-                    val.streetsAroundCount!.remove(v);
-                  } else {
-                    val.streetsAroundCount!.add(v);
-                  }
-                });
-              },
-              selectedItems: specs.streetsAroundCount!,
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // ✅ (مش عمارات + مش أراضي) حمامات
-          if (![
-            RealEstateType.buildings,
-            RealEstateType.lands,
-          ].contains(type)) ...[
-            SelectItemsWidget<int>(
-              textFieldLabel: "${AppStrings.more}: ",
-              controller: specs.realEstateBathsController,
-              onTextChanged: (v) {
-                final value = int.tryParse((v ?? '').trim());
-                if (value == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  val!.realEstateBaths = value;
-                });
-              },
-              title: AppStrings.bathroomCount,
-              items: const [1, 2, 3, 4],
-              onChanged: (v) {
-                if (v == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  val!.realEstateBaths = v;
-                  val.realEstateBathsController?.text = "";
-                });
-              },
-              selectedItems: [specs.realEstateBaths ?? 1],
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // ✅ فلل فقط
-          if (type == RealEstateType.villas) ...[
-            SelectItemsWidget<int>(
-              textFieldLabel: "${AppStrings.more}: ",
-              controller: specs.realEstateGardensController,
-              onTextChanged: (v) {
-                final value = int.tryParse((v ?? '').trim());
-                if (value == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  val!.realEstateGardens = value;
-                });
-              },
-              title: AppStrings.gardenCount,
-              items: const [0, 1, 2, 3, 4],
-              onChanged: (v) {
-                if (v == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  val!.realEstateGardens = v;
-                  val.realEstateGardensController?.text = "";
-                });
-              },
-              selectedItems: [specs.realEstateGardens ?? 0],
-            ),
-            const SizedBox(height: 20),
-
-            SelectItemsWidget<String>(
-              title: AppStrings.bool,
-              items: [AppStrings.yes, AppStrings.no],
-              onChanged: (v) {
-                if (v == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  val!.realEstateHasBool = v == AppStrings.yes;
-                });
-              },
-              selectedItems: [
-                (specs.realEstateHasBool ?? true)
-                    ? AppStrings.yes
-                    : AppStrings.no,
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // ✅ شقق فقط
-          if (type == RealEstateType.apartments) ...[
-            SelectItemsWidget<String>(
-              title: AppStrings.shareApartment,
-              items: [AppStrings.yes, AppStrings.no],
-              onChanged: (v) {
-                if (v == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  val!.realEstateSharing = v == AppStrings.yes;
-                });
-              },
-              selectedItems: [
-                (specs.realEstateSharing ?? true)
-                    ? AppStrings.yes
-                    : AppStrings.no,
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // ✅ عمارات فقط
-          if (type == RealEstateType.buildings) ...[
-            SelectItemsWidget<RealEstateBuilding>(
-              title: AppStrings.building,
-              items: RealEstateBuilding.values,
-              onChanged: (v) {
-                if (v == null) return;
-                controller.adRealEstateSpecs.update((val) {
-                  if (!val!.realEstateBuilding!.contains(v)) {
-                    val.realEstateBuilding!.clear();
-                    val.realEstateBuilding!.add(v);
-                  }
-                });
-              },
-              selectedItems: specs.realEstateBuilding!,
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // ✅ العملة (لما تجهزها من API)
-          // ??????? ????????
-          Obx(() {
-            final options = InternalFeature.values.toList();
-            return SelectItemsWidget<InternalFeature>(
-              title: AppStrings.internalFeatures,
-              items: options,
-              onChanged: (v) {
-                if (v == null) return;
-                if (controller.internalFeatures.contains(v)) {
-                  controller.internalFeatures.remove(v);
-                } else {
-                  controller.internalFeatures.add(v);
-                }
-                controller.internalFeatures.refresh();
-              },
-              selectedItems: controller.internalFeatures.toList(),
-            );
-          }),
-          const SizedBox(height: 20),
-
-          // قريبة من
-          Obx(() {
-            final options = NearbyPlace.values.toList();
-            return SelectItemsWidget<NearbyPlace>(
-              title: AppStrings.nearTo,
-              items: options,
-              onChanged: (v) {
-                if (v == null) return;
-                if (controller.nearbyPlaces.contains(v)) {
-                  controller.nearbyPlaces.remove(v);
-                } else {
-                  controller.nearbyPlaces.add(v);
-                }
-                controller.nearbyPlaces.refresh();
-              },
-              selectedItems: controller.nearbyPlaces.toList(),
-            );
-          }),
         ],
       );
     });
   }
+}
+
+String _t(String en, String ar) {
+  final lang = LocalizeAndTranslate.getLanguageCode();
+  return lang.startsWith('ar') ? ar : en;
 }

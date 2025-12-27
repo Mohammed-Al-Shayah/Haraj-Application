@@ -21,6 +21,8 @@ class CreateAdsController extends GetxController {
       AdRealEstateFilterModel.initialize().obs;
   final RxList<InternalFeature> internalFeatures = <InternalFeature>[].obs;
   final RxList<NearbyPlace> nearbyPlaces = <NearbyPlace>[].obs;
+  final RxList<CommercialInternalFeature> commercialFeatures =
+      <CommercialInternalFeature>[].obs;
 
   final titleCtrl = TextEditingController();
   final locationCtrl = TextEditingController();
@@ -50,6 +52,7 @@ class CreateAdsController extends GetxController {
 
     adRealEstateSpecs.update((m) {
       m!.realEstateType = rt;
+      m.currencyId = m.currencyId ?? 1;
     });
 
     realEstateType.value = rt;
@@ -105,6 +108,10 @@ class CreateAdsController extends GetxController {
     m.realEstateFloorsController?.dispose();
     m.realEstateRoomsController?.dispose();
     m.realEstateGardensController?.dispose();
+
+    commercialFeatures.clear();
+    internalFeatures.clear();
+    nearbyPlaces.clear();
 
     super.onClose();
   }
