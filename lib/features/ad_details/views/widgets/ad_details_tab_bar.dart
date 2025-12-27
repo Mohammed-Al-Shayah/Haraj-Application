@@ -17,8 +17,18 @@ class AdDetailsTabBar extends StatelessWidget {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${(date.year % 100).toString().padLeft(2, '0')}';
   }
 
-  List<AdAttributeModel> _filterAttributes(List<AdAttributeModel> attrs) {
-    return attrs.where((a) => a.displayValue().isNotEmpty).toList();
+  List<MapEntry<AdAttributeModel, String>> _filterAttributes(
+    List<AdAttributeModel> attrs,
+    bool isEn,
+  ) {
+    return attrs
+        .map((a) {
+          final value = a.displayValue(isEn);
+          if (value.isEmpty || value == '-') return null;
+          return MapEntry(a, value);
+        })
+        .whereType<MapEntry<AdAttributeModel, String>>()
+        .toList();
   }
 
   @override
@@ -40,11 +50,11 @@ class AdDetailsTabBar extends StatelessWidget {
                   : ad.categoryNameEn);
 
       final attributeRows =
-          _filterAttributes(ad.attributes)
+          _filterAttributes(ad.attributes, isEn)
               .map(
-                (attr) => DetailRow(
-                  label: attr.displayLabel(isEn),
-                  value: attr.displayValue(),
+                (item) => DetailRow(
+                  label: item.key.displayLabel(isEn),
+                  value: item.value,
                 ),
               )
               .toList();

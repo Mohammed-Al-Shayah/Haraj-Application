@@ -123,12 +123,14 @@ class AdAttributeModel {
   final String label;
   final String labelEn;
   final List<String> values;
+  final List<String> valuesEn;
   final String? typeCode;
 
   AdAttributeModel({
     required this.label,
     required this.labelEn,
     required this.values,
+    required this.valuesEn,
     this.typeCode,
   });
 
@@ -138,8 +140,11 @@ class AdAttributeModel {
     return isEn ? labelEn : label;
   }
 
-  String displayValue() {
-    return values.isEmpty ? '-' : values.join(', ');
+  String displayValue(bool isEn) {
+    final list = isEn ? valuesEn : values;
+    if (list.isNotEmpty) return list.join(', ');
+    final fallback = isEn ? values : valuesEn;
+    return fallback.isEmpty ? '-' : fallback.join(', ');
   }
 
   factory AdAttributeModel.fromJson(Map<String, dynamic> json) {
@@ -147,6 +152,7 @@ class AdAttributeModel {
     final type =
         categoryAttr?['category_attributes_types'] as Map<String, dynamic>?;
     final values = <String>[];
+    final valuesEn = <String>[];
 
     final options = json['ad_attribute_options'];
     if (options is List) {
@@ -154,8 +160,14 @@ class AdAttributeModel {
         if (item is Map) {
           final val = item['category_attributes_values'];
           if (val is Map) {
-            final name = val['name']?.toString() ?? val['name_en']?.toString();
+            final name = val['name']?.toString();
+            final nameEn = val['name_en']?.toString();
             if (name != null && name.isNotEmpty) values.add(name);
+            if (nameEn != null && nameEn.isNotEmpty) {
+              valuesEn.add(nameEn);
+            } else if (name != null && name.isNotEmpty) {
+              valuesEn.add(name);
+            }
           }
         }
       }
@@ -164,16 +176,19 @@ class AdAttributeModel {
     final textValue = json['text']?.toString();
     if (textValue != null && textValue.isNotEmpty) {
       values.add(textValue);
+      valuesEn.add(textValue);
     }
     final numberValue = json['number']?.toString();
     if (numberValue != null && numberValue.isNotEmpty) {
       values.add(numberValue);
+      valuesEn.add(numberValue);
     }
 
     return AdAttributeModel(
       label: categoryAttr?['name']?.toString() ?? '',
       labelEn: categoryAttr?['name_en']?.toString() ?? '',
       values: values,
+      valuesEn: valuesEn,
       typeCode: type?['code']?.toString(),
     );
   }

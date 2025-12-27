@@ -16,6 +16,9 @@ class _LocationTabBarState extends State<LocationTabBar> {
 
   late MapboxMap mapboxMap;
   bool _mapReady = false;
+  PointAnnotationManager? _annotationManager;
+  double _currentLat = initialLat;
+  double _currentLon = initialLon;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +42,7 @@ class _LocationTabBarState extends State<LocationTabBar> {
                 center: Point(coordinates: Position(initialLon, initialLat)),
                 zoom: 13.5,
               ),
+              onTapListener: _onMapTap,
               onMapCreated: (controller) async {
                 mapboxMap = controller;
                 await mapboxMap.gestures.updateSettings(
@@ -50,13 +54,13 @@ class _LocationTabBarState extends State<LocationTabBar> {
                     quickZoomEnabled: true,
                   ),
                 );
-                await _addMarker();
+                _initPositionFromAd();
+                await _ensureManager();
+                await _refreshMarker();
                 setState(() => _mapReady = true);
               },
-            )
-
+            ),
           ),
-
 
           Positioned(
             right: 12,
@@ -96,17 +100,28 @@ class _LocationTabBarState extends State<LocationTabBar> {
     );
   }
 
-  Future<void> _addMarker() async {
+  void _initPositionFromAd() {
+    final ad = Get.find<AdDetailsController>().ad.value;
+    _currentLat = ad?.latitude ?? initialLat;
+    _currentLon = ad?.longitude ?? initialLon;
+  }
+
+  Future<void> _ensureManager() async {
+    _annotationManager ??=
+        await mapboxMap.annotations.createPointAnnotationManager();
+  }
+
+  Future<void> _refreshMarker() async {
     try {
       final ad = Get.find<AdDetailsController>().ad.value;
-      final lat = ad?.latitude ?? initialLat;
-      final lon = ad?.longitude ?? initialLon;
       final label = ad?.address ?? 'Location';
-      final manager =
-          await mapboxMap.annotations.createPointAnnotationManager();
-      await manager.create(
+      await _ensureManager();
+      final mgr = _annotationManager;
+      if (mgr == null) return;
+      await mgr.deleteAll();
+      await mgr.create(
         PointAnnotationOptions(
-          geometry: Point(coordinates: Position(lon, lat)),
+          geometry: Point(coordinates: Position(_currentLon, _currentLat)),
           iconSize: 1.5,
           textField: label,
           textOffset: [0, 2],
@@ -150,18 +165,34 @@ class _LocationTabBarState extends State<LocationTabBar> {
 
   Future<void> _centerOnAden() async {
     try {
-      final ad = Get.find<AdDetailsController>().ad.value;
-      final lat = ad?.latitude ?? initialLat;
-      final lon = ad?.longitude ?? initialLon;
       await mapboxMap.easeTo(
         CameraOptions(
-          center: Point(coordinates: Position(lon, lat)),
+          center: Point(coordinates: Position(_currentLon, _currentLat)),
           zoom: 13.5,
         ),
         MapAnimationOptions(duration: 500),
       );
     } catch (e) {
       debugPrint('centerOnAden error: $e');
+    }
+  }
+
+  Future<void> _onMapTap(MapContentGestureContext context) async {
+    try {
+      final geometry = context.point;
+      final coords = geometry.coordinates;
+      _currentLat = (coords.lat).toDouble();
+      _currentLon = (coords.lng).toDouble();
+      await _refreshMarker();
+      await mapboxMap.easeTo(
+        CameraOptions(
+          center: Point(coordinates: Position(_currentLon, _currentLat)),
+          zoom: 14,
+        ),
+        MapAnimationOptions(duration: 300),
+      );
+    } catch (e) {
+      debugPrint('onMapTap error: $e');
     }
   }
 
@@ -175,5 +206,4 @@ class _LocationTabBarState extends State<LocationTabBar> {
       }
     }
   }
-
 }
