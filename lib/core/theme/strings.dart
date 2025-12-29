@@ -79,6 +79,7 @@ class AppStrings {
   static String get homePageFeaturedAds => 'home_page_featured_ads'.tr();
   static String get macbookPro14 => 'macbook_pro_14'.tr();
   static String get allFeaturedAds => 'all_featured_ads'.tr();
+  static String get noFeaturedAds => 'no_featured_ads'.tr();
   static String get allNearbyAds => 'all_nearby_ads'.tr();
   static String get allNearbyShopping => 'all_nearby_shopping'.tr();
   static String get shoppingListingsFromOwnerNearYou => 'shopping_listings_from_owner_near_you'.tr();
@@ -93,6 +94,8 @@ class AppStrings {
   static String get recentSearches => 'recent_searches'.tr();
   static String get clearAll => 'clear_all'.tr();
   static String get categorySelection => 'category_selection'.tr();
+  static String get categoryNotFound => 'category_not_found'.tr();
+  static String get noSubcategories => 'no_subcategories'.tr();
 
   static String get allRealEstateAds => 'all_real_estate_ads'.tr();
   static String get residential => 'residential'.tr();
@@ -191,6 +194,15 @@ class AppStrings {
   static String get messagesText => 'messages_text'.tr();
   static String get permissionsText => 'permissions_text'.tr();
   static String get favouritesText => 'favourites_text'.tr();
+  static String get successTitle => 'success_title'.tr();
+  static String get errorTitle => 'error_title'.tr();
+  static String get loginRequired => 'login_required'.tr();
+  static String get likeAdded => 'like_added'.tr();
+  static String get likeRemoved => 'like_removed'.tr();
+  static String get likeUpdateFailed => 'like_update_failed'.tr();
+  static String get favouriteAdded => 'favourite_added'.tr();
+  static String get favouriteRemoved => 'favourite_removed'.tr();
+  static String get favouriteUpdateFailed => 'favourite_update_failed'.tr();
   static String get favouriteAdsText => 'favourite_ads_text'.tr();
   static String get myAccountText => 'my_account_text'.tr();
   static String get logOutText => 'log_out_text'.tr();

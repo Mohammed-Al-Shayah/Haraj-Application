@@ -125,7 +125,6 @@ class SideMenu extends StatelessWidget {
               ],
             ),
           ),
-          // هنا نعرض التصنيفات
           CategoryCard(categories: controller.categories, isDrawer: true),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/domain/repositories/post_ad_repository.dart';
 import 'package:haraj_adan_app/features/home/models/category.model.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 
 class PostAdCategoriesController extends GetxController {
   final PostAdRepository repo;
@@ -33,7 +34,7 @@ class PostAdCategoriesController extends GetxController {
     // Business rule: only non-root categories are valid for posting.
     // Root categories are the ones with parent_id == null.
     if (category.parentId == null) {
-      Get.snackbar('Error', 'Please choose a sub-category');
+      AppSnack.error('Error', 'Please choose a sub-category');
       return;
     }
 

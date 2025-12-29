@@ -15,10 +15,6 @@ class AuthRemoteDataSource {
       data: {"email": email, "password": password},
     );
 
-    if (res is Map<String, dynamic>) {
-      return res;
-    }
-
-    throw Exception('Invalid login response');
+    return res;
   }
 }

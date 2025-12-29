@@ -5,6 +5,8 @@ import '../theme/color.dart';
 import '../utils/localization.dart';
 
 Future<void> appInitializer() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   /// Load .env file
   // await dotenv.load();
 

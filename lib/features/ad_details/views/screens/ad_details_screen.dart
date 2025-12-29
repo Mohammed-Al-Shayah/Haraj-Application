@@ -56,10 +56,18 @@ class AdDetailsScreen extends StatelessWidget {
       appBar: MainBar(
         title: AppStrings.adDetailsTitle,
         customActions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.share, color: AppColors.white),
-          ),
+          Obx(() {
+            final controller = Get.find<AdDetailsController>();
+            final favourite = controller.isFavourite.value;
+            final disabled = controller.ad.value == null;
+            return IconButton(
+              onPressed: disabled ? null : controller.toggleFavourite,
+              icon: Icon(
+                favourite ? Icons.favorite : Icons.favorite_border,
+                color: favourite ? Colors.red : AppColors.white,
+              ),
+            );
+          }),
           Obx(() {
             final controller = Get.find<AdDetailsController>();
             final isLiked = controller.ad.value?.isLiked ?? false;
@@ -77,8 +85,8 @@ class AdDetailsScreen extends StatelessWidget {
                         ),
                       )
                       : Icon(
-                        isLiked ? Icons.favorite : Icons.favorite_border,
-                        color: isLiked ? Colors.red : AppColors.white,
+                        isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                        color: AppColors.white,
                       ),
             );
           }),

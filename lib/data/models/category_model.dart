@@ -63,6 +63,7 @@ class CategoryModel {
     return CategoryEntity(
       id: id,
       title: title,
+      titleEn: nameEn,
       iconPath: iconPath,
       subCategories: subCategories.map((e) => e.toEntity()).toList(),
       exclusiveOfferCover: exclusiveOfferCover,
@@ -74,6 +75,7 @@ class SubCategoryModel {
   final int? parentId;
   final int id;
   final String title;
+  final String titleEn;
   final int adsCount;
   final List<SubSubCategoryModel> subSubCategories;
 
@@ -81,6 +83,7 @@ class SubCategoryModel {
     required this.id,
     this.parentId,
     required this.title,
+    required this.titleEn,
     this.adsCount = 0,
     this.subSubCategories = const [],
   });
@@ -96,6 +99,7 @@ class SubCategoryModel {
               ? null
               : int.tryParse(json['parent_id'].toString())),
       title: json['name']?.toString() ?? json['title']?.toString() ?? '',
+      titleEn: json['name_en']?.toString() ?? '',
       adsCount: json['adsCount'] is num ? (json['adsCount'] as num).toInt() : 0,
       subSubCategories: children
           .whereType<Map<String, dynamic>>()
@@ -108,6 +112,7 @@ class SubCategoryModel {
     return SubCategoryEntity(
       id: id,
       title: title,
+      titleEn: titleEn,
       adsCount: adsCount,
       subSubCategories: subSubCategories.map((e) => e.toEntity()).toList(),
     );
@@ -117,20 +122,23 @@ class SubCategoryModel {
 class SubSubCategoryModel {
   final int id;
   final String title;
+  final String titleEn;
 
   const SubSubCategoryModel({
     required this.id,
     required this.title,
+    required this.titleEn,
   });
 
   factory SubSubCategoryModel.fromJson(Map<String, dynamic> json) {
     return SubSubCategoryModel(
       id: json['id'] is num ? (json['id'] as num).toInt() : 0,
       title: json['name']?.toString() ?? json['title']?.toString() ?? '',
+      titleEn: json['name_en']?.toString() ?? '',
     );
   }
 
   SubSubCategoryEntity toEntity() {
-    return SubSubCategoryEntity(id: id, title: title);
+    return SubSubCategoryEntity(id: id, title: title, titleEn: titleEn);
   }
 }

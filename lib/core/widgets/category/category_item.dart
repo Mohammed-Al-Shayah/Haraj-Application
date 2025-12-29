@@ -25,7 +25,6 @@ class CategoryItem extends StatelessWidget {
   final bool isLast;
   final bool isPostAdFlow;
 
-  /// ✅ النوع اللي جاي من الأب (مثلاً: عقارات => real_estates)
   final AdType? inheritedAdType;
 
   const CategoryItem({
@@ -123,12 +122,10 @@ class CategoryItem extends StatelessWidget {
     required String displayName,
     required AdType? adType,
   }) async {
-    // اغلاق drawer لو مفتوح
     if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
       Navigator.of(context).pop();
     }
 
-    // ✅ Browse flow: زي ما هو
     if (!isPostAdFlow) {
       Get.toNamed(
         Routes.subcategoriesScreen,
@@ -141,8 +138,7 @@ class CategoryItem extends StatelessWidget {
       return;
     }
 
-    // ✅ PostAd flow:
-    // 1) لو local عنده children => افتح subcategories
+
     if (category.children.isNotEmpty) {
       Get.toNamed(
         Routes.subcategoriesScreen,
@@ -155,10 +151,8 @@ class CategoryItem extends StatelessWidget {
       return;
     }
 
-    // 2) local leaf => ✅ VERIFY from server (مطلب العميل)
-    final CategoryModel verified = await _verifyLeafFromServer(category);
+    final CategoryModel verified = await _verifyLeafFromServer(category); 
 
-    // لو السيرفر قال إن إلها children => ممنوع PostAd مباشرة
     if (verified.children.isNotEmpty) {
       Get.toNamed(
         Routes.subcategoriesScreen,
@@ -171,7 +165,6 @@ class CategoryItem extends StatelessWidget {
       return;
     }
 
-    // 3) server leaf => افتح PostAd
     Get.toNamed(
       Routes.postAdScreen,
       arguments: {

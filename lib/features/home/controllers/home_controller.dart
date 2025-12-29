@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:haraj_adan_app/features/home/controllers/all_featured_ext_controller.dart';
 import 'package:haraj_adan_app/features/home/controllers/banner_controller.dart';
 import 'package:haraj_adan_app/features/home/controllers/categories_ext_controller.dart';
@@ -69,10 +70,8 @@ class HomeController extends GetxController {
     loadBanners();
     loadAds();
     loadCategories();
-    loadFeaturedAds();
   }
 
-  /// Load featured ads if repository exists
   Future<void> loadFeaturedAds() async {
     if (featuredAdRepository == null) return;
 
@@ -83,13 +82,12 @@ class HomeController extends GetxController {
       isLoadingList.assignAll(List<bool>.filled(ads.length, true));
       _simulateItemLoading();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load featured ads');
+      AppSnack.error('Error', 'Failed to load featured ads');
     } finally {
       isLoadingFeaturedAds(false);
     }
   }
 
-  /// Per-item loading animation
   void _simulateItemLoading() {
     for (int i = 0; i < featuredAds.length; i++) {
       Future.delayed(Duration(milliseconds: 300 * i), () {
@@ -106,7 +104,7 @@ class HomeController extends GetxController {
       isLoadingShoppingAds(true);
       final position = await _getCurrentPosition();
       if (position == null) {
-        Get.snackbar(
+        AppSnack.error(
           'Location Disabled',
           'Enable location services to see shopping ads near you.',
         );
@@ -120,7 +118,7 @@ class HomeController extends GetxController {
       isLoadingShoppingList.assignAll(List<bool>.filled(ads.length, true));
       _simulateShoppingItemLoading();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load shopping ads');
+      AppSnack.error('Error', 'Failed to load shopping ads');
     } finally {
       isLoadingShoppingAds(false);
     }
@@ -222,7 +220,7 @@ class HomeController extends GetxController {
       nearbyAds.assignAll(ads);
     } catch (e) {
       nearbyError.value = e.toString();
-      Get.snackbar('Error', 'Failed to load nearby ads');
+      AppSnack.error('Error', 'Failed to load nearby ads');
     } finally {
       isLoadingNearby(false);
     }

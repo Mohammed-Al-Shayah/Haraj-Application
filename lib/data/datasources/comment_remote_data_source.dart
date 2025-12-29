@@ -1,5 +1,3 @@
-
-
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/features/ad_details/models/comment_model.dart';
@@ -32,11 +30,7 @@ class CommentsRemoteDataSourceImpl implements CommentsRemoteDataSource {
     final response = await apiClient.get(
       // todo check this url
       ApiEndpoints.adCommentsPaginate,
-      queryParams: {
-        'adId': adId,
-        'page': page,
-        'limit': limit,
-      },
+      queryParams: {'adId': adId, 'page': page, 'limit': limit},
     );
 
     return CommentsPageModel.fromJson(response);
@@ -50,20 +44,14 @@ class CommentsRemoteDataSourceImpl implements CommentsRemoteDataSource {
   }) async {
     final response = await apiClient.post(
       ApiEndpoints.addComments(adId),
-      data: {
-        'userId': userId,
-        'text': text,
-      },
+      data: {'userId': userId, 'text': text},
     );
 
-    final rawData = response is Map ? response['data'] : null;
-    final Map<String, dynamic>? dataMap = rawData is Map
-        ? Map<String, dynamic>.from(rawData)
-        : response is Map<String, dynamic>
-            ? response
-            : null;
+    final rawData = response['data'];
+    final Map<String, dynamic> dataMap =
+        rawData is Map ? Map<String, dynamic>.from(rawData) : response;
 
-    if (dataMap == null || dataMap.isEmpty) {
+    if (dataMap.isEmpty) {
       throw Exception('Invalid comment response');
     }
 

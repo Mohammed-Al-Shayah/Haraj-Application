@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../controllers/verification_controller.dart';
 
@@ -33,7 +34,7 @@ extension VerificationExtenstion on VerificationController {
       }
 
       emailVerificationState.value = EmailVerificationState.error;
-      Get.snackbar("Verification Error", message);
+      AppSnack.error("Verification Error", message);
 
     } on DioException catch (e) {
       final data = e.response?.data;
@@ -46,7 +47,7 @@ extension VerificationExtenstion on VerificationController {
       }
 
       emailVerificationState.value = EmailVerificationState.error;
-      Get.snackbar("Verification Error", message);
+      AppSnack.error("Verification Error", message);
 
     } catch (e) {
       emailVerificationState.value = EmailVerificationState.error;
@@ -62,7 +63,7 @@ extension VerificationExtenstion on VerificationController {
         }
       }
 
-      Get.snackbar("Verification Error", message);
+      AppSnack.error("Verification Error", message);
       if (kDebugMode) {
         print("Unknown error: $e");
       }

@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
@@ -59,10 +59,6 @@ class AuthApi {
     try {
       final res = await api.post(ApiEndpoints.verifyOtp, data: {"otp": otp});
 
-      if (res is! Map<String, dynamic>) {
-        return {"success": false, "message": "Invalid server response"};
-      }
-
       final responseData = res['data'] is Map ? res['data'] : res;
 
       final tokens = res['tokens'] ?? responseData['tokens'];
@@ -115,21 +111,13 @@ class AuthApi {
           ? data['message'] ?? data['error'] ?? 'Unknown error'
           : e.message ?? 'Unknown error';
 
-      Get.snackbar(
-        'Logout Error',
-        message,
-        backgroundColor: Colors.red,
-      );
+      AppSnack.error('Logout Error', message);
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
       Get.offAllNamed(Routes.loginScreen);
     } catch (e) {
-      Get.snackbar(
-        'Logout Error',
-        'Something went wrong',
-        backgroundColor: Colors.red,
-      );
+      AppSnack.error('Logout Error', 'Something went wrong');
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
@@ -151,14 +139,9 @@ class AuthApi {
               ? data['message'] ?? data['error'] ?? 'Unknown error'
               : e.message ?? 'Unknown error';
 
-      Get.snackbar('Google Auth Error', message, backgroundColor: Colors.red);
+      AppSnack.error('Google Auth Error', message);
     } catch (e) {
-      Get.snackbar(
-        'Google Auth Error',
-        'Something went wrong',
-        backgroundColor: Colors.white,
-        colorText: Colors.black,
-      );
+      AppSnack.error('Google Auth Error', 'Something went wrong');
     }
   }
 }

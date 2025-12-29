@@ -10,6 +10,7 @@ import 'package:haraj_adan_app/data/datasources/post_ad_remote_datasource.dart';
 import 'package:haraj_adan_app/data/repositories/post_ad_repository_impl.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:dio/dio.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import '../../../../core/widgets/main_bar.dart';
 import '../../../../core/widgets/side_menu.dart';
 import '../widgets/form_buttons.dart';
@@ -46,7 +47,7 @@ class _PostAdScreenState extends State<PostAdScreen> {
 
     if (_categoryId == null || _categoryId == 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Get.snackbar('Error', 'Category is required to post an ad');
+        AppSnack.error('Error', 'Category is required to post an ad');
         Get.back();
       });
       return;
@@ -86,44 +87,60 @@ class _PostAdScreenState extends State<PostAdScreen> {
       return const Scaffold(body: Center(child: Text('Category is required')));
     }
 
-    return Scaffold(
-      key: scaffoldKey,
-      appBar: MainBar(
-        title: _categoryTitle,
-        menu: true,
-        scaffoldKey: scaffoldKey,
-      ),
-      drawer: SideMenu(),
-      body: Obx(() {
-        return Column(
-          children: [
-            StepsSection(controller: controller),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+    return WillPopScope(
+      onWillPop: () async {
+        if (controller.currentStep.value > 1) {
+          controller.goToPreviousStep();
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        key: scaffoldKey,
+        appBar: MainBar(
+          title: _categoryTitle,
+          menu: true,
+          scaffoldKey: scaffoldKey,
+          onBack: () {
+            if (controller.currentStep.value > 1) {
+              controller.goToPreviousStep();
+            } else {
+              Get.back();
+            }
+          },
+        ),
+        drawer: SideMenu(),
+        body: Obx(() {
+          return Column(
+            children: [
+              StepsSection(controller: controller),
+              Expanded(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
-                  child: _buildStepForm(controller.currentStep.value),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(16.0),
+                    child: _buildStepForm(controller.currentStep.value),
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Obx(
-                () => FormButtons(
-                  controller: controller,
-                  onSubmit: _submitAd,
-                  isSubmitting: postForm.isSubmitting.value,
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Obx(
+                  () => FormButtons(
+                    controller: controller,
+                    onSubmit: _submitAd,
+                    isSubmitting: postForm.isSubmitting.value,
+                  ),
                 ),
               ),
-            ),
-          ],
-        );
-      }),
+            ],
+          );
+        }),
+      ),
     );
   }
 

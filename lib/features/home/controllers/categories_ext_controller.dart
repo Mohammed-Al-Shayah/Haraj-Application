@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/features/home/models/category.model.dart'
     as ui_category;
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import '../controllers/home_controller.dart';
 
 extension HomeCategoriesExtension on HomeController {
@@ -24,12 +24,7 @@ extension HomeCategoriesExtension on HomeController {
         }).toList(),
       );
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        e.toString(),
-        backgroundColor: const Color(0xFFE53935),
-        colorText: const Color(0xFFFFFFFF),
-      );
+      AppSnack.error('Error', e.toString());
     } finally {
       isLoadingCategories.value = false;
     }

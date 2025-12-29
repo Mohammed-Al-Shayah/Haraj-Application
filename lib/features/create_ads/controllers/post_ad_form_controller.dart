@@ -4,10 +4,13 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/core/network/api_client.dart';
+import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/domain/repositories/post_ad_repository.dart';
 import 'package:haraj_adan_app/features/create_ads/controllers/create_ads_controller.dart';
 import 'package:haraj_adan_app/features/filters/models/enums.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:localize_and_translate/localize_and_translate.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,6 +36,8 @@ class PostAdFormController extends GetxController {
   final RxList<File> images = <File>[].obs;
 
   // Attributes
+  // final RxList<Map<String, dynamic>> attributesSchema =
+  //     <Map<String, dynamic>>[].obs;
   final RxList<dynamic> attributesSchema = <dynamic>[].obs;
 
   // Selected values keyed by attribute_id:
@@ -55,6 +60,7 @@ class PostAdFormController extends GetxController {
 
   final RxBool isLoading = false.obs;
   final RxBool isSubmitting = false.obs;
+  final RxnString loadError = RxnString();
 
   // Lifecycle
   @override
@@ -65,7 +71,13 @@ class PostAdFormController extends GetxController {
 
   Future<void> _init() async {
     if (categoryId <= 0) {
-      Get.snackbar('Error', 'Category is required before posting an ad');
+      _showError(
+        _t('Error', 'حدث خطأ'),
+        _t(
+          'Category is required before posting an ad',
+          'يجب اختيار القسم قبل نشر الإعلان',
+        ),
+      );
       return;
     }
 
@@ -75,6 +87,13 @@ class PostAdFormController extends GetxController {
       await _loadAttributes();
       await _loadFeaturedSettings();
       await _loadDiscounts();
+      loadError.value = null;
+    } catch (e) {
+      loadError.value = e.toString();
+      _showError(
+        _t('Error', 'حدث خطأ'),
+        _t('Failed to load ad form data', 'تعذر تحميل بيانات نموذج الإعلان'),
+      );
     } finally {
       isLoading(false);
     }
@@ -96,6 +115,37 @@ class PostAdFormController extends GetxController {
 
   // Loaders
   Future<void> _loadWalletBalance() async {
+    // Debug-only override to test wallet display without real balance.
+    // if (kDebugMode) {
+    //   const double debugBalanceOverride = 12553.45;
+    //   walletBalance.value = debugBalanceOverride;
+    //   return;
+    // }
+
+    final int? userId = await _getUserId();
+    if (userId == null) return;
+
+    try {
+      final ApiClient apiClient =
+          Get.isRegistered<ApiClient>()
+              ? Get.find<ApiClient>()
+              : ApiClient(client: Dio());
+      final Map<String, dynamic> res = await apiClient.get(
+        '${ApiEndpoints.walletSummary}/$userId',
+      );
+      final dynamic data = res['data'] ?? res;
+      final dynamic bal =
+          (data is Map<String, dynamic>) ? data['balance'] : null;
+      if (bal != null) {
+        walletBalance.value = _asDouble(bal);
+        return;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Failed to fetch wallet summary, fallback to prefs: $e');
+      }
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('_userData');
     if (userJson == null) return;
@@ -132,8 +182,8 @@ class PostAdFormController extends GetxController {
 
     final List<dynamic> list =
         (category['category_attributes'] as List?) ?? <dynamic>[];
-
     attributesSchema.assignAll(list);
+    // attributesSchema.assignAll(list.whereType<Map<String, dynamic>>().toList());
   }
 
   Future<void> _loadFeaturedSettings() async {
@@ -193,8 +243,6 @@ class PostAdFormController extends GetxController {
     final List<String> cands = candidates.map(_normalize).toList();
 
     for (final raw in attributesSchema) {
-      if (raw is! Map) continue;
-
       final String name = _normalize((raw['name'] ?? '').toString());
       final String nameEn = _normalize((raw['name_en'] ?? '').toString());
 
@@ -233,14 +281,15 @@ class PostAdFormController extends GetxController {
     return code.toLowerCase() == 'checkbox';
   }
 
-  // ============================================================
   // Setters (write into selectedAttributes)
-  // ============================================================
   void _setText(Map<String, dynamic>? attr, dynamic value) {
     if (attr == null || value == null) return;
 
     final int id = _asInt(attr['id']);
     if (id <= 0) return;
+
+    final dynamic existing = selectedAttributes[id];
+    if (existing != null && existing.toString().trim().isNotEmpty) return;
 
     final String s = value.toString().trim();
     if (s.isEmpty) return;
@@ -253,6 +302,8 @@ class PostAdFormController extends GetxController {
 
     final int id = _asInt(attr['id']);
     if (id <= 0) return;
+
+    if (selectedAttributes[id] != null) return;
 
     final int? valId = _findValueId(attr, valueCandidates);
     if (valId == null || valId <= 0) return;
@@ -268,6 +319,9 @@ class PostAdFormController extends GetxController {
 
     final int id = _asInt(attr['id']);
     if (id <= 0) return;
+
+    final dynamic existing = selectedAttributes[id];
+    if (existing is List && existing.isNotEmpty) return;
 
     final List<int> out = <int>[];
 
@@ -301,16 +355,16 @@ class PostAdFormController extends GetxController {
   // Mappers (business mapping -> candidates)
   List<String> _currencyCandidatesById(int id) {
     if (id == CurrencyOption.rialYemeni.index) {
-      return <String>['ريال', 'ريال يمني', 'yemeni rial', 'rial'];
+      return <String>['yemeni rial', 'rial'];
     }
     if (id == CurrencyOption.dollarUsd.index) {
-      return <String>['usd', 'dollar', 'دولار', 'us dollar'];
+      return <String>['usd', 'dollar', 'us dollar'];
     }
     if (id == CurrencyOption.poundEgp.index) {
-      return <String>['egp', 'pound', 'جنيه', 'جنية', 'egyptian pound'];
+      return <String>['egp', 'pound', 'egyptian pound'];
     }
     if (id == CurrencyOption.euro.index) {
-      return <String>['euro', 'يورو'];
+      return <String>['euro'];
     }
     return <String>[];
   }
@@ -527,7 +581,6 @@ class PostAdFormController extends GetxController {
   // Validation + Payload
   bool validateRequiredAttributes() {
     for (final raw in attributesSchema) {
-      if (raw is! Map) continue;
       if (raw['is_required'] != true) continue;
 
       final int id = _asInt(raw['id']);
@@ -600,7 +653,6 @@ class PostAdFormController extends GetxController {
 
   String _attrTypeCode(int id) {
     for (final raw in attributesSchema) {
-      if (raw is! Map) continue;
       final int attrId = _asInt(raw['id']);
       if (attrId != id) continue;
       final dynamic typeObj = raw['category_attributes_types'];
@@ -623,7 +675,8 @@ class PostAdFormController extends GetxController {
 
   // Submit
   Future<void> submit() async {
-    // Auto-sync real-estate specs BEFORE validating required attributes.
+    if (isSubmitting.value) return;
+
     if (Get.isRegistered<CreateAdsController>()) {
       final createAdsCtrl = Get.find<CreateAdsController>();
       if (createAdsCtrl.adType.value == AdType.real_estates) {
@@ -632,23 +685,17 @@ class PostAdFormController extends GetxController {
     }
 
     if (title.value.trim().isEmpty) {
-      Get.snackbar(
-        _t('Error', 'خطأ'),
-        _t('Title is required', 'العنوان مطلوب'),
-      );
+      _showError(_t('Error', 'خطأ'), _t('Title is required', 'العنوان مطلوب'));
       return;
     }
 
     if (price.value.trim().isEmpty || double.tryParse(price.value) == null) {
-      Get.snackbar(
-        _t('Error', 'خطأ'),
-        _t('Price is invalid', 'السعر غير صالح'),
-      );
+      _showError(_t('Error', 'خطأ'), _t('Price is invalid', 'السعر غير صالح'));
       return;
     }
 
     if (images.isEmpty) {
-      Get.snackbar(
+      _showError(
         _t('Error', 'خطأ'),
         _t('At least one image is required', 'مطلوب صورة واحدة على الأقل'),
       );
@@ -656,7 +703,7 @@ class PostAdFormController extends GetxController {
     }
 
     if (!validateRequiredAttributes()) {
-      Get.snackbar(
+      _showError(
         _t('Error', 'خطأ'),
         _t('Please fill required attributes', 'يرجى تعبئة الحقول المطلوبة'),
       );
@@ -664,7 +711,7 @@ class PostAdFormController extends GetxController {
     }
 
     if (isFeaturedEnabled.value && !canPayFeatured()) {
-      Get.snackbar(
+      _showError(
         _t('Error', 'خطأ'),
         _t('Insufficient Funds', 'الرصيد غير كافٍ'),
       );
@@ -673,7 +720,7 @@ class PostAdFormController extends GetxController {
 
     final int? userId = await _getUserId();
     if (userId == null) {
-      Get.snackbar(
+      _showError(
         _t('Error', 'خطأ'),
         _t(
           'User not found, login again',
@@ -706,7 +753,7 @@ class PostAdFormController extends GetxController {
         featured: buildFeaturedPayload(),
       );
 
-      Get.snackbar(
+      _showSuccess(
         _t('Success', 'تم بنجاح'),
         _t('Ad created successfully', 'تم إنشاء الإعلان بنجاح'),
       );
@@ -722,7 +769,7 @@ class PostAdFormController extends GetxController {
           debugPrint('submit error response: ${e.response?.data}');
         }
       }
-      Get.snackbar(_t('Error', 'خطأ'), message);
+      _showError(_t('Error', 'خطأ'), message);
       if (kDebugMode) debugPrint('submit error: $e');
     } finally {
       isSubmitting(false);
@@ -744,6 +791,12 @@ class PostAdFormController extends GetxController {
     selectedDiscountPercentage.value = _asDouble(discount['percentage']);
     selectedDiscountPeriod.value = _asInt(discount['period']);
   }
+
+  void _showError(String title, String message) =>
+      AppSnack.error(title, message);
+
+  void _showSuccess(String title, String message) =>
+      AppSnack.success(title, message);
 
   String _t(String en, String ar) {
     final lang = LocalizeAndTranslate.getLanguageCode();

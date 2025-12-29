@@ -1,5 +1,5 @@
-import 'package:get/get.dart';
 import 'package:haraj_adan_app/features/authentication/login/controllers/login_controller.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 
 extension LoginExtension on LoginController {
   void loginUser() async {
@@ -16,7 +16,7 @@ extension LoginExtension on LoginController {
       loginState.value = LoginState.success;
     } catch (e) {
       loginState.value = LoginState.error;
-      Get.snackbar("Login Error", e.toString());
+      AppSnack.error("Login Error", e.toString());
     }
   }
 }

@@ -68,31 +68,36 @@ class HomeRepositoryImpl implements HomeRepository {
       nameEn: e.nameEn.isNotEmpty ? e.nameEn : e.name,
       image: e.iconPath,
       adsCount: e.adsCount,
-      children: e.subCategories
-          .map(
-            (sub) => ui_category.CategoryModel(
-              id: sub.id,
-              parentId: sub.parentId ?? e.id,
-              name: sub.title,
-              nameEn: sub.title,
-              image: '',
-              adsCount: sub.adsCount,
-              children: sub.subSubCategories
-                  .map(
-                    (child) => ui_category.CategoryModel(
-                      id: child.id,
-                      parentId: sub.id,
-                      name: child.title,
-                      nameEn: child.title,
-                      image: '',
-                      adsCount: 0,
-                      children: const [],
-                    ),
-                  )
-                  .toList(),
-            ),
-          )
-          .toList(),
+      children:
+          e.subCategories
+              .map(
+                (sub) => ui_category.CategoryModel(
+                  id: sub.id,
+                  parentId: sub.parentId ?? e.id,
+                  name: sub.title,
+                  nameEn: sub.titleEn.isNotEmpty ? sub.titleEn : sub.title,
+                  image: '',
+                  adsCount: sub.adsCount,
+                  children:
+                      sub.subSubCategories
+                          .map(
+                            (child) => ui_category.CategoryModel(
+                              id: child.id,
+                              parentId: sub.id,
+                              name: child.title,
+                              nameEn:
+                                  child.titleEn.isNotEmpty
+                                      ? child.titleEn
+                                      : child.title,
+                              image: '',
+                              adsCount: 0,
+                              children: const [],
+                            ),
+                          )
+                          .toList(),
+                ),
+              )
+              .toList(),
     );
   }
 }

@@ -35,6 +35,7 @@ class HomeScreen extends StatelessWidget {
           ShoppingAdRemoteDataSourceImpl(ApiClient(client: Dio())),
         ),
       ),
+      permanent: true,
     );
 
     return HomeScreen._(key: key, controller: homeController);

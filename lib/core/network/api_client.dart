@@ -59,39 +59,35 @@ class ApiClient {
       throw Exceptions.handleDioException(e);
     }
   }
-Future<dynamic> post(
-  String path, {
-  dynamic data,
-  Map<String, dynamic>? queryParameters,
-  Options? options,
-  bool isMultipart = false,
-}) async {
-  try {
-    Options finalOptions = options ?? await _getDefaultOptions();
 
-    if (isMultipart) {
-      finalOptions = finalOptions.copyWith(
-        contentType: 'multipart/form-data',
+  Future<Map<String, dynamic>> post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    bool isMultipart = false,
+  }) async {
+    try {
+      Options finalOptions = options ?? await _getDefaultOptions();
+
+      if (isMultipart) {
+        finalOptions = finalOptions.copyWith(
+          contentType: 'multipart/form-data',
+        );
+      }
+
+      final response = await client.post(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: finalOptions,
       );
-    }
 
-    final response = await client.post(
-      path,
-      data: data,
-      queryParameters: queryParameters,
-      options: finalOptions,
-    );
-
-    return response.data;
-  } on DioException catch (e) {
-    if (e.response?.data != null) {
-      return e.response!.data;
+      return response.data;
+    } on DioException catch (e) {
+      throw Exceptions.handleDioException(e);
     }
-    rethrow;
-  } catch (e) {
-    rethrow;
   }
-}
 
   Future<Map<String, dynamic>> put(
     String url, {

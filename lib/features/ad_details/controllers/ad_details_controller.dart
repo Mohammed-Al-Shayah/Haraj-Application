@@ -1,7 +1,8 @@
 import 'dart:convert';
 
 import 'package:get/get.dart';
-import 'package:haraj_adan_app/core/theme/color.dart';
+import 'package:haraj_adan_app/core/theme/strings.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:haraj_adan_app/domain/repositories/ad_details_repository.dart';
 import 'package:haraj_adan_app/domain/repositories/likes_repository.dart';
 import 'package:haraj_adan_app/features/ad_details/models/ad_details_model.dart';
@@ -78,7 +79,10 @@ class AdDetailsController extends GetxController {
 
       await _loadFavouriteState();
     } catch (_) {
-      Get.snackbar('Error', 'Failed to load ad details');
+      AppSnack.error(
+        _tWithFallback(AppStrings.errorTitle, 'Error'),
+        _tWithFallback('failed_to_load_details', 'Failed to load ad details'),
+      );
     } finally {
       isLoading(false);
     }
@@ -95,7 +99,10 @@ class AdDetailsController extends GetxController {
       );
       comments.assignAll(data);
     } catch (_) {
-      Get.snackbar('Error', 'Failed to load comments');
+      AppSnack.error(
+        _tWithFallback(AppStrings.errorTitle, 'Error'),
+        _tWithFallback('failed_to_load_comments', 'Failed to load comments'),
+      );
     } finally {
       isCommentsLoading(false);
     }
@@ -108,7 +115,10 @@ class AdDetailsController extends GetxController {
 
     final userId = await _getUserIdFromPrefs();
     if (userId == null) {
-      Get.snackbar('Error', 'Please login first');
+      AppSnack.error(
+        _tWithFallback(AppStrings.errorTitle, 'Error'),
+        _tWithFallback(AppStrings.loginRequired, 'Please login first'),
+      );
       return;
     }
 
@@ -121,59 +131,27 @@ class AdDetailsController extends GetxController {
 
       if (isLiked && likeId != null) {
         await likesRepository.removeLike(likeId: likeId);
-        successMessage = 'Like removed';
-        await _updateFavouriteFromLike(add: false, currentAd: currentAd);
+        successMessage = _tWithFallback(AppStrings.likeRemoved, 'Like removed');
       } else {
         await likesRepository.likeAd(adId: adId, userId: userId);
-        successMessage = 'Liked successfully';
-        await _updateFavouriteFromLike(add: true, currentAd: currentAd);
+        successMessage = _tWithFallback(
+          AppStrings.likeAdded,
+          'Liked successfully',
+        );
       }
       await fetchAdDetails();
-      Get.snackbar(
-        'Success',
+      AppSnack.success(
+        _tWithFallback(AppStrings.successTitle, 'Success'),
         successMessage,
-        backgroundColor: AppColors.green00CD52,
       );
     } catch (_) {
-      Get.snackbar('Error', 'Failed to update like');
+      AppSnack.error(
+        _tWithFallback(AppStrings.errorTitle, 'Error'),
+        _tWithFallback(AppStrings.likeUpdateFailed, 'Failed to update like'),
+      );
     } finally {
       isTogglingLike(false);
     }
-  }
-
-  Future<void> _updateFavouriteFromLike({
-    required bool add,
-    required AdDetailsModel currentAd,
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final favourites = _readFavourites(prefs);
-    final exists = favourites.any((item) => item['id'] == adId);
-
-    if (add) {
-      if (!exists) {
-        final firstImage =
-            currentAd.images.isNotEmpty ? currentAd.images.first : '';
-        favourites.add({
-          'id': adId,
-          'title': currentAd.title,
-          'location': currentAd.address,
-          'price': currentAd.price,
-          'image': firstImage,
-          'currencySymbol': currentAd.currencySymbol,
-        });
-      }
-      isFavourite(true);
-      _syncHomeFavourite(true);
-    } else {
-      if (exists) {
-        favourites.removeWhere((item) => item['id'] == adId);
-      }
-      isFavourite(false);
-      _syncHomeFavourite(false);
-    }
-
-    await prefs.setString(_prefsKey, jsonEncode(favourites));
-    await _notifyFavouriteList();
   }
 
   // Favourite (Local)
@@ -190,6 +168,11 @@ class AdDetailsController extends GetxController {
       favourites.removeWhere((item) => item['id'] == adId);
       isFavourite(false);
       _syncHomeFavourite(false);
+      AppSnack.success(
+        _tWithFallback(AppStrings.successTitle, 'Success'),
+        _tWithFallback(AppStrings.favouriteRemoved, 'Removed from favourites'),
+      );
+      update();
     } else {
       final firstImage =
           currentAd.images.isNotEmpty ? currentAd.images.first : '';
@@ -203,10 +186,27 @@ class AdDetailsController extends GetxController {
       });
       isFavourite(true);
       _syncHomeFavourite(true);
+      AppSnack.success(
+        _tWithFallback(AppStrings.successTitle, 'Success'),
+        _tWithFallback(AppStrings.favouriteAdded, 'Added to favourites'),
+      );
     }
+    update();
 
-    await prefs.setString(_prefsKey, jsonEncode(favourites));
-    await _notifyFavouriteList();
+    try {
+      await prefs.setString(_prefsKey, jsonEncode(favourites));
+      await _notifyFavouriteList();
+      update();
+    } catch (_) {
+      AppSnack.error(
+        _tWithFallback(AppStrings.errorTitle, 'Error'),
+        _tWithFallback(
+          AppStrings.favouriteUpdateFailed,
+          'Failed to update favourites',
+        ),
+      );
+      update();
+    }
   }
 
   Future<void> _loadFavouriteState() async {
@@ -238,6 +238,16 @@ class AdDetailsController extends GetxController {
   void _syncHomeFavourite(bool favourite) {
     if (!Get.isRegistered<HomeController>()) return;
     Get.find<HomeController>().setFavourite(adId, favourite);
+    update();
+  }
+
+  String _tWithFallback(String translated, String enFallback) {
+    final bool missing =
+        translated.contains('- 404') || translated.trim().isEmpty;
+    if (missing) {
+      return enFallback;
+    }
+    return translated;
   }
 
   @override

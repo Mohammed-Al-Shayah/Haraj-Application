@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/features/authentication/register/controllers/register_controller.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 
 extension RegisterExtension on RegisterController {
   void registerUser() async {
@@ -11,12 +12,12 @@ extension RegisterExtension on RegisterController {
         name: nameController.text,
       );
 
-      Get.offNamed(
-        Routes.verificationScreen,
-        arguments: {"mobile": phoneController.text},
-      );
-    } catch (e) {
-      Get.snackbar("Registration Error", e.toString());
+    Get.offNamed(
+      Routes.verificationScreen,
+      arguments: {"mobile": phoneController.text},
+    );
+  } catch (e) {
+      AppSnack.error("Registration Error", e.toString());
     }
   }
 }

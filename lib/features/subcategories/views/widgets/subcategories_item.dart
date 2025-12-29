@@ -31,13 +31,18 @@ class SubcategoriesItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentLanguage = LocalizeAndTranslate.getLanguageCode();
+    final currentLanguage =
+        LocalizeAndTranslate.getLanguageCode().toLowerCase();
     final bool isArabic = currentLanguage.startsWith('ar');
     final bool isEnglish = currentLanguage.startsWith('en');
     final arrowIcon =
         isEnglish ? AppAssets.arrowRightIcon : AppAssets.arrowLeftIcon;
 
     final RxBool isExpanded = false.obs;
+    final String displayTitle =
+        isEnglish && (subcategories.titleEn?.isNotEmpty ?? false)
+            ? subcategories.titleEn!
+            : subcategories.title;
 
     return GestureDetector(
       onTap: () {
@@ -46,12 +51,14 @@ class SubcategoriesItem extends StatelessWidget {
           if (isPostAdFlow) {
             final realEstateType =
                 parentAdType == AdType.real_estates
-                    ? _resolveRealEstateType(subcategories.title)
+                    ? _resolveRealEstateType(
+                      subcategories.titleEn ?? subcategories.title,
+                    )
                     : null;
             Get.toNamed(
               Routes.postAdScreen,
               arguments: {
-                'categoryTitle': subcategories.title,
+                'categoryTitle': displayTitle,
                 'categoryId': subcategories.id,
                 'subCategoryId': subcategories.id,
                 'adType': parentAdType,
@@ -61,12 +68,14 @@ class SubcategoriesItem extends StatelessWidget {
           } else {
             final realEstateType =
                 parentAdType == AdType.real_estates
-                    ? _resolveRealEstateType(subcategories.title)
+                    ? _resolveRealEstateType(
+                      subcategories.titleEn ?? subcategories.title,
+                    )
                     : null;
             Get.toNamed(
               Routes.adsResultScreen,
               arguments: {
-                'categoryTitle': subcategories.title,
+                'categoryTitle': displayTitle,
                 'categoryId': parentCategoryId ?? subcategories.id,
                 'subCategoryId': subcategories.id,
                 'adType': parentAdType,
@@ -86,9 +95,9 @@ class SubcategoriesItem extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  subcategories.title.length > 30
-                      ? '${subcategories.title.substring(0, 25)}...'
-                      : subcategories.title,
+                  displayTitle.length > 30
+                      ? '${displayTitle.substring(0, 25)}...'
+                      : displayTitle,
                   style: AppTypography.semiBold14,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -144,6 +153,12 @@ class SubcategoriesItem extends StatelessWidget {
                     child: Column(
                       children:
                           subcategories.subSubCategories.map((subSub) {
+                            final subSubTitle =
+                                isEnglish &&
+                                        (subSub.titleEn?.isNotEmpty ?? false)
+                                    ? subSub.titleEn!
+                                    : subSub.title;
+
                             return InkWell(
                               onTap: () {
                                 Get.toNamed(
@@ -151,12 +166,12 @@ class SubcategoriesItem extends StatelessWidget {
                                       ? Routes.postAdScreen
                                       : Routes.adsResultScreen,
                                   arguments: {
-                                    'categoryTitle': subcategories.title,
+                                    'categoryTitle': displayTitle,
                                     'adType': parentAdType,
                                     if (parentAdType ==
                                         AdType.real_estates) ...{
                                       'realEstateType': _resolveRealEstateType(
-                                        subSub.title,
+                                        subSub.titleEn ?? subSub.title,
                                       ),
                                     },
                                     if (!isPostAdFlow) ...{
@@ -166,7 +181,7 @@ class SubcategoriesItem extends StatelessWidget {
                                       'subSubCategoryId': subSub.id,
                                     },
                                     if (isPostAdFlow) ...{
-                                      'subCategoryTitle': subSub.title,
+                                      'subCategoryTitle': subSubTitle,
                                       'subSubCategoryId': subSub.id,
                                       'categoryId': subSub.id,
                                       'subCategoryId': subcategories.id,
@@ -200,7 +215,7 @@ class SubcategoriesItem extends StatelessWidget {
                                       const SizedBox(width: 1),
                                       Expanded(
                                         child: Text(
-                                          subSub.title,
+                                          subSubTitle,
                                           style: AppTypography.normal14
                                               .copyWith(
                                                 color: AppColors.gray800,

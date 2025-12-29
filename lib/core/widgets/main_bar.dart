@@ -10,6 +10,7 @@ class MainBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
   final bool menu;
   final List<Widget>? customActions;
+  final VoidCallback? onBack;
 
   const MainBar({
     super.key,
@@ -17,6 +18,7 @@ class MainBar extends StatelessWidget implements PreferredSizeWidget {
     this.scaffoldKey,
     this.menu = false,
     this.customActions,
+    this.onBack,
   });
 
   @override
@@ -62,7 +64,7 @@ class MainBar extends StatelessWidget implements PreferredSizeWidget {
                 BlendMode.srcIn,
               ),
             ),
-            onPressed: () => Navigator.pop(context),
+            onPressed: onBack ?? () => Navigator.pop(context),
           ),
         ),
         actions: menu

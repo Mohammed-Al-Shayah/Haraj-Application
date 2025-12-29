@@ -1,8 +1,8 @@
-import 'package:haraj_adan_app/core/theme/color.dart';
 import 'package:haraj_adan_app/features/my_account/controllers/wallet_controller.dart';
 import 'package:haraj_adan_app/core/storage/user_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'dart:io';
 
 class DepositController extends GetxController {
@@ -28,22 +28,21 @@ class DepositController extends GetxController {
   Future<void> submit() async {
     final userId = await getUserIdFromPrefs();
     if (userId == null) {
-      Get.snackbar("Error", "User not found", backgroundColor: AppColors.red);
+      AppSnack.error("Error", "User not found");
       return;
     }
 
     if (uploadedFile.value == null || price.value.isEmpty) {
-      Get.snackbar(
+      AppSnack.error(
         "Error",
         "Please upload an invoice and enter the amount",
-        backgroundColor: AppColors.red,
       );
       return;
     }
 
     final amount = num.tryParse(price.value);
     if (amount == null || amount <= 0) {
-      Get.snackbar("Error", "Invalid amount");
+      AppSnack.error("Error", "Invalid amount");
       return;
     }
 
@@ -55,10 +54,9 @@ class DepositController extends GetxController {
         proofImagePath: uploadedFile.value!.path,
       );
 
-      Get.snackbar(
+      AppSnack.success(
         "Success",
         "Deposit request sent successfully",
-        backgroundColor: AppColors.green00CD52,
       );
       uploadedFile.value = null;
       price.value = '';

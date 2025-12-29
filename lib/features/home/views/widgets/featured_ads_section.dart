@@ -69,15 +69,21 @@ class FeaturedAdsSection extends StatelessWidget {
                   }
                 }
 
-                return FeaturedAdItem(
-                  index: index,
-                  imageUrl: imageUrl,
-                  title: ad.title,
-                  isFavourite: controller.favouriteIds.contains(ad.id),
-                  isLoading: controller.isLoadingAds.value,
-                  onTap:
-                      () =>
-                          Get.toNamed(Routes.adDetailsScreen, arguments: ad.id),
+                return GetBuilder<HomeController>(
+                  builder: (context) {
+                    return FeaturedAdItem(
+                      index: index,
+                      imageUrl: imageUrl,
+                      title: ad.title,
+                      isFavourite: controller.favouriteIds.contains(ad.id),
+                      isLoading: controller.isLoadingAds.value,
+                      onTap:
+                          () => Get.toNamed(
+                            Routes.adDetailsScreen,
+                            arguments: ad.id,
+                          ),
+                    );
+                  },
                 );
               },
             );

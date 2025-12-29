@@ -9,6 +9,7 @@ import 'package:haraj_adan_app/core/theme/color.dart';
 import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/core/theme/typography.dart';
 import 'package:haraj_adan_app/core/widgets/primary_button.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import '../../../../core/utils/constants.dart';
 
 /// Main widget container (Row with buttons)
@@ -130,7 +131,7 @@ class PhoneCallService {
       if (await Permission.phone.request().isGranted) {
         await _launchPhoneCall(phoneNumber);
       } else {
-        Get.snackbar(
+        AppSnack.error(
           'Permission Denied',
           'Permission not granted to make phone calls',
         );
@@ -145,7 +146,7 @@ class PhoneCallService {
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
-      Get.snackbar('Error', 'Could not launch phone call');
+      AppSnack.error('Error', 'Could not launch phone call');
     }
   }
 }

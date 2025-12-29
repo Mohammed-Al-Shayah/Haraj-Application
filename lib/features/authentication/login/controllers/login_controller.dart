@@ -5,6 +5,7 @@ import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/data/api/auth_api.dart';
 import 'package:haraj_adan_app/features/authentication/login/controllers/login_extension.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import '../../../../core/network/network_info.dart';
 
 enum LoginState { initial, loading, success, error }
@@ -39,7 +40,7 @@ class LoginController extends GetxController {
     if (!formKey.currentState!.validate()) return;
     bool connected = await NetworkInfo().isConnected;
     if (!connected) {
-      Get.snackbar("No Internet", "Please check your connection");
+      AppSnack.error("No Internet", "Please check your connection");
       return;
     }
     loginUser();

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/data/api/auth_api.dart';
 import 'package:haraj_adan_app/features/authentication/register/controllers/register_extension.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import '../../../../../../core/network/network_info.dart';
 
 enum RegistrationState { initial, loading, success, error }
@@ -38,7 +39,7 @@ class RegisterController extends GetxController {
       if (connected) {
         registerUser();
       } else {
-        Get.snackbar("No Internet", "Please check your connection");
+        AppSnack.error("No Internet", "Please check your connection");
       }
     }
   }

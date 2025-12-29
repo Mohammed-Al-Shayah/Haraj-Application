@@ -37,7 +37,7 @@ class AllFeaturedAdsScreen extends StatelessWidget {
           }
 
           if (controller.ads.isEmpty) {
-            return const Center(child: Text("لا توجد إعلانات حالياً"));
+            return Center(child: Text(AppStrings.noFeaturedAds));
           }
 
           return GridView.builder(
@@ -62,14 +62,21 @@ class AllFeaturedAdsScreen extends StatelessWidget {
                 }
               }
 
-              return FeaturedAdItem(
-                index: index,
-                imageUrl: imageUrl,
-                title: ad.title,
-                isFavourite: controller.favouriteIds.contains(ad.id),
-                isLoading: false,
-                onTap:
-                    () => Get.toNamed(Routes.adDetailsScreen, arguments: ad.id),
+              return GetBuilder<HomeController>(
+                builder: (context) {
+                  return FeaturedAdItem(
+                    index: index,
+                    imageUrl: imageUrl,
+                    title: ad.title,
+                    isFavourite: controller.favouriteIds.contains(ad.id),
+                    isLoading: false,
+                    onTap:
+                        () => Get.toNamed(
+                          Routes.adDetailsScreen,
+                          arguments: ad.id,
+                        ),
+                  );
+                },
               );
             },
           );

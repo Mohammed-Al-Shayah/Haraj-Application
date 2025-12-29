@@ -32,7 +32,7 @@ class SubcategoriesScreen extends StatelessWidget {
           menu: true,
           scaffoldKey: GlobalKey<ScaffoldState>(),
         ),
-        body: const Center(child: Text('Category not found')),
+        body: Center(child: Text(AppStrings.categoryNotFound)),
       );
     }
 
@@ -43,7 +43,6 @@ class SubcategoriesScreen extends StatelessWidget {
 
     final currentLanguage = LocalizeAndTranslate.getLanguageCode();
     final bool isArabic = currentLanguage.startsWith('ar');
-    final bool isEnglish = currentLanguage.startsWith('en');
 
     final String text =
         isArabic
@@ -101,9 +100,9 @@ class SubcategoriesScreen extends StatelessWidget {
                 }
 
                 if (category.children.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(40.0),
-                    child: Center(child: Text("لا توجد تصنيفات فرعية")),
+                  return Padding(
+                    padding: const EdgeInsets.all(40.0),
+                    child: Center(child: Text(AppStrings.noSubcategories)),
                   );
                 }
 
@@ -112,14 +111,16 @@ class SubcategoriesScreen extends StatelessWidget {
                       category.children.map((child) {
                         return SubCategoryEntity(
                           id: child.id,
-                          title: isEnglish ? child.nameEn : child.name,
+                          title: child.name,
+                          titleEn: child.nameEn,
                           adsCount: child.adsCount,
                           subSubCategories:
                               child.children
                                   .map(
                                     (sub) => SubSubCategoryEntity(
                                       id: sub.id,
-                                      title: isEnglish ? sub.nameEn : sub.name,
+                                      title: sub.name,
+                                      titleEn: sub.nameEn,
                                     ),
                                   )
                                   .toList(),

@@ -5,6 +5,7 @@ import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/data/api/auth_api.dart';
 import 'package:haraj_adan_app/core/network/network_info.dart';
 import 'package:haraj_adan_app/features/authentication/email_verification/controllers/verification_extenstion.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 
 enum EmailVerificationState { initial, loading, success, error }
 
@@ -31,12 +32,12 @@ class VerificationController extends GetxController {
 
     bool connected = await NetworkInfo().isConnected;
     if (!connected) {
-      Get.snackbar("No Internet", "Please check your connection");
+      AppSnack.error("No Internet", "Please check your connection");
       return;
     }
 
     if (otp.value.length != 6) {
-      Get.snackbar("Error", "Please enter full OTP");
+      AppSnack.error("Error", "Please enter full OTP");
       return;
     }
 
@@ -48,15 +49,11 @@ class VerificationController extends GetxController {
 
     bool connected = await NetworkInfo().isConnected;
     if (!connected) {
-      Get.snackbar("No Internet", "Please check your connection", backgroundColor: Colors.red);
+      AppSnack.error("No Internet", "Please check your connection");
       return;
     }
 
     await authApi.resendOtp(phone: Get.arguments['mobile']);
-    Get.snackbar(
-      "Success",
-      "OTP resent successfully",
-      backgroundColor: Colors.green,
-    );
+    AppSnack.success("Success", "OTP resent successfully");
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter/services.dart';
 import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/core/widgets/input_field.dart';
 import 'package:haraj_adan_app/core/theme/typography.dart';
@@ -75,6 +76,7 @@ class PostAdDetailsForm extends StatelessWidget {
             controller: controller.priceCtrl,
 
             keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
 
             labelText: AppStrings.priceText,
 
@@ -267,14 +269,24 @@ class _AttributeField extends StatelessWidget {
     final int id = (attr['id'] as num?)?.toInt() ?? 0;
     final String code =
         (attr['category_attributes_types']?['code'] ?? '').toString();
-    final bool isArabic =
-        LocalizeAndTranslate.getLanguageCode().toLowerCase().startsWith('ar');
+    final bool isArabic = LocalizeAndTranslate.getLanguageCode()
+        .toLowerCase()
+        .startsWith('ar');
     final String rawName = (attr['name'] ?? '').toString();
     final String rawNameEn = (attr['name_en'] ?? '').toString();
     final String label =
-        isArabic ? (rawName.isNotEmpty ? rawName : rawNameEn) : (rawNameEn.isNotEmpty ? rawNameEn : rawName);
+        isArabic
+            ? (rawName.isNotEmpty ? rawName : rawNameEn)
+            : (rawNameEn.isNotEmpty ? rawNameEn : rawName);
     final bool requiredAttr = attr['is_required'] == true;
     final List values = (attr['category_attributes_values'] as List?) ?? [];
+    int? asInt(dynamic v) {
+      if (v == null) return null;
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return int.tryParse(v.toString());
+    }
+
     String valueLabel(Map v) {
       final String n = (v['name'] ?? '').toString();
       final String ne = (v['name_en'] ?? '').toString();
@@ -294,6 +306,7 @@ class _AttributeField extends StatelessWidget {
         const SizedBox(height: 8),
         if (code == 'text' || code == 'number')
           TextFormField(
+            initialValue: form.selectedAttributes[id]?.toString(),
             keyboardType:
                 code == 'number' ? TextInputType.number : TextInputType.text,
             decoration: InputDecoration(
@@ -308,13 +321,14 @@ class _AttributeField extends StatelessWidget {
           )
         else if (code == 'select' || code == 'radio')
           Obx(() {
-            final selectedId = form.selectedAttributes[id] as int?;
+            final dynamic selectedRaw = form.selectedAttributes[id];
+            final int? selectedId = asInt(selectedRaw);
             return Wrap(
               spacing: 8,
               runSpacing: 8,
               children:
                   values.map((v) {
-                    final int valId = (v['id'] as num?)?.toInt() ?? 0;
+                    final int valId = asInt(v is Map ? v['id'] : null) ?? 0;
                     final String title =
                         v is Map ? valueLabel(v) : v.toString();
                     final bool isSelected = valId == selectedId;
@@ -328,15 +342,18 @@ class _AttributeField extends StatelessWidget {
           })
         else if (code == 'checkbox')
           Obx(() {
-            final current =
-                (form.selectedAttributes[id] as List?)?.cast<int>().toList() ??
+            final List<int> current =
+                (form.selectedAttributes[id] as List?)
+                    ?.map<int?>(asInt)
+                    .whereType<int>()
+                    .toList() ??
                 <int>[];
             return Wrap(
               spacing: 8,
               runSpacing: 8,
               children:
                   values.map((v) {
-                    final int valId = (v['id'] as num?)?.toInt() ?? 0;
+                    final int valId = asInt(v is Map ? v['id'] : null) ?? 0;
                     final String title =
                         v is Map ? valueLabel(v) : v.toString();
                     final bool isSelected = current.contains(valId);
@@ -358,6 +375,7 @@ class _AttributeField extends StatelessWidget {
           })
         else
           TextFormField(
+            initialValue: form.selectedAttributes[id]?.toString(),
             decoration: InputDecoration(
               hintText: label,
               border: const OutlineInputBorder(),
@@ -495,7 +513,7 @@ class _FeaturedSection extends StatelessWidget {
                 child: Text(
                   _t(
                     'Insufficient balance for featured ad',
-                    'الرصيد غير كاف? للإعلان المميز',
+                    'الرصيد غير كافٍ للإعلان المميز',
                   ),
                   style: const TextStyle(color: Colors.red),
                 ),

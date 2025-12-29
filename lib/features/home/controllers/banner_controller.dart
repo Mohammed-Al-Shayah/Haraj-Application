@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/features/home/controllers/home_controller.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 
 extension BannerControllerExtension on HomeController {
   Future<void> loadBanners() async {
@@ -12,7 +13,7 @@ extension BannerControllerExtension on HomeController {
         print('banner items ${banners.length}');
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load banners');
+      AppSnack.error('Error', 'Failed to load banners');
     } finally {
       isLoadingBanners(false);
     }

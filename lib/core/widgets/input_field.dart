@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import '../routes/routes.dart';
@@ -35,6 +36,7 @@ class InputField extends StatelessWidget {
   final Color? prefixIconColor;
   final Color? suffixIconColor;
   final Color? enabledBorderColor;
+  final List<TextInputFormatter>? inputFormatters;
 
   const InputField({
     super.key,
@@ -65,6 +67,7 @@ class InputField extends StatelessWidget {
     this.prefixIconColor,
     this.suffixIconColor,
     this.enabledBorderColor,
+    this.inputFormatters,
   });
 
   Widget _buildSuffixIcon(bool isPasswordVisible) {
@@ -214,6 +217,7 @@ class InputField extends StatelessWidget {
           ),
           validator: validator,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           style: TextStyle(color: textColor ?? AppColors.black75),
         ),
       ],
