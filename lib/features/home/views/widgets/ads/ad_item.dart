@@ -36,6 +36,8 @@ class AdItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final createdLabel = _formatCreatedAt();
+
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -58,53 +60,75 @@ class AdItem extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (createdAt != null ||
-                          likesCount != null ||
-                          commentsCount != null)
+                      if (createdLabel != null ||
+                          (likesCount != null && likesCount! > 0) ||
+                          (commentsCount != null && commentsCount! > 0))
                         Row(
+                          textDirection: TextDirection.ltr,
                           children: [
-                            if (createdAt != null) ...[
-                              SvgPicture.asset(AppAssets.timeIcon),
-                              const SizedBox(width: 4),
+                            if (createdLabel != null)
                               Expanded(
-                                child: Text(
-                                  createdAt!,
-                                  style: AppTypography.normal12.copyWith(
-                                    color: AppColors.gray500,
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SvgPicture.asset(AppAssets.timeIcon),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        createdLabel,
+                                        style: AppTypography.normal12.copyWith(
+                                          color: AppColors.gray500,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
                                   ),
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
-                            if (likesCount != null) ...[
+                              )
+                            else
+                              const Spacer(),
+                            if ((likesCount != null && likesCount! > 0) ||
+                                (commentsCount != null && commentsCount! > 0))
                               Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  SvgPicture.asset(AppAssets.likeIcon),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$likesCount',
-                                    style: AppTypography.normal12.copyWith(
-                                      color: AppColors.gray500,
+                                  if (likesCount != null &&
+                                      likesCount! > 0) ...[
+                                    Row(
+                                      children: [
+                                        SvgPicture.asset(AppAssets.likeIcon),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '$likesCount',
+                                          style: AppTypography.normal12
+                                              .copyWith(
+                                                color: AppColors.gray500,
+                                              ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
+                                    if (commentsCount != null &&
+                                        commentsCount! > 0)
+                                      const SizedBox(width: 12),
+                                  ],
+                                  if (commentsCount != null &&
+                                      commentsCount! > 0)
+                                    Row(
+                                      children: [
+                                        SvgPicture.asset(AppAssets.commentIcon),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '$commentsCount',
+                                          style: AppTypography.normal12
+                                              .copyWith(
+                                                color: AppColors.gray500,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
                                 ],
                               ),
-                              const SizedBox(width: 12),
-                            ],
-                            if (commentsCount != null) ...[
-                              Row(
-                                children: [
-                                  SvgPicture.asset(AppAssets.commentIcon),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$commentsCount',
-                                    style: AppTypography.normal12.copyWith(
-                                      color: AppColors.gray500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
                           ],
                         ),
                       const SizedBox(height: 8),
@@ -156,5 +180,30 @@ class AdItem extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String? _formatCreatedAt() {
+    if (createdAt == null) return null;
+    final raw = createdAt!.trim();
+    if (raw.isEmpty) return null;
+
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+
+    final now = DateTime.now();
+    final diff = now.difference(parsed);
+
+    if (diff.inDays >= 30) {
+      final months = (diff.inDays / 30).floor();
+      return '$months mon';
+    } else if (diff.inDays >= 1) {
+      return '${diff.inDays} d';
+    } else if (diff.inHours >= 1) {
+      return '${diff.inHours} h';
+    } else if (diff.inMinutes >= 1) {
+      return '${diff.inMinutes} m';
+    } else {
+      return 'just now';
+    }
   }
 }

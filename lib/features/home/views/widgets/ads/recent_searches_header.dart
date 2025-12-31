@@ -4,7 +4,14 @@ import '../../../../../core/theme/strings.dart';
 import '../../../../../core/theme/typography.dart';
 
 class RecentSearchesHeader extends StatelessWidget {
-  const RecentSearchesHeader({super.key});
+  final VoidCallback onClear;
+  final bool hasRecents;
+
+  const RecentSearchesHeader({
+    super.key,
+    required this.onClear,
+    required this.hasRecents,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +28,7 @@ class RecentSearchesHeader extends StatelessWidget {
             ),
           ),
           TextButton(
-            onPressed: () {},
+            onPressed: hasRecents ? onClear : null,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

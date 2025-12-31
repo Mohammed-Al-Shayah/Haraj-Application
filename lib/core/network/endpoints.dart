@@ -13,6 +13,8 @@ class ApiEndpoints {
   static String nearbyAds = '$baseUrl/ads/nearby';
 
   static String categoriesHome = '$baseUrl/categories/home-page-menu';
+  static String filterCategories = '$baseUrl/categories/filter-page';
+  static String currencies = '$baseUrl/currencies';
 
   static String adDetails(int id) => '$baseUrl/ads/$id';
   static String adCommentsPaginate = '$baseUrl/ads/comments/paginate';
@@ -26,11 +28,14 @@ class ApiEndpoints {
   static String removeLike(int likeId) => '$baseUrl/ads/likes/$likeId';
 
   static String categoriesParents = '$baseUrl/categories/parents';
-  static String categoryAttributes(int categoryId) => '$baseUrl/categories/$categoryId/attributes';
+  static String categoryAttributes(int categoryId) =>
+      '$baseUrl/categories/$categoryId/attributes';
 
   static String featuredSettings = '$baseUrl/ads/featured-settings';
   static String discounts = '$baseUrl/ads/discounts';
 
   static String createAd = '$baseUrl/ads';
-  static String categoryAds(int categoryId) => '$baseUrl/categories/$categoryId/ads';
+  static String categoryAds(int categoryId) =>
+      '$baseUrl/categories/$categoryId/ads';
+  static String filterAds = '$baseUrl/ads/filter';
 }

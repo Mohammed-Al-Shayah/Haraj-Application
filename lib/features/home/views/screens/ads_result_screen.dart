@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../../../../core/theme/assets.dart';
 import '../../../../core/theme/color.dart';
 import '../../../../core/theme/strings.dart';
@@ -10,85 +10,121 @@ import '../../../../core/theme/typography.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/input_field.dart';
 import '../../../../core/widgets/main_bar.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../../data/datasources/ads_remote_datasource.dart';
-import '../../../../data/models/ad_model.dart';
 import '../../../../data/repositories/ad_repository_impl.dart';
+import '../../../../core/routes/routes.dart';
 import '../../../filters/models/enums.dart';
 import '../../../filters/views/screens/real_estate_filter.dart';
 import '../../../filters/views/screens/vehicle_filter.dart';
 import '../../../../core/widgets/side_menu.dart';
-import '../widgets/ads/ad_item.dart';
 import '../widgets/ads/ads_result_section.dart';
 import '../../controllers/ad_controller.dart';
 import '../widgets/ads/appearance_bottom_sheet.dart';
 import '../widgets/ads/filter_sort_selector.dart';
 import '../widgets/ads/sort_bottom_sheet.dart';
 
-class AdsResultScreen extends StatelessWidget {
+class AdsResultScreen extends StatefulWidget {
   const AdsResultScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final arguments = Get.arguments as Map<String, dynamic>?;
-    final categoryTitle =
-        arguments?['categoryTitle'] as String? ?? AppStrings.searchResult;
-    final AdType? passedAdType = arguments?['adType'] as AdType?;
-    final RealEstateType? passedRealEstateType =
-        arguments?['realEstateType'] as RealEstateType?;
-    final int? categoryId = arguments?['categoryId'] as int?;
-    final int? subCategoryId = arguments?['subCategoryId'] as int?;
-    final int? subSubCategoryId = arguments?['subSubCategoryId'] as int?;
+  State<AdsResultScreen> createState() => _AdsResultScreenState();
+}
+
+class _AdsResultScreenState extends State<AdsResultScreen> {
+  late final Map<String, dynamic>? _arguments;
+  late final String _categoryTitle;
+  late final AdType _adType;
+  late final int? _categoryId;
+  late final int? _subCategoryId;
+  late final int? _subSubCategoryId;
+  late final AdController _controller;
+  late final TextEditingController _searchController;
+  late final ScrollController _listScrollController;
+  String? _initialSearch;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  MapboxMap? _mapboxMap;
+  PointAnnotationManager? _annotationManager;
+  Cancelable? _tapEventsCancelable;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _listScrollController = ScrollController();
+    _arguments = Get.arguments as Map<String, dynamic>?;
+    _categoryTitle =
+        _arguments?['categoryTitle'] as String? ?? AppStrings.searchResult;
+    _initialSearch = _arguments?['searchQuery'] as String?;
+    final AdType? passedAdType = _arguments?['adType'] as AdType?;
+    _categoryId = _arguments?['categoryId'] as int?;
+    _subCategoryId = _arguments?['subCategoryId'] as int?;
+    _subSubCategoryId = _arguments?['subSubCategoryId'] as int?;
     final parentCategoryName =
-        arguments?['parentCategoryName'] as String? ?? '';
+        _arguments?['parentCategoryName'] as String? ?? '';
     final parentCategoryNameEn =
-        arguments?['parentCategoryNameEn'] as String? ?? '';
-    final adType =
+        _arguments?['parentCategoryNameEn'] as String? ?? '';
+    _adType =
         passedAdType ??
-        _resolveAdType(categoryTitle, parentCategoryName, parentCategoryNameEn);
-    final realEstateType =
-        passedRealEstateType ??
-        _resolveRealEstateType(
-          categoryTitle,
+        _resolveAdType(
+          _categoryTitle,
           parentCategoryName,
           parentCategoryNameEn,
         );
 
-    final controller = Get.put(
-      AdController(
-        repository: AdRepositoryImpl(
-          remoteDataSource: AdsRemoteDataSourceImpl(ApiClient(client: Dio())),
-        ),
-      ),
-    );
-    controller.setCategoryFilters(
-      categoryId: categoryId,
-      subCategoryId: subCategoryId,
-      subSubCategoryId: subSubCategoryId,
-    );
+    _controller =
+        Get.isRegistered<AdController>()
+            ? Get.find<AdController>()
+            : Get.put(
+              AdController(
+                repository: AdRepositoryImpl(
+                  remoteDataSource: AdsRemoteDataSourceImpl(
+                    ApiClient(client: Dio()),
+                  ),
+                ),
+              ),
+            );
 
-    /// Load all ads when coming from category (no query)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (categoryTitle != AppStrings.searchResult) {
-        controller.filterAds('');
+      _controller.setCategoryFilters(
+        categoryId: _categoryId,
+        subCategoryId: _subCategoryId,
+        subSubCategoryId: _subSubCategoryId,
+      );
+
+      if (_initialSearch != null && _initialSearch!.isNotEmpty) {
+        _searchController.text = _initialSearch!;
+        _controller.addRecentSearch(_initialSearch!);
+        _controller.filterAds(_initialSearch!);
+      } else if (_categoryTitle != AppStrings.searchResult) {
+        _controller.filterAds('');
       }
     });
+  }
 
-    GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _listScrollController.dispose();
+    _tapEventsCancelable?.cancel();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      key: scaffoldKey,
+      key: _scaffoldKey,
       backgroundColor: AppColors.white,
       appBar: MainBar(
         // title: AppStrings.searchResult,
-        title: categoryTitle,
+        title: _categoryTitle,
         menu: true,
-        scaffoldKey: scaffoldKey,
+        scaffoldKey: _scaffoldKey,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            height: 140,
             color: AppColors.primary,
             child: Padding(
               padding: const EdgeInsets.all(20.0),
@@ -96,7 +132,7 @@ class AdsResultScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InputField(
-                    controller: TextEditingController(),
+                    controller: _searchController,
                     validator: Validators.validatePublicText,
                     hintText: AppStrings.placeLocation,
                     prefixIconPath: AppAssets.searchIcon,
@@ -109,26 +145,28 @@ class AdsResultScreen extends StatelessWidget {
                     ).surface.withAlpha((0.3 * 255).toInt()),
                     enabledBorderColor: AppColors.transparent,
                     textColor: AppColors.white,
-                    onChanged: (value) => controller.filterAds(value),
+                    onChanged: (value) => _controller.filterAds(value),
+                    onEditingComplete: () {
+                      _controller.addRecentSearch(_searchController.text);
+                      _controller.filterAds(_searchController.text);
+                    },
                   ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
                       FilterSortSelector(
                         assetIcon: AppAssets.filterIcon,
-                        onPress:
-                            () =>
-                                _openFilterBottomSheet(adType, realEstateType),
+                        onPress: () => _openFilterBottomSheet(_adType),
                       ),
                       const SizedBox(width: 8),
                       FilterSortSelector(
                         text: AppStrings.sortBy,
-                        onPress: () => _sortBottomSheet(controller),
+                        onPress: () => _sortBottomSheet(_controller),
                       ),
                       const SizedBox(width: 8),
                       FilterSortSelector(
                         text: AppStrings.appearance,
-                        onPress: () => _appearanceBottomSheet(controller),
+                        onPress: () => _appearanceBottomSheet(_controller),
                       ),
                     ],
                   ),
@@ -137,7 +175,7 @@ class AdsResultScreen extends StatelessWidget {
             ),
           ),
           Obx(() {
-            if (controller.selectedAppearance.value != 'On Map') {
+            if (_controller.selectedAppearance.value != 'On Map') {
               return Column(
                 children: [
                   const SizedBox(height: 20.0),
@@ -145,7 +183,7 @@ class AdsResultScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 30.0),
                     child: Obx(() {
                       return Text(
-                        '${controller.filteredAds.length} ${AppStrings.resultAvailable}',
+                        '${_controller.totalResults.value} ${AppStrings.resultAvailable}',
                         style: AppTypography.bold16,
                       );
                     }),
@@ -158,43 +196,117 @@ class AdsResultScreen extends StatelessWidget {
             }
           }),
           Obx(() {
-            if (controller.selectedAppearance.value == 'On Map') {
+            if (_controller.selectedAppearance.value == 'On Map') {
               return Expanded(
-                child: GoogleMap(
-                  initialCameraPosition: const CameraPosition(
-                    target: LatLng(15.3694, 44.1910),
-                    zoom: 5,
-                  ),
-                  markers: Set<Marker>.of(
-                    controller.filteredAds.map((ad) {
-                      return Marker(
-                        markerId: MarkerId(ad.id.toString()),
-                        position: LatLng(ad.latitude, ad.longitude),
-                        onTap: () {
-                          _showAdDetailsById(ad.id, context, controller);
+                child: Obx(() {
+                  final adsWithCoords =
+                      _controller.filteredAds
+                          .where((ad) => ad.latitude != 0 && ad.longitude != 0)
+                          .toList();
+
+                  if (_mapboxMap != null) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _refreshMapAnnotations(adsWithCoords);
+                    });
+                  }
+
+                  final fallbackCenter = Point(
+                    coordinates: Position(44.1910, 15.3694),
+                  );
+
+                  return Stack(
+                    children: [
+                      MapWidget(
+                        key: const ValueKey('search_map'),
+                        mapOptions: MapOptions(
+                          pixelRatio: MediaQuery.of(context).devicePixelRatio,
+                        ),
+                        cameraOptions: CameraOptions(
+                          center:
+                              adsWithCoords.isNotEmpty
+                                  ? Point(
+                                    coordinates: Position(
+                                      adsWithCoords.first.longitude,
+                                      adsWithCoords.first.latitude,
+                                    ),
+                                  )
+                                  : fallbackCenter,
+                          zoom: adsWithCoords.isNotEmpty ? 10 : 5,
+                        ),
+                        onMapCreated: (controller) async {
+                          _mapboxMap = controller;
+                          await _mapboxMap?.gestures.updateSettings(
+                            GesturesSettings(
+                              scrollEnabled: true,
+                              rotateEnabled: true,
+                              pinchToZoomEnabled: true,
+                              doubleTapToZoomInEnabled: true,
+                              quickZoomEnabled: true,
+                            ),
+                          );
+                          await _refreshMapAnnotations(adsWithCoords);
                         },
-                      );
-                    }),
-                  ),
-                ),
+                      ),
+                      Positioned(
+                        right: 12,
+                        bottom: 12,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FloatingActionButton(
+                              mini: true,
+                              heroTag: 'search_map_zoom_in',
+                              onPressed: _zoomIn,
+                              child: const Icon(Icons.add),
+                            ),
+                            const SizedBox(height: 8),
+                            FloatingActionButton(
+                              mini: true,
+                              heroTag: 'search_map_zoom_out',
+                              onPressed: _zoomOut,
+                              child: const Icon(Icons.remove),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }),
               );
             } else {
               return Container();
             }
           }),
           Obx(() {
-            if (controller.selectedAppearance.value != 'On Map') {
+            if (_controller.selectedAppearance.value != 'On Map') {
               return Obx(() {
-                if (controller.searchState.value == SearchState.loading) {
+                final isInitialLoading =
+                    _controller.searchState.value == SearchState.loading &&
+                    _controller.filteredAds.isEmpty;
+                final isError =
+                    _controller.searchState.value == SearchState.error &&
+                    _controller.filteredAds.isEmpty;
+
+                if (isInitialLoading) {
                   return const Center(child: CircularProgressIndicator());
-                } else if (controller.searchState.value ==
-                    SearchState.success) {
-                  return Expanded(
-                    child: AdsResultSection(ads: controller.filteredAds),
-                  );
-                } else {
-                  return const Center(child: Text('Error occurred'));
                 }
+                if (isError) {
+                  return _buildErrorView();
+                }
+                if (_controller.filteredAds.isEmpty) {
+                  return const Center(child: Text('No results found'));
+                }
+                return Expanded(
+                  child: AdsResultSection(
+                    ads: _controller.filteredAds,
+                    scrollController: _listScrollController,
+                    isLoadingMore: _controller.isLoadingMore.value,
+                    hasMore:
+                        _controller.currentPage.value <
+                        _controller.totalPages.value,
+                    onLoadMore: _controller.loadNextPage,
+                  ),
+                );
               });
             } else {
               return Container();
@@ -206,52 +318,38 @@ class AdsResultScreen extends StatelessWidget {
     );
   }
 
-  void _showAdDetailsById(
-    int id,
-    BuildContext context,
-    AdController controller,
-  ) {
-    final ad = controller.filteredAds.firstWhere(
-      (ad) => ad.id == id,
-      orElse:
-          () => AdModel(
-            id: -1,
-            imageUrl: '',
-            title: 'Ad Not Found',
-            location: '',
-            price: 0.0,
-            likesCount: 0,
-            commentsCount: 0,
-            createdAt: '',
-            latitude: 0.0,
-            longitude: 0.0,
-            isLiked: false,
-            likeId: null,
-          ),
+  Widget _buildErrorView() {
+    final message =
+        _controller.errorMessage.value ??
+        'Error occurred while loading results';
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              style: AppTypography.bold16,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            PrimaryButton(
+              onPressed:
+                  () => _controller.filterAds(_controller.searchQuery.value),
+              title: 'Retry',
+            ),
+          ],
+        ),
+      ),
     );
+  }
 
-    if (ad.id == -1) {
-      return;
-    }
+  void _openAdDetails(int adId) {
+    final exists = _controller.filteredAds.any((ad) => ad.id == adId);
+    if (!exists) return;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      builder: (context) {
-        return Container(
-          height: 130,
-          padding: const EdgeInsets.all(16.0),
-          child: AdItem(
-            imageUrl: ad.imageUrl,
-            title: ad.title,
-            location: ad.location,
-            price: ad.price,
-            onTap: () {},
-          ),
-        );
-      },
-    );
+    Get.toNamed(Routes.adDetailsScreen, arguments: {'adId': adId});
   }
 
   void _appearanceBottomSheet(AdController controller) {
@@ -268,32 +366,174 @@ class AdsResultScreen extends StatelessWidget {
     );
   }
 
-  void _openFilterBottomSheet(
-    AdType type, [
-    RealEstateType? initialRealEstateType,
-  ]) {
+  void _openFilterBottomSheet(AdType type) {
     final args = Get.arguments as Map<String, dynamic>?;
 
     final String categoryTitle =
         args?['categoryTitle'] as String? ?? AppStrings.searchResult;
 
-    final int categoryId = (args?['categoryId'] as int?) ?? 0;
+    final int categoryId = _categoryId ?? (args?['categoryId'] as int?) ?? 0;
 
     final bottomSheet =
         type == AdType.real_estates
             ? RealEstateFilter(
               categoryId: categoryId,
               categoryTitle: categoryTitle,
-              adType: AdType.real_estates,
-              initialType: initialRealEstateType,
+              onApply:
+                  () => _controller.filterAds(_controller.searchQuery.value),
             )
             : VehicleFilter(
               categoryId: categoryId,
               categoryTitle: categoryTitle,
-              adType: AdType.vehicles,
+              onApply:
+                  () => _controller.filterAds(_controller.searchQuery.value),
             );
 
     Get.bottomSheet(bottomSheet, isScrollControlled: true);
+  }
+
+  Future<void> _refreshMapAnnotations(List adsWithCoords) async {
+    if (_mapboxMap == null) return;
+    _annotationManager ??=
+        await _mapboxMap!.annotations.createPointAnnotationManager();
+    final manager = _annotationManager;
+    if (manager == null) return;
+
+    await manager.deleteAll();
+    if (adsWithCoords.isEmpty) return;
+
+    final options = <PointAnnotationOptions>[];
+    for (final ad in adsWithCoords) {
+      if (ad.latitude == 0 || ad.longitude == 0) continue;
+      options.add(
+        PointAnnotationOptions(
+          geometry: Point(
+            coordinates: Position(
+              ad.longitude.toDouble(),
+              ad.latitude.toDouble(),
+            ),
+          ),
+          iconSize: 1.3,
+          textField: ad.title,
+          textOffset: const [0, 2],
+          customData: {'adId': ad.id},
+        ),
+      );
+    }
+
+    await manager.createMulti(options);
+
+    _tapEventsCancelable ??= manager.tapEvents(
+      onTap: (annotation) {
+        final adId = _readAnnotationAdId(annotation);
+        if (adId != null && mounted) {
+          _openAdDetails(adId);
+        } else {
+          final fallbackId = _findAdIdByLocation(annotation);
+          if (fallbackId != null && mounted) {
+            _openAdDetails(fallbackId);
+          }
+        }
+      },
+    );
+
+    await _fitMapToAnnotations(options);
+  }
+
+  Future<void> _fitMapToAnnotations(
+    List<PointAnnotationOptions> annotations,
+  ) async {
+    if (_mapboxMap == null || annotations.isEmpty) return;
+    if (annotations.length == 1) {
+      await _mapboxMap!.easeTo(
+        CameraOptions(center: annotations.first.geometry, zoom: 12),
+        MapAnimationOptions(duration: 500),
+      );
+      return;
+    }
+
+    double minLat = annotations.first.geometry.coordinates.lat.toDouble();
+    double maxLat = annotations.first.geometry.coordinates.lat.toDouble();
+    double minLng = annotations.first.geometry.coordinates.lng.toDouble();
+    double maxLng = annotations.first.geometry.coordinates.lng.toDouble();
+
+    for (final ann in annotations.skip(1)) {
+      final lat = ann.geometry.coordinates.lat.toDouble();
+      final lng = ann.geometry.coordinates.lng.toDouble();
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+    }
+
+    final bounds = CoordinateBounds(
+      southwest: Point(coordinates: Position(minLng, minLat)),
+      northeast: Point(coordinates: Position(maxLng, maxLat)),
+      infiniteBounds: false,
+    );
+
+    try {
+      final camera = await _mapboxMap!.cameraForCoordinateBounds(
+        bounds,
+        MbxEdgeInsets(top: 80, left: 80, bottom: 89, right: 80),
+        null,
+        null,
+        null,
+        null,
+      );
+      await _mapboxMap!.easeTo(camera, MapAnimationOptions(duration: 500));
+    } catch (_) {
+      await _mapboxMap!.easeTo(
+        CameraOptions(
+          center: Point(
+            coordinates: Position((minLng + maxLng) / 2, (minLat + maxLat) / 2),
+          ),
+          zoom: 10,
+        ),
+        MapAnimationOptions(duration: 500),
+      );
+    }
+  }
+
+  int? _readAnnotationAdId(PointAnnotation annotation) {
+    final raw = annotation.customData;
+    if (raw is! Map) return null;
+    final adId = raw?['adId'];
+    if (adId == null) return null;
+    return int.tryParse(adId.toString());
+  }
+
+  int? _findAdIdByLocation(PointAnnotation annotation) {
+    final coords = annotation.geometry.coordinates;
+    final lat = coords.lat.toDouble();
+    final lng = coords.lng.toDouble();
+    final match = _controller.filteredAds.firstWhereOrNull(
+      (ad) => ad.latitude.toDouble() == lat && ad.longitude.toDouble() == lng,
+    );
+    return match?.id;
+  }
+
+  Future<double> _currentZoom() async {
+    final state = await _mapboxMap?.getCameraState();
+    return state?.zoom ?? 10;
+  }
+
+  Future<void> _zoomIn() async {
+    if (_mapboxMap == null) return;
+    final current = await _currentZoom();
+    await _mapboxMap!.easeTo(
+      CameraOptions(zoom: current + 1),
+      MapAnimationOptions(duration: 300),
+    );
+  }
+
+  Future<void> _zoomOut() async {
+    if (_mapboxMap == null) return;
+    final current = await _currentZoom();
+    await _mapboxMap!.easeTo(
+      CameraOptions(zoom: current - 1),
+      MapAnimationOptions(duration: 300),
+    );
   }
 
   AdType _resolveAdType(
@@ -342,44 +582,6 @@ class AdsResultScreen extends StatelessWidget {
     }
 
     return AdType.vehicles;
-  }
-
-  RealEstateType? _resolveRealEstateType(
-    String categoryTitle,
-    String parentName,
-    String parentNameEn,
-  ) {
-    final joined = <String>[
-      categoryTitle,
-      parentName,
-      parentNameEn,
-    ].map(_normalizeName).where((e) => e.isNotEmpty).join(' ');
-
-    if (joined.contains('shop') ||
-        joined.contains('store') ||
-        joined.contains('commercial') ||
-        joined.contains('محل') ||
-        joined.contains('محلات تجارية') ||
-        joined.contains('تجاري')) {
-      return RealEstateType.shops;
-    }
-    if (joined.contains('house')) {
-      return RealEstateType.houses;
-    }
-    if (joined.contains('apartment') || joined.contains('apart')) {
-      return RealEstateType.apartments;
-    }
-    if (joined.contains('building')) {
-      return RealEstateType.buildings;
-    }
-    if (joined.contains('land')) {
-      return RealEstateType.lands;
-    }
-    if (joined.contains('villa')) {
-      return RealEstateType.villas;
-    }
-
-    return null;
   }
 
   String _normalizeName(String input) {

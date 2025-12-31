@@ -13,26 +13,30 @@ class BottomBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 310,
       width: double.infinity,
       decoration: const BoxDecoration(color: AppColors.white),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(AppStrings.welcomeMessage, style: AppTypography.bold24),
-            const SizedBox(height: 12),
-            Text(AppStrings.exploreMessage, style: AppTypography.normal16),
-            const SizedBox(height: 20),
-            const LanguageSelection(),
-            const SizedBox(height: 20),
-            PrimaryButton(
-              onPressed: () => Get.toNamed(Routes.loginScreen),
-              title: AppStrings.getStarted,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(AppStrings.welcomeMessage, style: AppTypography.bold24),
+                const SizedBox(height: 12),
+                Text(AppStrings.exploreMessage, style: AppTypography.normal16),
+                const SizedBox(height: 20),
+                const LanguageSelection(),
+                const SizedBox(height: 20),
+                PrimaryButton(
+                  onPressed: () => Get.toNamed(Routes.loginScreen),
+                  title: AppStrings.getStarted,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,4 @@
-{
+﻿{
   "New": "جديد",
   "accounting_finance_banking": "المحاسبة والمالية والمصرفية",
   "ad_details_title": "تفاصيل الاعلان",
@@ -471,5 +471,6 @@
   "years_of_manufacture_text": "سنة الصنع",
   "yes": "نعم",
   "your_ad_in_review": "أعلانك قيد المرجعة",
-  "your_name_text": "اسمك"
+  "your_name_text": "اسمك",
+  "no_recent_searches": "لا توجد عمليات بحث"
 }

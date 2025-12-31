@@ -92,6 +92,7 @@ class AppStrings {
 
   static String get searchResult => 'search_result'.tr();
   static String get recentSearches => 'recent_searches'.tr();
+  static String get noRecentSearches => 'no_recent_searches'.tr();
   static String get clearAll => 'clear_all'.tr();
   static String get categorySelection => 'category_selection'.tr();
   static String get categoryNotFound => 'category_not_found'.tr();

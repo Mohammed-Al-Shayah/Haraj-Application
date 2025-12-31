@@ -20,7 +20,7 @@ class SortBottomSheet extends StatelessWidget {
     final currentLanguage = LocalizeAndTranslate.getLanguageCode();
     final alignment =
         currentLanguage == 'ar' ? Alignment.centerRight : Alignment.centerLeft;
-    RxString tempSelectedAppearance = controller.selectedAppearance.value.obs;
+    RxString tempSelectedSort = controller.selectedSortOption.value.obs;
 
     return Container(
       decoration: BoxDecoration(
@@ -54,9 +54,9 @@ class SortBottomSheet extends StatelessWidget {
             ),
           ),
           SortOptionSelector(
-            selectedOption: tempSelectedAppearance,
+            selectedOption: tempSelectedSort,
             onOptionSelected: (value) {
-              tempSelectedAppearance.value = value;
+              tempSelectedSort.value = value;
             },
           ),
           Card(
@@ -73,7 +73,7 @@ class SortBottomSheet extends StatelessWidget {
                   Expanded(
                     child: PrimaryButton(
                       onPressed: () {
-                        tempSelectedAppearance.value = 'On Map';
+                        tempSelectedSort.value = '';
                         Get.back();
                       },
                       title: AppStrings.clearFilter,
@@ -84,8 +84,7 @@ class SortBottomSheet extends StatelessWidget {
                   Expanded(
                     child: PrimaryButton(
                       onPressed: () {
-                        controller.selectedAppearance.value =
-                            tempSelectedAppearance.value;
+                        controller.updateSortOption(tempSelectedSort.value);
                         Get.back();
                       },
                       title: AppStrings.apply,

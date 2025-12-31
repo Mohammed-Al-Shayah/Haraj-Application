@@ -14,8 +14,14 @@ class SearchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textScale =
+        MediaQuery.textScaleFactorOf(context).clamp(1.0, 1.4).toDouble();
+    final verticalPadding = textScale > 1.2 ? 16.0 : 20.0;
+    final betweenFields = textScale > 1.2 ? 10.0 : 12.0;
+    final buttonSpacing = textScale > 1.2 ? 12.0 : 16.0;
+    final buttonHeight = textScale > 1.2 ? 50.0 : 55.0;
+
     return Container(
-      height: 205,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -28,12 +34,12 @@ class SearchCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(verticalPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(AppStrings.startAdvertising, style: AppTypography.bold18),
-          const SizedBox(height: 12),
+          SizedBox(height: betweenFields),
           InputField(
             validator: Validators.validatePublicText,
             hintText: AppStrings.placeLocation,
@@ -43,10 +49,11 @@ class SearchCard extends StatelessWidget {
             keyboardType: TextInputType.text,
             onTap: () => Get.toNamed(Routes.searchScreen),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: buttonSpacing),
           PrimaryButton(
             onPressed: () => Get.toNamed(Routes.searchScreen),
             title: AppStrings.search,
+            minimumSize: Size(double.infinity, buttonHeight),
           ),
         ],
       ),

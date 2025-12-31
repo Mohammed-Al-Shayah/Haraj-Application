@@ -145,12 +145,18 @@ class InputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textScale =
+        MediaQuery.textScaleFactorOf(context).clamp(1.0, 1.4).toDouble();
+    final labelSpacing = textScale > 1.2 ? 6.0 : 8.0;
+    final verticalPadding = textScale > 1.2 ? 10.0 : 14.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         if (labelText != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
+            padding: EdgeInsets.only(bottom: labelSpacing),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -210,8 +216,9 @@ class InputField extends StatelessWidget {
               borderRadius: BorderRadius.circular(10.0),
             ),
             errorStyle: const TextStyle(color: Colors.red),
-            contentPadding: const EdgeInsets.symmetric(
-              vertical: 14.0,
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              vertical: verticalPadding,
               horizontal: 10.0,
             ),
           ),

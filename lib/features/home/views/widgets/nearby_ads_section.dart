@@ -25,6 +25,8 @@ class NearbyAdsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     controller.loadNearby(lat: latitude, lng: longitude);
+    final textScale = MediaQuery.of(context).textScaleFactor.clamp(1.0, 1.6);
+    final listHeight = 120 * (textScale);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0, top: 20.0),
@@ -76,7 +78,7 @@ class NearbyAdsSection extends StatelessWidget {
             }
 
             return SizedBox(
-              height: 105,
+              height: listHeight,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: items.length > 4 ? 4 : items.length,

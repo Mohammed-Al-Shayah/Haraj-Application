@@ -66,49 +66,54 @@ class PrimaryButton extends StatelessWidget {
         children: [
           Visibility(
             visible: !showProgress,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (leadingIcon != null) ...[
-                  SvgPicture.asset(
-                    leadingIcon!,
-                    height: 20,
-                    width: 20,
-                    colorFilter: ColorFilter.mode(
-                      isActive
-                          ? textColor
-                          : textColor.withAlpha((0.5 * 255).toInt()),
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: fontWeight,
-                    color:
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (leadingIcon != null) ...[
+                    SvgPicture.asset(
+                      leadingIcon!,
+                      height: 20,
+                      width: 20,
+                      colorFilter: ColorFilter.mode(
                         isActive
                             ? textColor
                             : textColor.withAlpha((0.5 * 255).toInt()),
-                  ),
-                ),
-                if (trailingIcon != null) ...[
-                  const SizedBox(width: 8),
-                  SvgPicture.asset(
-                    trailingIcon!,
-                    height: 20,
-                    width: 20,
-                    colorFilter: ColorFilter.mode(
-                      isActive
-                          ? textColor
-                          : textColor.withAlpha((0.5 * 255).toInt()),
-                      BlendMode.srcIn,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: fontWeight,
+                      color:
+                          isActive
+                              ? textColor
+                              : textColor.withAlpha((0.5 * 255).toInt()),
                     ),
                   ),
+                  if (trailingIcon != null) ...[
+                    const SizedBox(width: 8),
+                    SvgPicture.asset(
+                      trailingIcon!,
+                      height: 20,
+                      width: 20,
+                      colorFilter: ColorFilter.mode(
+                        isActive
+                            ? textColor
+                            : textColor.withAlpha((0.5 * 255).toInt()),
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
           Visibility(

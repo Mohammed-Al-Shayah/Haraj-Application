@@ -20,7 +20,14 @@ class AdModel extends AdEntity {
 
   factory AdModel.fromJson(Map<String, dynamic> json) {
     double? toDouble(dynamic v) =>
-        v == null ? null : (v is num ? v.toDouble() : double.tryParse(v.toString()));
+        v == null
+            ? null
+            : (v is num ? v.toDouble() : double.tryParse(v.toString()));
+    int toInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is num) return v.toInt();
+      return int.tryParse(v.toString()) ?? 0;
+    }
 
     String? extractImage(Map<String, dynamic> json) {
       final images = json['ads_images'];
@@ -36,7 +43,9 @@ class AdModel extends AdEntity {
       if (json['imageUrl'] is String) image ??= json['imageUrl'] as String;
       if (json['image'] is String) image ??= json['image'] as String;
 
-      if (image != null && image.isNotEmpty && !image.toLowerCase().startsWith('http')) {
+      if (image != null &&
+          image.isNotEmpty &&
+          !image.toLowerCase().startsWith('http')) {
         return '${ApiEndpoints.imageUrl}$image';
       }
       return image ?? '';
@@ -44,43 +53,56 @@ class AdModel extends AdEntity {
 
     final adLikes = (json['ad_likes'] as List?) ?? const [];
     final bool isLiked = adLikes.isNotEmpty;
-    final int? likeId = isLiked
-        ? (adLikes.first is Map ? (adLikes.first['id'] as num?)?.toInt() : null)
-        : null;
+    final int? likeId =
+        isLiked
+            ? (adLikes.first is Map
+                ? (adLikes.first['id'] as num?)?.toInt()
+                : null)
+            : null;
 
     return AdModel(
       id: json['id'] ?? 0,
       imageUrl: extractImage(json) ?? '',
       title: json['title']?.toString() ?? '',
-      location: json['address']?.toString() ?? json['location']?.toString() ?? '',
+      location:
+          json['address']?.toString() ?? json['location']?.toString() ?? '',
       price: toDouble(json['price']) ?? 0,
 
-      likesCount: (json['likesCount'] ?? json['likes'] ?? 0) as int,
-      commentsCount: (json['commentsCount'] ?? json['comments'] ?? 0) as int,
+      likesCount: toInt(
+        json['likesCount'] ?? json['likes'] ?? json['likes_count'],
+      ),
+      commentsCount: toInt(
+        json['commentsCount'] ?? json['comments'] ?? json['comments_count'],
+      ),
 
-      createdAt: json['created']?.toString() ?? json['createdAt']?.toString() ?? '',
+      createdAt:
+          json['created']?.toString() ??
+          json['createdAt']?.toString() ??
+          json['created_at']?.toString() ??
+          '',
       latitude: toDouble(json['lat'] ?? json['latitude']) ?? 0,
       longitude: toDouble(json['lng'] ?? json['longitude']) ?? 0,
-      currencySymbol: json['currencies'] is Map ? json['currencies']['symbol']?.toString() : null,
-
-      // ✅ جديد
+      currencySymbol:
+          json['currencies'] is Map
+              ? json['currencies']['symbol']?.toString()
+              : null,
       isLiked: isLiked,
       likeId: likeId,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'imageUrl': imageUrl,
-        'title': title,
-        'location': location,
-        'price': price,
-        'likesCount': likesCount,
-        'commentsCount': commentsCount,
-        'createdAt': createdAt,
-        'latitude': latitude,
-        'longitude': longitude,
-        'isLiked': isLiked,
-        'likeId': likeId,
-      };
+    'id': id,
+    'imageUrl': imageUrl,
+    'title': title,
+    'location': location,
+    'price': price,
+    'likesCount': likesCount,
+    'commentsCount': commentsCount,
+    'createdAt': createdAt,
+    'latitude': latitude,
+    'longitude': longitude,
+    'isLiked': isLiked,
+    'likeId': likeId,
+  };
 }

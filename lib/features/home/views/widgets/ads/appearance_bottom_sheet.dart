@@ -87,6 +87,10 @@ class AppearanceBottomSheet extends StatelessWidget {
                       onPressed: () {
                         controller.selectedAppearance.value =
                             tempSelectedAppearance.value;
+                        controller.filterAds(
+                          controller.searchQuery.value,
+                          resetPage: true,
+                        );
                         Get.back();
                       },
                       title: AppStrings.apply,
