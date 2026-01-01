@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:haraj_adan_app/core/theme/color.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haraj_adan_app/core/theme/assets.dart';
+import 'package:haraj_adan_app/core/theme/strings.dart';
 import '../../../../core/theme/typography.dart';
 
 class AdCardItem extends StatelessWidget {
@@ -16,6 +17,8 @@ class AdCardItem extends StatelessWidget {
   final double? longitude;
   final VoidCallback? onTap;
   final bool showDivider;
+  final VoidCallback? onEdit;
+  final VoidCallback? onFeature;
 
   const AdCardItem({
     super.key,
@@ -30,6 +33,8 @@ class AdCardItem extends StatelessWidget {
     this.longitude,
     required this.onTap,
     this.showDivider = true,
+    this.onEdit,
+    this.onFeature,
   });
 
   @override
@@ -119,6 +124,43 @@ class AdCardItem extends StatelessWidget {
                                 color: AppColors.gray500,
                               ),
                             ),
+                          ],
+                        ),
+                      ],
+                      if (onEdit != null || onFeature != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            if (onEdit != null)
+                              TextButton.icon(
+                                onPressed: onEdit,
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 6,
+                                  ),
+                                  foregroundColor: AppColors.primary,
+                                  backgroundColor: AppColors.gray100,
+                                ),
+                                icon: const Icon(Icons.edit, size: 16),
+                                label: Text(AppStrings.editAd),
+                              ),
+                            if (onEdit != null && onFeature != null)
+                              const SizedBox(width: 8),
+                            if (onFeature != null)
+                              TextButton.icon(
+                                onPressed: onFeature,
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 6,
+                                  ),
+                                  foregroundColor: AppColors.primary,
+                                  backgroundColor: AppColors.gray100,
+                                ),
+                                icon: const Icon(Icons.star, size: 16),
+                                label: Text(AppStrings.featureAd),
+                              ),
                           ],
                         ),
                       ],

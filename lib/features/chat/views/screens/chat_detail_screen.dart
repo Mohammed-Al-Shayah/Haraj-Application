@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:dio/dio.dart';
+import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/data/datasources/chat_detail_remote_data_source.dart';
 import '../../../../core/widgets/main_bar.dart';
 import '../../../../core/theme/assets.dart';
@@ -15,15 +17,36 @@ class ChatDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final args = Get.arguments as Map<String, dynamic>? ?? const {};
+    final chatId = args['chatId'] as int?;
+    final chatName = args['chatName']?.toString() ?? 'Owner Name';
+    final otherUserId = args['otherUserId'] as int?;
+
+    if (chatId == null) {
+      return Scaffold(
+        appBar: MainBar(title: chatName),
+        body: const Center(
+          child: Text('Missing chat id'),
+        ),
+      );
+    }
+
     final controller = Get.put(
       ChatDetailController(
-        ChatDetailRepositoryImpl(ChatDetailRemoteDataSourceImpl()),
+        ChatDetailRepositoryImpl(
+          ChatDetailRemoteDataSourceImpl(
+            ApiClient(client: Dio()),
+          ),
+        ),
+        chatId: chatId,
+        chatName: chatName,
+        otherUserId: otherUserId,
       ),
     );
 
     return Scaffold(
       appBar: MainBar(
-        title: 'Owner Name',
+        title: chatName,
         customActions: [
           IconButton(
             icon: SvgPicture.asset(AppAssets.callIcon, width: 24, height: 24),

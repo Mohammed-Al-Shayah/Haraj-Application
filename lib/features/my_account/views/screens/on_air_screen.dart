@@ -1,23 +1,47 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/features/my_account/views/widgets/ad_card_item.dart';
 import '../../../../core/theme/strings.dart';
 import '../../../../core/widgets/main_bar.dart';
 import '../../../../core/widgets/side_menu.dart';
 import '../../../../data/datasources/on_air_remote_datasource.dart';
+import '../../../../data/datasources/post_ad_remote_datasource.dart';
 import '../../../../data/repositories/on_air_repository_impl.dart';
+import '../../../../data/repositories/post_ad_repository_impl.dart';
 import '../../controllers/on_air_controller.dart';
 
-class OnAirScreen extends StatelessWidget {
+class OnAirScreen extends StatefulWidget {
   const OnAirScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-    final controller = Get.put(
-      OnAirController(OnAirRepositoryImpl(OnAirRemoteDataSourceImpl())),
+  State<OnAirScreen> createState() => _OnAirScreenState();
+}
+
+class _OnAirScreenState extends State<OnAirScreen> {
+  late final OnAirController controller;
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(
+      OnAirController(
+        OnAirRepositoryImpl(
+          OnAirRemoteDataSourceImpl(ApiClient(client: Dio())),
+        ),
+        PostAdRepositoryImpl(
+          PostAdRemoteDataSourceImpl(ApiClient(client: Dio())),
+        ),
+      ),
+      permanent: true,
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
 
     return Scaffold(
       key: scaffoldKey,
@@ -44,10 +68,13 @@ class OnAirScreen extends StatelessWidget {
               status: ad.status,
               latitude: ad.latitude,
               longitude: ad.longitude,
-              onTap: () => Get.toNamed(
-                Routes.adDetailsScreen,
-                arguments: {'adId': ad.id},
-              ),
+              onEdit: () => controller.editAd(ad.id),
+              onFeature: () => controller.featureAd(ad.id),
+              onTap:
+                  () => Get.toNamed(
+                    Routes.adDetailsScreen,
+                    arguments: {'adId': ad.id},
+                  ),
             );
           },
         );

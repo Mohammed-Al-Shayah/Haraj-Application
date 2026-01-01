@@ -8,5 +8,9 @@ class ChatDetailRepositoryImpl implements ChatDetailRepository {
   ChatDetailRepositoryImpl(this.remote);
 
   @override
-  Future<List<MessageEntity>> getMessages() => remote.fetchMessages();
+  Future<List<MessageEntity>> getMessages({
+    required int chatId,
+    required int userId,
+  }) =>
+      remote.fetchMessages(chatId: chatId, userId: userId);
 }

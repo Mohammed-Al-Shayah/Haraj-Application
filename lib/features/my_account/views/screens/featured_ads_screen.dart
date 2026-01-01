@@ -4,39 +4,31 @@ import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/core/theme/strings.dart';
-import 'package:haraj_adan_app/data/datasources/not_published_remote_datasource.dart';
-import 'package:haraj_adan_app/data/datasources/post_ad_remote_datasource.dart';
+import 'package:haraj_adan_app/core/widgets/main_bar.dart';
+import 'package:haraj_adan_app/core/widgets/side_menu.dart';
+import 'package:haraj_adan_app/data/datasources/user_featured_ads_remote_datasource.dart';
+import 'package:haraj_adan_app/data/repositories/user_featured_ads_repository_impl.dart';
+import 'package:haraj_adan_app/features/my_account/controllers/featured_ads_controller.dart';
 import 'package:haraj_adan_app/features/my_account/views/widgets/ad_card_item.dart';
-import '../../../../core/widgets/main_bar.dart';
-import '../../../../core/widgets/side_menu.dart';
-import '../../../../data/repositories/not_published_repository_impl.dart';
-import '../../../../data/repositories/post_ad_repository_impl.dart';
-import '../../controllers/not_published_controller.dart';
 
-class NotPublishedScreen extends StatelessWidget {
-  NotPublishedScreen({super.key});
-
-  final NotPublishedController controller = Get.put(
-    NotPublishedController(
-      NotPublishedRepositoryImpl(
-        NotPublishedRemoteDataSourceImpl(ApiClient(client: Dio())),
-      ),
-      PostAdRepositoryImpl(
-        PostAdRemoteDataSourceImpl(ApiClient(client: Dio())),
-      ),
-    ),
-    permanent: true,
-  );
+class FeaturedAdsScreen extends StatelessWidget {
+  const FeaturedAdsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-
-    final scaffoldKey = GlobalKey<ScaffoldState>();
+    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+    final controller = Get.put(
+      FeaturedAdsController(
+        UserFeaturedAdsRepositoryImpl(
+          UserFeaturedAdsRemoteDataSourceImpl(ApiClient(client: Dio())),
+        ),
+      ),
+    );
 
     return Scaffold(
       key: scaffoldKey,
       appBar: MainBar(
-        title: AppStrings.notPublishedTitle,
+        title: AppStrings.myFeaturedAdsTitle,
         menu: true,
         scaffoldKey: scaffoldKey,
       ),
@@ -58,9 +50,6 @@ class NotPublishedScreen extends StatelessWidget {
               status: ad.status,
               latitude: ad.latitude,
               longitude: ad.longitude,
-              onEdit: () => controller.editAd(ad.id),
-              onFeature: () => controller.featureAd(ad.id),
-
               onTap:
                   () => Get.toNamed(
                     Routes.adDetailsScreen,

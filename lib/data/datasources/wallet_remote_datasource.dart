@@ -32,12 +32,14 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
     required num amount,
     required File proofImage,
   }) async {
+    final fileName = proofImage.path.split(RegExp(r'[\\/]+')).last;
+
     final formData = FormData.fromMap({
       'amount': amount,
       'user_id': userId,
       'proof_image': await MultipartFile.fromFile(
         proofImage.path,
-        filename: proofImage.path.split('/').last,
+        filename: fileName,
       ),
     });
 

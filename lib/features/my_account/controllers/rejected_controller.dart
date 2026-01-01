@@ -1,19 +1,19 @@
 import 'package:dio/dio.dart';
+import 'package:get/get.dart';
+import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/core/storage/user_storage.dart';
 import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
-import 'package:haraj_adan_app/domain/entities/not_published_entity.dart';
-import 'package:haraj_adan_app/domain/repositories/not_published_repository.dart';
+import 'package:haraj_adan_app/domain/entities/rejected_entity.dart';
 import 'package:haraj_adan_app/domain/repositories/post_ad_repository.dart';
-import 'package:haraj_adan_app/core/routes/routes.dart';
-import 'package:get/get.dart';
+import 'package:haraj_adan_app/domain/repositories/rejected_repository.dart';
 
-class NotPublishedController extends GetxController {
-  final NotPublishedRepository repository;
+class RejectedController extends GetxController {
+  final RejectedRepository repository;
   final PostAdRepository postAdRepository;
 
-  NotPublishedController(this.repository, this.postAdRepository);
+  RejectedController(this.repository, this.postAdRepository);
 
-  var ads = <NotPublishedEntity>[].obs;
+  var ads = <RejectedEntity>[].obs;
   var isLoading = true.obs;
   var featuringIds = <int>{}.obs;
 

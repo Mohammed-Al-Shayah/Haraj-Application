@@ -1,26 +1,25 @@
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
-import '../models/not_published_model.dart';
+import 'package:haraj_adan_app/data/models/user_featured_ad_model.dart';
 
-abstract class NotPublishedRemoteDataSource {
-  Future<List<NotPublishedModel>> fetchAds({required int userId});
+abstract class UserFeaturedAdsRemoteDataSource {
+  Future<List<UserFeaturedAdModel>> fetchAds({required int userId});
 }
 
-class NotPublishedRemoteDataSourceImpl implements NotPublishedRemoteDataSource {
+class UserFeaturedAdsRemoteDataSourceImpl
+    implements UserFeaturedAdsRemoteDataSource {
   final ApiClient apiClient;
 
-  NotPublishedRemoteDataSourceImpl(this.apiClient);
+  UserFeaturedAdsRemoteDataSourceImpl(this.apiClient);
 
   @override
-  Future<List<NotPublishedModel>> fetchAds({required int userId}) async {
-    final res = await apiClient.get(
-      ApiEndpoints.userAdsByStatus(userId, 'unpublished'),
-    );
+  Future<List<UserFeaturedAdModel>> fetchAds({required int userId}) async {
+    final res = await apiClient.get(ApiEndpoints.userFeaturedAds(userId));
 
     final list = _extractList(res);
     return list
         .whereType<Map<String, dynamic>>()
-        .map(NotPublishedModel.fromJson)
+        .map(UserFeaturedAdModel.fromJson)
         .toList();
   }
 

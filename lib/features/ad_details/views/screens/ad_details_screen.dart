@@ -92,7 +92,7 @@ class AdDetailsScreen extends StatelessWidget {
           }),
         ],
       ),
-      bottomNavigationBar: const BottomNavigationAction(),
+      bottomNavigationBar: BottomNavigationAction(),
       body: Obx(() {
         final controller = Get.find<AdDetailsController>();
         if (controller.isLoading.value) {

@@ -4,6 +4,7 @@ class ApiEndpoints {
   static String baseAPI = '$baseUrl/api';
   static String register = '$baseUrl/auth/register';
   static String login = '$baseUrl/auth/login';
+  static String updateProfile = '$baseUrl/auth/profile';
   static String googleAuth = '$baseUrl/auth/google/redirect';
   static String verifyOtp = '$baseUrl/auth/verify-otp';
   static String resendOtp = '$baseUrl/auth/resend-otp';
@@ -31,11 +32,23 @@ class ApiEndpoints {
   static String categoryAttributes(int categoryId) =>
       '$baseUrl/categories/$categoryId/attributes';
 
+  static String userAdsStats = '$baseUrl/ads/user-ads-stats';
+  static String userAdsByStatus(int userId, String status) =>
+      '$baseUrl/ads/user-ads-by-status/$userId/$status';
+  static String userFeaturedAds(int userId) =>
+      '$baseUrl/ads/user-featured-ads/$userId';
+
   static String featuredSettings = '$baseUrl/ads/featured-settings';
   static String discounts = '$baseUrl/ads/discounts';
 
   static String createAd = '$baseUrl/ads';
+  static String updateAd(int adId) => '$baseUrl/ads/$adId';
+  static String featureAd(int adId) => '$baseUrl/ads/$adId/feature';
+  static String refundFeaturedAd(int adId) => '$baseUrl/ads/$adId/refund';
   static String categoryAds(int categoryId) =>
       '$baseUrl/categories/$categoryId/ads';
   static String filterAds = '$baseUrl/ads/filter';
+
+  static String chatList = '$baseUrl/chats/paginate/customer';
+  static String chatMessages = '$baseUrl/chats/messages';
 }

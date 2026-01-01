@@ -4,39 +4,48 @@ import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/core/theme/strings.dart';
-import 'package:haraj_adan_app/data/datasources/not_published_remote_datasource.dart';
+import 'package:haraj_adan_app/core/widgets/main_bar.dart';
+import 'package:haraj_adan_app/core/widgets/side_menu.dart';
 import 'package:haraj_adan_app/data/datasources/post_ad_remote_datasource.dart';
+import 'package:haraj_adan_app/data/datasources/rejected_remote_datasource.dart';
+import 'package:haraj_adan_app/data/repositories/post_ad_repository_impl.dart';
+import 'package:haraj_adan_app/data/repositories/rejected_repository_impl.dart';
+import 'package:haraj_adan_app/features/my_account/controllers/rejected_controller.dart';
 import 'package:haraj_adan_app/features/my_account/views/widgets/ad_card_item.dart';
-import '../../../../core/widgets/main_bar.dart';
-import '../../../../core/widgets/side_menu.dart';
-import '../../../../data/repositories/not_published_repository_impl.dart';
-import '../../../../data/repositories/post_ad_repository_impl.dart';
-import '../../controllers/not_published_controller.dart';
 
-class NotPublishedScreen extends StatelessWidget {
-  NotPublishedScreen({super.key});
+class RejectedScreen extends StatefulWidget {
+  const RejectedScreen({super.key});
 
-  final NotPublishedController controller = Get.put(
-    NotPublishedController(
-      NotPublishedRepositoryImpl(
-        NotPublishedRemoteDataSourceImpl(ApiClient(client: Dio())),
+  @override
+  State<RejectedScreen> createState() => _RejectedScreenState();
+}
+
+class _RejectedScreenState extends State<RejectedScreen> {
+  late final RejectedController controller;
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(
+      RejectedController(
+        RejectedRepositoryImpl(
+          RejectedRemoteDataSourceImpl(ApiClient(client: Dio())),
+        ),
+        PostAdRepositoryImpl(
+          PostAdRemoteDataSourceImpl(ApiClient(client: Dio())),
+        ),
       ),
-      PostAdRepositoryImpl(
-        PostAdRemoteDataSourceImpl(ApiClient(client: Dio())),
-      ),
-    ),
-    permanent: true,
-  );
+      permanent: true,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-
-    final scaffoldKey = GlobalKey<ScaffoldState>();
-
     return Scaffold(
       key: scaffoldKey,
       appBar: MainBar(
-        title: AppStrings.notPublishedTitle,
+        title: AppStrings.rejectedAdsTitle,
         menu: true,
         scaffoldKey: scaffoldKey,
       ),
@@ -60,12 +69,10 @@ class NotPublishedScreen extends StatelessWidget {
               longitude: ad.longitude,
               onEdit: () => controller.editAd(ad.id),
               onFeature: () => controller.featureAd(ad.id),
-
-              onTap:
-                  () => Get.toNamed(
-                    Routes.adDetailsScreen,
-                    arguments: {'adId': ad.id},
-                  ),
+              onTap: () => Get.toNamed(
+                Routes.adDetailsScreen,
+                arguments: {'adId': ad.id},
+              ),
             );
           },
         );

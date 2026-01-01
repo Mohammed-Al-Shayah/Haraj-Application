@@ -15,7 +15,11 @@ import '../../../../core/widgets/side_menu.dart';
 class MyProfileScreen extends StatelessWidget {
   MyProfileScreen({super.key});
 
-  final MyAccountController controller = Get.find<MyAccountController>();
+  final _formKey = GlobalKey<FormState>();
+  final MyAccountController controller =
+      Get.isRegistered<MyAccountController>()
+          ? Get.find<MyAccountController>()
+          : Get.put(MyAccountController());
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +33,12 @@ class MyProfileScreen extends StatelessWidget {
       ),
       drawer: SideMenu(),
       body: SingleChildScrollView(
-        child: Column(children: [_myProfileHeader(), _editableContentInner()]),
+        child: Column(
+          children: [
+            _myProfileHeader(),
+            _editableContentInner(),
+          ],
+        ),
       ),
     );
   }
@@ -43,27 +52,56 @@ class MyProfileScreen extends StatelessWidget {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            InputField(
-              labelText: AppStrings.nameText,
-              validator: Validators.validateName,
-              hintText: AppStrings.yourNameText,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 20),
-            InputField(
-              labelText: AppStrings.emailText,
-              validator: Validators.validateName,
-              hintText: AppStrings.inputFieldEmailHint,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            SizedBox(height: MediaQuery.of(Get.context!).size.height * 0.2),
-            PrimaryButton(onPressed: () {}, title: AppStrings.saveButtonText),
-            const SizedBox(height: 20),
-          ],
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              InputField(
+                controller: controller.nameController,
+                labelText: AppStrings.nameText,
+                validator: Validators.validateName,
+                hintText: AppStrings.yourNameText,
+                keyboardType: TextInputType.name,
+              ),
+              const SizedBox(height: 20),
+              InputField(
+                controller: controller.emailController,
+                labelText: AppStrings.emailText,
+                validator: (value) =>
+                    (value == null || value.isEmpty)
+                        ? null
+                        : Validators.validateEmail(value),
+                hintText: AppStrings.inputFieldEmailHint,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 20),
+              InputField(
+                controller: controller.phoneController,
+                labelText: AppStrings.inputFieldPhoneLabel,
+                validator: (value) =>
+                    (value == null || value.isEmpty)
+                        ? null
+                        : Validators.validatePhone(value),
+                hintText: AppStrings.inputFieldPhoneLabel,
+                keyboardType: TextInputType.phone,
+              ),
+              SizedBox(height: MediaQuery.of(Get.context!).size.height * 0.2),
+              Obx(
+                () => PrimaryButton(
+                  onPressed: () {
+                    final isValid = _formKey.currentState?.validate() ?? false;
+                    if (!isValid) return;
+                    controller.saveProfile();
+                  },
+                  title: AppStrings.saveButtonText,
+                  showProgress: controller.isUpdating.value,
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

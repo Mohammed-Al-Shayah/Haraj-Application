@@ -10,7 +10,8 @@ class AppStrings {
   static String get english => 'english'.tr();
   static String get arabic => 'arabic'.tr();
   static String get register => 'register'.tr();
-  static String get createAccountButtonText => 'create_account_button_text'.tr();
+  static String get createAccountButtonText =>
+      'create_account_button_text'.tr();
   static String get forgotPasswordQuestionsMark => 'forgot_password?'.tr();
   static String get forgotPassword => 'forgot_password'.tr();
   static String get resetPassword => 'reset_password'.tr();
@@ -18,7 +19,8 @@ class AppStrings {
   static String get inputFieldNameHint => 'input_field_name_hint'.tr();
   static String get inputFieldEmailLabel => 'input_field_email_label'.tr();
   static String get inputFieldEmailHint => 'input_field_email_hint'.tr();
-  static String get inputFieldPasswordLabel => 'input_field_password_label'.tr();
+  static String get inputFieldPasswordLabel =>
+      'input_field_password_label'.tr();
   static String get inputFieldPhoneLabel => 'input_field_phone_label'.tr();
   static String get inputFieldPasswordHint => 'input_field_password_hint'.tr();
   static String get alreadyHaveAccount => 'already_have_account'.tr();
@@ -38,15 +40,18 @@ class AppStrings {
   static String get didNotReceiveCode => 'did_not_receive_code'.tr();
   static String get resend => 'resend'.tr();
 
-
   static String get validationRequired => 'validation_required'.tr();
   static String get validationNameRequired => 'validation_name_required'.tr();
-  static String get validationNameLettersSpaces => 'validation_name_letters_spaces'.tr();
+  static String get validationNameLettersSpaces =>
+      'validation_name_letters_spaces'.tr();
   static String get validationEmailRequired => 'validation_email_required'.tr();
   static String get validationEmailValid => 'validation_email_valid'.tr();
-  static String get validationPasswordRequired => 'validation_password_required'.tr();
-  static String get validationPasswordMinLength => 'validation_password_min_length'.tr();
-  static String get validationPasswordComplexity => 'validation_password_complexity'.tr();
+  static String get validationPasswordRequired =>
+      'validation_password_required'.tr();
+  static String get validationPasswordMinLength =>
+      'validation_password_min_length'.tr();
+  static String get validationPasswordComplexity =>
+      'validation_password_complexity'.tr();
 
   static String get startAdvertising => 'start_advertising'.tr();
   static String get placeLocation => 'place_location'.tr();
@@ -63,15 +68,21 @@ class AppStrings {
   static String get inHomeHelp => 'in_home_help'.tr();
   static String get petsLivestock => 'pets_livestock'.tr();
 
-  static String get residentialCommercialLandHousing => 'residential_commercial_land_housing'.tr();
+  static String get residentialCommercialLandHousing =>
+      'residential_commercial_land_housing'.tr();
   static String get carsOffRoadSuvPickup => 'cars_off_road_suv_pickup'.tr();
   static String get automotiveMotorcycle => 'automotive_motorcycle'.tr();
   static String get computersCellPhones => 'computers_cell_phones'.tr();
-  static String get agriculturalHeavyEquipment => 'agricultural_heavy_equipment'.tr();
-  static String get interiorRepairsLogistics => 'interior_repairs_logistics'.tr();
-  static String get highSchoolPrimaryEducation => 'high_school_primary_education'.tr();
-  static String get accountingFinanceBanking => 'accounting_finance_banking'.tr();
-  static String get babysittersNursesPatient => 'babysitters_nurses_patient'.tr();
+  static String get agriculturalHeavyEquipment =>
+      'agricultural_heavy_equipment'.tr();
+  static String get interiorRepairsLogistics =>
+      'interior_repairs_logistics'.tr();
+  static String get highSchoolPrimaryEducation =>
+      'high_school_primary_education'.tr();
+  static String get accountingFinanceBanking =>
+      'accounting_finance_banking'.tr();
+  static String get babysittersNursesPatient =>
+      'babysitters_nurses_patient'.tr();
   static String get petsAquariumAccessories => 'pets_aquarium_accessories'.tr();
 
   static String get featured => 'featured'.tr();
@@ -82,7 +93,8 @@ class AppStrings {
   static String get noFeaturedAds => 'no_featured_ads'.tr();
   static String get allNearbyAds => 'all_nearby_ads'.tr();
   static String get allNearbyShopping => 'all_nearby_shopping'.tr();
-  static String get shoppingListingsFromOwnerNearYou => 'shopping_listings_from_owner_near_you'.tr();
+  static String get shoppingListingsFromOwnerNearYou =>
+      'shopping_listings_from_owner_near_you'.tr();
 
   static String get gajahMadaBillBoard => 'gajah_mada_billboard'.tr();
   static String get sanaaYemen => 'sanaa_yemen'.tr();
@@ -120,7 +132,6 @@ class AppStrings {
   static String get daysAgo => 'days_ago'.tr();
   static String get monthsAgo => 'months_ago'.tr();
 
-
   static String get relevance => 'relevance'.tr();
   static String get nearest => 'nearest'.tr();
   static String get lowestPrice => 'lowest_price'.tr();
@@ -130,10 +141,8 @@ class AppStrings {
   static String get byAddressAZ => 'by_address_az'.tr();
   static String get byAddressZA => 'by_address_za'.tr();
 
-
   /// Chat feature
   static String get typeHere => 'type_here'.tr();
-
 
   /// Ad Details feature
   static String get adDetailsTitle => 'ad_details_title'.tr();
@@ -157,7 +166,8 @@ class AppStrings {
   static String get featuresText => 'features_text'.tr();
   static String get unspecifiedText => 'unspecified_text'.tr();
   static String get intendedUseText => 'intended_use_text'.tr();
-  static String get generalSpecificationsText => 'general_specifications_text'.tr();
+  static String get generalSpecificationsText =>
+      'general_specifications_text'.tr();
   static String get nearnessText => 'nearness_text'.tr();
   static String get viewText => 'view_text'.tr();
   static String get frontageText => 'frontage_text'.tr();
@@ -173,6 +183,8 @@ class AppStrings {
   static String get myProfileTitle => 'my_profile_title'.tr();
   static String get onAirTitle => 'on_air_title'.tr();
   static String get notPublishedTitle => 'not_published_title'.tr();
+  static String get rejectedAdsTitle => 'rejected_ads_title'.tr();
+  static String get myFeaturedAdsTitle => 'my_featured_ads_title'.tr();
   static String get messagesTitle => 'messages_title'.tr();
   static String get permissionsTitle => 'permissions_title'.tr();
   static String get favouriteAdsTitle => 'favourite_ads_title'.tr();
@@ -188,10 +200,16 @@ class AppStrings {
   static String get amount => 'amount'.tr();
   static String get enterAmount => 'enter_amount'.tr();
   static String get submit => 'submit'.tr();
-  static String get advertisementManagementText => 'advertisement_management_text'.tr();
+  static String get advertisementManagementText =>
+      'advertisement_management_text'.tr();
   static String get onAirText => 'on_air_text'.tr();
   static String get notPublishedText => 'not_published_text'.tr();
-  static String get messagesAndInformationsText => 'messages_and_informations_text'.tr();
+  static String get rejectedAdsText => 'rejected_ads_text'.tr();
+  static String get featuredAdsText => 'featured_ads_text'.tr();
+  static String get editAd => 'edit_ad'.tr();
+  static String get featureAd => 'feature_ad'.tr();
+  static String get messagesAndInformationsText =>
+      'messages_and_informations_text'.tr();
   static String get messagesText => 'messages_text'.tr();
   static String get permissionsText => 'permissions_text'.tr();
   static String get favouritesText => 'favourites_text'.tr();
@@ -212,9 +230,12 @@ class AppStrings {
   static String get emailText => 'email_text'.tr();
   static String get saveButtonText => 'save_button_text'.tr();
   static String get searchText => 'search_text'.tr();
-  static String get mobileNotificationPermissionText => 'mobile_notification_permission_text'.tr();
-  static String get messageReadPermissionText => 'message_read_permission_text'.tr();
-  static String get messageReadPermissionSubText => 'message_read_permission_subtext'.tr();
+  static String get mobileNotificationPermissionText =>
+      'mobile_notification_permission_text'.tr();
+  static String get messageReadPermissionText =>
+      'message_read_permission_text'.tr();
+  static String get messageReadPermissionSubText =>
+      'message_read_permission_subtext'.tr();
 
   /// Create Ads feature
   static String get postAdTitle => 'post_ad_title'.tr();
@@ -224,8 +245,10 @@ class AppStrings {
   static String get vehiclesSubTitle => 'vehicles_subtitle'.tr();
   static String get vehiclePartsTitle => 'vehicle_parts_title'.tr();
   static String get vehiclePartsSubTitle => 'vehicle_parts_subtitle'.tr();
-  static String get usedAndBrandNewItemsTitle => 'used_and_brand_new_items_title'.tr();
-  static String get usedAndBrandNewItemsSubTitle => 'used_and_brand_new_items_subtitle'.tr();
+  static String get usedAndBrandNewItemsTitle =>
+      'used_and_brand_new_items_title'.tr();
+  static String get usedAndBrandNewItemsSubTitle =>
+      'used_and_brand_new_items_subtitle'.tr();
   static String get machineryTitle => 'machinery_title'.tr();
   static String get machinerySubTitle => 'machinery_subtitle'.tr();
   static String get servicesTitle => 'services_title'.tr();
@@ -237,7 +260,8 @@ class AppStrings {
   static String get inHomeHelpTitle => 'in_home_help_title'.tr();
   static String get inHomeHelpSubTitle => 'in_home_help_subtitle'.tr();
   static String get petsAndLivestockTitle => 'pets_and_livestock_title'.tr();
-  static String get petsAndLivestockSubTitle => 'pets_and_livestock_subtitle'.tr();
+  static String get petsAndLivestockSubTitle =>
+      'pets_and_livestock_subtitle'.tr();
   static String get previousButtonText => 'previous_button_text'.tr();
   static String get cancelButtonText => 'cancel_button_text'.tr();
   static String get nextButtonText => 'next_button_text'.tr();
@@ -265,6 +289,7 @@ class AppStrings {
   static String get animalTypeHint => 'animal_type_hint'.tr();
   static String get uploadPhotosText => 'upload_photos_text'.tr();
   static String get uploadPhotosSubText => 'upload_photos_subtext'.tr();
+  static String get currentImages => 'current_images'.tr();
   static String get thankYouText => 'thank_you_text'.tr();
   static String get postUnderReviewText => 'post_under_review_text'.tr();
   static String get homeButtonText => 'home_button_text'.tr();
@@ -273,11 +298,13 @@ class AppStrings {
 
   /// Real Estate feature
   static String get realEstateTypeTitle => "real_estate_type_title".tr();
-  static String get realEstateTypeBuildings => "real_estate_type_buildings".tr();
+  static String get realEstateTypeBuildings =>
+      "real_estate_type_buildings".tr();
   static String get realEstateTypeHouses => "real_estate_type_houses".tr();
   static String get realEstateTypeLands => "real_estate_type_lands".tr();
   static String get realEstateTypeVillas => "real_estate_type_villas".tr();
-  static String get realEstateTypeApartments => "real_estate_type_apartments".tr();
+  static String get realEstateTypeApartments =>
+      "real_estate_type_apartments".tr();
 
   static String get adTypeTitle => "ad_type_title".tr();
   static String get adTypeSell => "ad_type_sell".tr();
@@ -332,7 +359,8 @@ class AppStrings {
 
   static String get paymentMethodTitle => 'paymentMethodTitle'.tr();
   static String get paymentMethodCash => 'paymentMethodCash'.tr();
-  static String get paymentMethodInstallments => 'paymentMethodInstallments'.tr();
+  static String get paymentMethodInstallments =>
+      'paymentMethodInstallments'.tr();
 
   static String get hasGardenTitle => 'hasGardenTitle'.tr();
 
@@ -342,12 +370,6 @@ class AppStrings {
 
   /// Search feature
   static String get supportTitle => 'support_title'.tr();
-
-
-
-
-
-
 
   // Filter Templete
   static String get filter => 'filter'.tr();
@@ -456,10 +478,8 @@ class AppStrings {
   static String get aptFeatureGenerator => 'apt_feature_generator'.tr();
   static String get aptFeatureEnsuiteBathroom =>
       'apt_feature_ensuite_bathroom'.tr();
-  static String get aptFeatureArabicToilet =>
-      'apt_feature_arabic_toilet'.tr();
-  static String get aptFeatureInternetLine =>
-      'apt_feature_internet_line'.tr();
+  static String get aptFeatureArabicToilet => 'apt_feature_arabic_toilet'.tr();
+  static String get aptFeatureInternetLine => 'apt_feature_internet_line'.tr();
   static String get aptFeatureLandline => 'apt_feature_landline'.tr();
 
   // Commercial shops

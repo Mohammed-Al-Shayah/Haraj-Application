@@ -8,7 +8,7 @@ class OnAirRepositoryImpl implements OnAirRepository {
   OnAirRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<List<OnAirEntity>> getAds() async {
-    return await remoteDataSource.fetchAds();
+  Future<List<OnAirEntity>> getAds({required int userId}) async {
+    return await remoteDataSource.fetchAds(userId: userId);
   }
 }

@@ -9,6 +9,7 @@ import 'package:haraj_adan_app/features/filters/models/enums.dart';
 import 'package:haraj_adan_app/data/datasources/post_ad_remote_datasource.dart';
 import 'package:haraj_adan_app/data/repositories/post_ad_repository_impl.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
+import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:dio/dio.dart';
 import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import '../../../../core/widgets/main_bar.dart';
@@ -33,6 +34,8 @@ class _PostAdScreenState extends State<PostAdScreen> {
   int? _categoryId;
   String _categoryTitle = 'Category';
   RealEstateType? _initialRealEstateType;
+  int? _editAdId;
+  Map<String, dynamic>? _adData;
 
   @override
   void initState() {
@@ -44,6 +47,8 @@ class _PostAdScreenState extends State<PostAdScreen> {
     _categoryId = _args['categoryId'] as int?;
     _categoryTitle = (_args['categoryTitle'] ?? 'Category').toString();
     _initialRealEstateType = _args['realEstateType'] as RealEstateType?;
+    _editAdId = _args['editAdId'] as int?;
+    _adData = (_args['adData'] as Map?)?.cast<String, dynamic>();
 
     if (_categoryId == null || _categoryId == 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -66,6 +71,10 @@ class _PostAdScreenState extends State<PostAdScreen> {
       ),
       tag: formTag,
     );
+
+    if (_editAdId != null && _editAdId! > 0 && _adData != null) {
+      _prefillForEdit();
+    }
 
     debugPrint('=== PostAdScreen args ===');
     debugPrint('adType=$_adType');
@@ -155,7 +164,7 @@ class _PostAdScreenState extends State<PostAdScreen> {
           categoryTitle: _categoryTitle,
         );
       case 2:
-        return PhotosForm(controller: controller);
+        return PhotosForm(controller: controller, postForm: postForm);
       default:
         return const SizedBox();
     }
@@ -181,7 +190,11 @@ class _PostAdScreenState extends State<PostAdScreen> {
     postForm.images.assignAll(
       controller.imageFiles.map((rx) => rx.value).toList(),
     );
-    await postForm.submit();
+    if (_editAdId != null && _editAdId! > 0) {
+      await postForm.submitEdit();
+    } else {
+      await postForm.submit();
+    }
   }
 
   @override
@@ -191,5 +204,35 @@ class _PostAdScreenState extends State<PostAdScreen> {
       Get.delete<PostAdFormController>(tag: formTag);
     }
     super.dispose();
+  }
+
+  void _prefillForEdit() {
+    final data = _adData ?? {};
+
+    controller.titleCtrl.text = (data['title'] ?? '').toString();
+    controller.priceCtrl.text = (data['price'] ?? '').toString();
+    controller.descriptionCtrl.text = (data['descr'] ?? '').toString();
+    controller.locationCtrl.text = (data['address'] ?? '').toString();
+
+    final images = <Map<String, dynamic>>[];
+    final adsImages = data['ads_images'];
+    if (adsImages is List) {
+      for (final item in adsImages) {
+        if (item is Map) {
+          final url = (item['image'] ?? '').toString();
+          if (url.isEmpty) continue;
+          images.add({
+            'id': (item['id'] as num?)?.toInt(),
+            'url':
+                url.startsWith('http')
+                    ? url
+                    : '${ApiEndpoints.imageUrl}${url.replaceFirst(RegExp(r'^/+'), '')}',
+          });
+        }
+      }
+    }
+    controller.setExistingImages(images);
+
+    postForm.loadForEdit(data);
   }
 }

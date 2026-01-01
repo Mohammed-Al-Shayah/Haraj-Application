@@ -14,7 +14,7 @@ class MyAccountContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final MyAccountController controller = Get.put(MyAccountController());
+    final MyAccountController controller = Get.find<MyAccountController>();
     final bool isRtl = Directionality.of(context) == TextDirection.rtl;
 
     return Padding(
@@ -25,7 +25,7 @@ class MyAccountContent extends StatelessWidget {
           const SizedBox(height: 10),
           _buildWalletSection(controller, isRtl),
           const SizedBox(height: 10),
-          _buildAdvertisementManagementSection(),
+          _buildAdvertisementManagementSection(controller),
           const SizedBox(height: 16),
           _buildMessagesAndInfoSection(controller, isRtl),
           const SizedBox(height: 16),
@@ -82,7 +82,7 @@ class MyAccountContent extends StatelessWidget {
     );
   }
 
-  Widget _buildAdvertisementManagementSection() {
+  Widget _buildAdvertisementManagementSection(MyAccountController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -101,14 +101,70 @@ class MyAccountContent extends StatelessWidget {
             children: [
               _customTile(
                 title: AppStrings.onAirText,
-                trailing: const Text('(0)', style: AppTypography.normal12),
+                trailing: Obx(
+                  () => controller.isStatsLoading.value
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          '(${controller.publishedCount.value})',
+                          style: AppTypography.normal12,
+                        ),
+                ),
                 onTap: () => Get.toNamed(Routes.onAirScreen),
               ),
               const Divider(height: 1, indent: 15, endIndent: 20),
               _customTile(
                 title: AppStrings.notPublishedText,
-                trailing: const Text('(0)', style: AppTypography.normal12),
+                trailing: Obx(
+                  () => controller.isStatsLoading.value
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          '(${controller.unpublishedCount.value})',
+                          style: AppTypography.normal12,
+                        ),
+                ),
                 onTap: () => Get.toNamed(Routes.notPublishedScreen),
+              ),
+              const Divider(height: 1, indent: 15, endIndent: 20),
+              _customTile(
+                title: AppStrings.featuredAdsText,
+                trailing: Obx(
+                  () => controller.isStatsLoading.value
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          '(${controller.featuredCount.value})',
+                          style: AppTypography.normal12,
+                        ),
+                ),
+                onTap: () => Get.toNamed(Routes.featuredAdsScreen),
+              ),
+              const Divider(height: 1, indent: 15, endIndent: 20),
+              _customTile(
+                title: AppStrings.rejectedAdsText,
+                trailing: Obx(
+                  () => controller.isStatsLoading.value
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          '(${controller.rejectedCount.value})',
+                          style: AppTypography.normal12,
+                        ),
+                ),
+                onTap: () => Get.toNamed(Routes.rejectedScreen),
               ),
             ],
           ),

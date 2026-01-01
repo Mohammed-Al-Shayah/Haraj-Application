@@ -28,11 +28,12 @@ import '../../features/my_account/views/screens/favourite_ads_screen.dart';
 import '../../features/my_account/views/screens/my_account_screen.dart';
 import '../../features/my_account/views/screens/my_profile_screen.dart';
 import '../../features/my_account/views/screens/not_published_screen.dart';
+import '../../features/my_account/views/screens/rejected_screen.dart';
+import '../../features/my_account/views/screens/featured_ads_screen.dart';
 import '../../features/my_account/views/screens/on_air_screen.dart';
 import '../../features/support/views/screens/support_screen.dart';
 
 class Routes {
-  /// Authentication Screens
   static const String splash = '/splash';
   static const String onboardingScreen = '/onboarding-screen';
   static const String registerScreen = '/register-screen';
@@ -62,6 +63,8 @@ class Routes {
   static const String myProfileScreen = '/my-profile-screen';
   static const String onAirScreen = '/on-air-screen';
   static const String notPublishedScreen = '/not-published-screen';
+  static const String rejectedScreen = '/rejected-screen';
+  static const String featuredAdsScreen = '/featured-ads-screen';
   static const String favouriteAdsScreen = '/favourite-ads-screen';
   static const String permissionsScreen = '/permissions-screen';
   static const String walletScreen = '/wallet-screen';
@@ -128,6 +131,11 @@ class Routes {
     GetPage(name: Routes.myProfileScreen, page: () => MyProfileScreen()),
     GetPage(name: Routes.onAirScreen, page: () => OnAirScreen()),
     GetPage(name: Routes.notPublishedScreen, page: () => NotPublishedScreen()),
+    GetPage(name: Routes.rejectedScreen, page: () => RejectedScreen()),
+    GetPage(
+      name: Routes.featuredAdsScreen,
+      page: () => const FeaturedAdsScreen(),
+    ),
     GetPage(name: Routes.favouriteAdsScreen, page: () => FavouriteAdsScreen()),
     GetPage(
       name: Routes.permissionsScreen,

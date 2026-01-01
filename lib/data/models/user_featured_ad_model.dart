@@ -1,8 +1,8 @@
 import 'package:haraj_adan_app/core/network/endpoints.dart';
-import '../../domain/entities/on_air_entity.dart';
+import 'package:haraj_adan_app/domain/entities/user_featured_ad_entity.dart';
 
-class OnAirModel extends OnAirEntity {
-  OnAirModel({
+class UserFeaturedAdModel extends UserFeaturedAdEntity {
+  UserFeaturedAdModel({
     required super.id,
     required super.title,
     required super.location,
@@ -13,7 +13,7 @@ class OnAirModel extends OnAirEntity {
     super.longitude,
   });
 
-  factory OnAirModel.fromJson(Map<String, dynamic> json) {
+  factory UserFeaturedAdModel.fromJson(Map<String, dynamic> json) {
     double? toDouble(dynamic v) {
       if (v == null) return null;
       if (v is num) return v.toDouble();
@@ -40,13 +40,14 @@ class OnAirModel extends OnAirEntity {
       return image ?? '';
     }
 
-    return OnAirModel(
+    return UserFeaturedAdModel(
       id:
           json['id'] is int
               ? json['id'] as int
               : int.tryParse(json['id']?.toString() ?? '') ?? 0,
       title: json['title']?.toString() ?? '',
-      location: json['location']?.toString() ?? json['address']?.toString() ?? '',
+      location:
+          json['location']?.toString() ?? json['address']?.toString() ?? '',
       price: (toDouble(json['price']) ?? json['price'] ?? '').toString(),
       imageUrl: image(json),
       status: json['status']?.toString(),

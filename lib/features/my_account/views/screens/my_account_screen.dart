@@ -7,13 +7,26 @@ import 'package:haraj_adan_app/features/my_account/views/widgets/my_account_cont
 import 'package:haraj_adan_app/features/my_account/views/widgets/my_account_header.dart';
 import 'package:get/get.dart';
 
-class MyAccountScreen extends StatelessWidget {
+class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
 
   @override
+  State<MyAccountScreen> createState() => _MyAccountScreenState();
+}
+
+class _MyAccountScreenState extends State<MyAccountScreen> {
+  late final MyAccountController controller;
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(MyAccountController(), permanent: true);
+    controller.loadAdsStats();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(MyAccountController());
-    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
     return Scaffold(
       key: scaffoldKey,
       appBar: MainBar(
@@ -31,7 +44,7 @@ class MyAccountScreen extends StatelessWidget {
                 username: controller.userName.value,
               );
             }),
-            MyAccountContent(),
+            const MyAccountContent(),
           ],
         ),
       ),

@@ -32,6 +32,7 @@ class CreateAdsController extends GetxController {
   // Images
   final ImagePicker picker = ImagePicker();
   RxList<Rx<File>> imageFiles = <Rx<File>>[].obs;
+  RxList<Map<String, dynamic>> existingImages = <Map<String, dynamic>>[].obs;
 
   bool _inited = false;
 
@@ -91,6 +92,14 @@ class CreateAdsController extends GetxController {
     if (pickedFile != null) {
       imageFiles.add(File(pickedFile.path).obs);
     }
+  }
+
+  void setExistingImages(List<Map<String, dynamic>> images) {
+    existingImages.assignAll(images);
+  }
+
+  void removeExistingImage(int id) {
+    existingImages.removeWhere((img) => (img['id'] ?? -1) == id);
   }
 
   @override

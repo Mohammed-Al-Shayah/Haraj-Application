@@ -1,26 +1,26 @@
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
-import '../models/not_published_model.dart';
+import 'package:haraj_adan_app/data/models/rejected_model.dart';
 
-abstract class NotPublishedRemoteDataSource {
-  Future<List<NotPublishedModel>> fetchAds({required int userId});
+abstract class RejectedRemoteDataSource {
+  Future<List<RejectedModel>> fetchAds({required int userId});
 }
 
-class NotPublishedRemoteDataSourceImpl implements NotPublishedRemoteDataSource {
+class RejectedRemoteDataSourceImpl implements RejectedRemoteDataSource {
   final ApiClient apiClient;
 
-  NotPublishedRemoteDataSourceImpl(this.apiClient);
+  RejectedRemoteDataSourceImpl(this.apiClient);
 
   @override
-  Future<List<NotPublishedModel>> fetchAds({required int userId}) async {
+  Future<List<RejectedModel>> fetchAds({required int userId}) async {
     final res = await apiClient.get(
-      ApiEndpoints.userAdsByStatus(userId, 'unpublished'),
+      ApiEndpoints.userAdsByStatus(userId, 'rejected'),
     );
 
     final list = _extractList(res);
     return list
         .whereType<Map<String, dynamic>>()
-        .map(NotPublishedModel.fromJson)
+        .map(RejectedModel.fromJson)
         .toList();
   }
 

@@ -1,5 +1,5 @@
 import '../entities/chat_entity.dart';
 
 abstract class ChatRepository {
-  Future<List<ChatEntity>> getChats();
+  Future<List<ChatEntity>> getChats({required int userId});
 }

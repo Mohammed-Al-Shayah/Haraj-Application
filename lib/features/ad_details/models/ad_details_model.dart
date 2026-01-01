@@ -18,6 +18,9 @@ class AdDetailsModel {
   final String? categoryName;
   final String? categoryNameEn;
   final List<AdAttributeModel> attributes;
+  final String? ownerName;
+  final String? ownerPhone;
+  final int? ownerId;
 
   AdDetailsModel({
     required this.id,
@@ -37,6 +40,9 @@ class AdDetailsModel {
     this.createdAt,
     this.categoryName,
     this.categoryNameEn,
+    this.ownerName,
+    this.ownerPhone,
+    this.ownerId,
   });
 
   factory AdDetailsModel.fromJson(Map<String, dynamic> json) {
@@ -86,9 +92,48 @@ class AdDetailsModel {
 
     final adLikes = (json['ad_likes'] as List?) ?? const [];
     final bool isLiked = adLikes.isNotEmpty;
-    final int? likeId = isLiked
-        ? (adLikes.first is Map ? (adLikes.first['id'] as num?)?.toInt() : null)
-        : null;
+    final int? likeId =
+        isLiked
+            ? (adLikes.first is Map
+                ? (adLikes.first['id'] as num?)?.toInt()
+                : null)
+            : null;
+
+    String? extractOwnerName(Map<String, dynamic> root) {
+      final user = root['user'];
+      if (user is Map) {
+        final name = user['name'] ?? user['user_name'];
+        if (name != null && name.toString().isNotEmpty) {
+          return name.toString();
+        }
+      }
+      final name = root['user_name'] ?? root['owner_name'];
+      return name?.toString();
+    }
+
+    String? extractOwnerPhone(Map<String, dynamic> root) {
+      final user = root['user'];
+      if (user is Map) {
+        final phone = user['phone'] ?? user['mobile'] ?? user['phone_number'];
+        if (phone != null && phone.toString().isNotEmpty) {
+          return phone.toString();
+        }
+      }
+      final phone = root['phone'] ?? root['mobile'] ?? root['phone_number'];
+      return phone?.toString();
+    }
+
+    int? extractOwnerId(Map<String, dynamic> root) {
+      final user = root['user'];
+      if (user is Map) {
+        final id = user['id'] ?? user['user_id'];
+        if (id is num) return id.toInt();
+        return int.tryParse(id?.toString() ?? '');
+      }
+      final id = root['user_id'] ?? root['owner_id'];
+      if (id is num) return id.toInt();
+      return int.tryParse(id?.toString() ?? '');
+    }
 
     return AdDetailsModel(
       id: json['id'] ?? 0,
@@ -115,6 +160,9 @@ class AdDetailsModel {
       likesCount: parseLikes(json['likesCount'] ?? json['likes']),
       isLiked: isLiked,
       likeId: likeId,
+      ownerName: extractOwnerName(json),
+      ownerPhone: extractOwnerPhone(json),
+      ownerId: extractOwnerId(json),
     );
   }
 }

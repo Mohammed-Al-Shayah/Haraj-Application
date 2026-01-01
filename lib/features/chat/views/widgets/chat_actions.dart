@@ -1,11 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/theme/assets.dart';
 import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/core/widgets/input_field.dart';
+import 'package:haraj_adan_app/features/chat/controllers/chat_detail_controller.dart';
 
-class ChatActions extends StatelessWidget {
+class ChatActions extends StatefulWidget {
   const ChatActions({super.key});
+
+  @override
+  State<ChatActions> createState() => _ChatActionsState();
+}
+
+class _ChatActionsState extends State<ChatActions> {
+  final TextEditingController _controller = TextEditingController();
+  late final ChatDetailController chatController;
+
+  @override
+  void initState() {
+    super.initState();
+    chatController = Get.find<ChatDetailController>();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +41,7 @@ class ChatActions extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: InputField(
+              controller: _controller,
               hintText: AppStrings.typeHere,
               keyboardType: TextInputType.text,
             ),
@@ -49,9 +72,12 @@ class ChatActions extends StatelessWidget {
       shape: const CircleBorder(),
       color: Theme.of(context).primaryColor,
       child: InkWell(
-        onTap: () {},
+        onTap: () {
+          chatController.sendMessage(_controller.text);
+          _controller.clear();
+        },
         customBorder: const CircleBorder(),
-        child: SizedBox(
+        child: const SizedBox(
           width: 40,
           height: 40,
           child: Icon(Icons.send, color: Colors.white, size: 20),

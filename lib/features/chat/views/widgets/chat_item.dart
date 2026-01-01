@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:haraj_adan_app/domain/entities/chat_entity.dart';
 import '../../../../core/theme/color.dart';
 import '../../../../core/theme/typography.dart';
@@ -13,7 +14,20 @@ class ChatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Get.toNamed(Routes.chatDetailsScreen),
+      onTap: () {
+        if (chat.id == null) {
+          AppSnack.error('خطأ', 'لا يوجد معرف للمحادثة');
+          return;
+        }
+        Get.toNamed(
+          Routes.chatDetailsScreen,
+          arguments: {
+            'chatId': chat.id,
+            'chatName': chat.name,
+            'otherUserId': chat.otherUserId,
+          },
+        );
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
@@ -36,7 +50,9 @@ class ChatItem extends StatelessWidget {
                             color: Colors.blue,
                             child: Center(
                               child: Text(
-                                chat.name.substring(0, 1),
+                                chat.name.isNotEmpty
+                                    ? chat.name.substring(0, 1)
+                                    : '?',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   color: Colors.white,

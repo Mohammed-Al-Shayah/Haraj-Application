@@ -8,7 +8,7 @@ class NotPublishedRepositoryImpl implements NotPublishedRepository {
   NotPublishedRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<List<NotPublishedEntity>> getAds() async {
-    return await remoteDataSource.fetchAds();
+  Future<List<NotPublishedEntity>> getAds({required int userId}) async {
+    return await remoteDataSource.fetchAds(userId: userId);
   }
 }

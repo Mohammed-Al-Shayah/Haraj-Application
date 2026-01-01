@@ -342,12 +342,14 @@ class _AttributeField extends StatelessWidget {
           })
         else if (code == 'checkbox')
           Obx(() {
-            final List<int> current =
-                (form.selectedAttributes[id] as List?)
-                    ?.map<int?>(asInt)
-                    .whereType<int>()
-                    .toList() ??
-                <int>[];
+            final dynamic raw = form.selectedAttributes[id];
+            final List<int> current = <int>[];
+            if (raw is List) {
+              current.addAll(raw.map<int?>(asInt).whereType<int>().toList());
+            } else if (raw is int) {
+              final v = asInt(raw);
+              if (v != null && v > 0) current.add(v);
+            }
             return Wrap(
               spacing: 8,
               runSpacing: 8,

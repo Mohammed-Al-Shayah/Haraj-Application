@@ -1,5 +1,5 @@
 import '../entities/on_air_entity.dart';
 
 abstract class OnAirRepository {
-  Future<List<OnAirEntity>> getAds();
+  Future<List<OnAirEntity>> getAds({required int userId});
 }

@@ -1,4 +1,4 @@
-﻿{
+{
   "New": "جديد",
   "accounting_finance_banking": "المحاسبة والمالية والمصرفية",
   "ad_details_title": "تفاصيل الاعلان",
@@ -316,6 +316,12 @@
   "not_published_title": "لم يتم نشره",
   "on_air_text": "على الهواء",
   "on_air_title": "على الهواء",
+  "rejected_ads_text": "مرفوض",
+  "rejected_ads_title": "الإعلانات المرفوضة",
+  "featured_ads_text": "الإعلانات المميزة",
+  "my_featured_ads_title": "إعلاناتي المميزة",
+  "edit_ad": "تعديل",
+  "feature_ad": "تمييز",
   "on_map": "على الخريطة",
   "one_hour_ago": "منذ ساعة",
   "or": "أو",
@@ -472,5 +478,6 @@
   "yes": "نعم",
   "your_ad_in_review": "أعلانك قيد المرجعة",
   "your_name_text": "اسمك",
-  "no_recent_searches": "لا توجد عمليات بحث"
+  "no_recent_searches": "لا توجد عمليات بحث",
+  "current_images": "????? ???????"
 }

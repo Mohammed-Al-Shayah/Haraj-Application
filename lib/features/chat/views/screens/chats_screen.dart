@@ -1,5 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/widgets/main_bar.dart';
 import 'package:haraj_adan_app/core/widgets/side_menu.dart';
 import 'package:haraj_adan_app/data/datasources/chat_remote_datasource.dart';
@@ -15,7 +17,9 @@ class ChatsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(
-      ChatController(ChatRepositoryImpl(ChatRemoteDataSourceImpl())),
+      ChatController(
+        ChatRepositoryImpl(ChatRemoteDataSourceImpl(ApiClient(client: Dio()))),
+      ),
     );
 
     final scaffoldKey = GlobalKey<ScaffoldState>();

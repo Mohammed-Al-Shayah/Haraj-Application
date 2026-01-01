@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
@@ -36,8 +37,7 @@ class PostAdFormController extends GetxController {
   final RxList<File> images = <File>[].obs;
 
   // Attributes
-  // final RxList<Map<String, dynamic>> attributesSchema =
-  //     <Map<String, dynamic>>[].obs;
+
   final RxList<dynamic> attributesSchema = <dynamic>[].obs;
 
   // Selected values keyed by attribute_id:
@@ -61,6 +61,9 @@ class PostAdFormController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isSubmitting = false.obs;
   final RxnString loadError = RxnString();
+  final RxList<int> removeImageIds = <int>[].obs;
+  final RxList<int> editAdCategories = <int>[].obs;
+  int? editAdId;
 
   // Lifecycle
   @override
@@ -115,7 +118,6 @@ class PostAdFormController extends GetxController {
 
   // Loaders
   Future<void> _loadWalletBalance() async {
-    // Debug-only override to test wallet display without real balance.
     // if (kDebugMode) {
     //   const double debugBalanceOverride = 12553.45;
     //   walletBalance.value = debugBalanceOverride;
@@ -736,8 +738,7 @@ class PostAdFormController extends GetxController {
       if (kDebugMode) {
         debugPrint('PostAd submit attrs: ${jsonEncode(attrs)}');
       }
-
-      await repo.createAd(
+      final res = await repo.createAd(
         userId: userId,
         categoryId: categoryId,
         title: title.value.trim(),
@@ -753,10 +754,16 @@ class PostAdFormController extends GetxController {
         featured: buildFeaturedPayload(),
       );
 
-      _showSuccess(
-        _t('Success', 'تم بنجاح'),
-        _t('Ad created successfully', 'تم إنشاء الإعلان بنجاح'),
+      String successMessage = _t(
+        'Ad created successfully',
+        'تم إنشاء الإعلان بنجاح',
       );
+      if (res['message'] is String) {
+        final String apiMsg = res['message'].toString().trim();
+        if (apiMsg.isNotEmpty) successMessage = apiMsg;
+      }
+
+      _showSuccess(_t('Success', 'تم'), successMessage);
       Get.offAllNamed(Routes.successPostedScreen);
     } catch (e) {
       String message = _t('Failed to submit ad', 'فشل إرسال الإعلان');
@@ -771,6 +778,196 @@ class PostAdFormController extends GetxController {
       }
       _showError(_t('Error', 'خطأ'), message);
       if (kDebugMode) debugPrint('submit error: $e');
+    } finally {
+      isSubmitting(false);
+    }
+  }
+
+  Future<void> loadForEdit(Map<String, dynamic> data) async {
+    editAdId = _asInt(data['id']);
+    title.value = (data['title'] ?? '').toString();
+    titleEn.value = (data['title_en'] ?? '').toString();
+    price.value = (data['price'] ?? '').toString();
+    descr.value = (data['descr'] ?? '').toString();
+    currencyId.value = _asInt(
+      data['currency_id'] ?? data['currencies']?['id'] ?? 1,
+    );
+    address.value = (data['address'] ?? '').toString();
+    lat.value = (data['lat'] ?? data['latitude'] ?? '').toString();
+    lng.value = (data['lng'] ?? data['longitude'] ?? '').toString();
+
+    final List<int> categoryIds = _extractCategoryIds(data);
+    if (categoryIds.isNotEmpty) editAdCategories.assignAll(categoryIds);
+
+    // Prefill attributes (ad_attributes expected)
+    final attrs = data['ad_attributes'];
+    if (attrs is List) {
+      for (final item in attrs) {
+        if (item is! Map) continue;
+        final int attrId = _asInt(
+          item['category_attribute_id'] ?? item['category_attributes_id'],
+        );
+        if (attrId <= 0) continue;
+
+        // Handle options list (checkbox/select/radio) when value is nested.
+        final options = item['ad_attribute_options'];
+        if (options is List && options.isNotEmpty) {
+          final List<int> vals = <int>[];
+          for (final opt in options) {
+            if (opt is! Map) continue;
+            final int v = _asInt(opt['category_attribute_value_id']);
+            if (v > 0) vals.add(v);
+          }
+          if (vals.isNotEmpty) {
+            final String typeCode = _attrTypeCode(attrId);
+            if (typeCode == 'checkbox') {
+              selectedAttributes[attrId] = vals;
+            } else {
+              selectedAttributes[attrId] = vals.first;
+            }
+            continue;
+          }
+        }
+
+        final int valId = _asInt(item['category_attribute_value_id']);
+        if (valId > 0) {
+          selectedAttributes[attrId] = valId;
+          continue;
+        }
+        final txt = item['text'] ?? item['number'];
+        if (txt != null && txt.toString().trim().isNotEmpty) {
+          selectedAttributes[attrId] = txt.toString();
+        }
+      }
+    }
+  }
+
+  List<int> _extractCategoryIds(Map<String, dynamic> data) {
+    final Set<int> ids = {};
+
+    void addId(dynamic v) {
+      if (v is num && v.toInt() > 0) ids.add(v.toInt());
+      if (v is String) {
+        final parsed = int.tryParse(v);
+        if (parsed != null && parsed > 0) ids.add(parsed);
+      }
+    }
+
+    void addFrom(dynamic cats) {
+      if (cats is List) {
+        for (final c in cats) {
+          if (c is Map) {
+            addId(c['id'] ?? c['category_id']);
+          } else {
+            addId(c);
+          }
+        }
+      } else if (cats is Map) {
+        addId(cats['id'] ?? cats['category_id']);
+      }
+    }
+
+    addFrom(data['ad_categories']);
+    addFrom(data['categories']);
+    addFrom(data['category']);
+    addId(data['category_id']);
+
+    // Fallback: category info sometimes only exists on attributes.
+    final attrs = data['ad_attributes'];
+    if (attrs is List) {
+      for (final attr in attrs) {
+        if (attr is! Map) continue;
+        final catAttrs = attr['category_attributes'];
+        if (catAttrs is Map) {
+          addId(catAttrs['category_id'] ?? catAttrs['id']);
+        }
+        addId(attr['category_id']);
+      }
+    }
+
+    return ids.toList();
+  }
+
+  Future<void> submitEdit() async {
+    if (editAdId == null || editAdId == 0) {
+      _showError(
+        _t('Error', 'خطأ'),
+        _t('Ad id missing', 'معرّف الإعلان مفقود'),
+      );
+      return;
+    }
+
+    final int? userId = await _getUserId();
+    if (userId == null) {
+      _showError(
+        _t('Error', 'خطأ'),
+        _t(
+          'User not found, login again',
+          'المستخدم غير معروف، يرجى تسجيل الدخول مرة أخرى',
+        ),
+      );
+      return;
+    }
+
+    if (title.value.trim().isEmpty) {
+      _showError(_t('Error', 'خطأ'), _t('Title is required', 'العنوان مطلوب'));
+      return;
+    }
+
+    if (price.value.trim().isEmpty || double.tryParse(price.value) == null) {
+      _showError(_t('Error', 'خطأ'), _t('Price is invalid', 'السعر غير صالح'));
+      return;
+    }
+
+    final categories =
+        editAdCategories.isNotEmpty
+            ? editAdCategories.toList()
+            : <int>[categoryId];
+    if (categories.where((e) => e > 0).isEmpty) {
+      _showError(
+        _t('Error', 'خطأ'),
+        _t('Category is required', 'يجب تحديد تصنيف واحد على الأقل'),
+      );
+      return;
+    }
+
+    isSubmitting(true);
+    try {
+      final attrs = buildAttributesPayload();
+      await repo.updateAd(
+        adId: editAdId!,
+        title: title.value.trim(),
+        titleEn: titleEn.value.trim().isEmpty ? null : titleEn.value.trim(),
+        price: double.parse(price.value),
+        currencyId: currencyId.value,
+        lat: lat.value.isEmpty ? '0' : lat.value,
+        lng: lng.value.isEmpty ? '0' : lng.value,
+        address: address.value,
+        userId: userId,
+        adCategories: categories.where((e) => e > 0).toList(),
+        attributes: attrs,
+        removeImageIds: removeImageIds.toList(),
+        images: images.toList(),
+      );
+      _showSuccess(
+        _t('Success', 'تم'),
+        _t('Ad updated successfully', 'تم تعديل الإعلان بنجاح'),
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.microtask(() {
+          Get.back(result: true);
+          Future.microtask(() => Get.toNamed(Routes.successPostedScreen));
+        });
+      });
+    } catch (e) {
+      String message = _t('Failed to submit ad', 'فشل إرسال الإعلان');
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map && data['message'] is String) {
+          message = data['message'].toString();
+        }
+      }
+      _showError(_t('Error', 'خطأ'), message);
     } finally {
       isSubmitting(false);
     }

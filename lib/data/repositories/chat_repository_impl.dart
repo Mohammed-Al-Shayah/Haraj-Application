@@ -8,7 +8,7 @@ class ChatRepositoryImpl implements ChatRepository {
   ChatRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<List<ChatEntity>> getChats() async {
-    return await remoteDataSource.fetchChats();
+  Future<List<ChatEntity>> getChats({required int userId}) async {
+    return await remoteDataSource.fetchChats(userId: userId);
   }
 }

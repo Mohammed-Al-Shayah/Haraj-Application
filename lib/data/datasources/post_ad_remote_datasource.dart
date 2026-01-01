@@ -9,6 +9,7 @@ abstract class PostAdRemoteDataSource {
   Future<Map<String, dynamic>> getCategoryAttributes(int categoryId);
   Future<Map<String, dynamic>> getFeaturedSettings();
   Future<List<dynamic>> getDiscounts();
+  Future<Map<String, dynamic>> getAdForEdit(int adId);
 
   Future<Map<String, dynamic>> createAd({
     required int userId,
@@ -25,6 +26,25 @@ abstract class PostAdRemoteDataSource {
     required List<Map<String, dynamic>> attributes,
     Map<String, dynamic>? featured, // {discount_id, status}
   });
+
+  Future<Map<String, dynamic>> updateAd({
+    required int adId,
+    required int userId,
+    required String title,
+    String? titleEn,
+    required num price,
+    required int currencyId,
+    required String lat,
+    required String lng,
+    required String address,
+    required List<int> adCategories,
+    required List<Map<String, dynamic>> attributes,
+    List<int> removeImageIds,
+    List<File> images,
+  });
+
+  Future<Map<String, dynamic>> featureAd(int adId, {int? userId});
+  Future<Map<String, dynamic>> refundFeaturedAd(int adId);
 }
 
 class PostAdRemoteDataSourceImpl implements PostAdRemoteDataSource {
@@ -38,7 +58,6 @@ class PostAdRemoteDataSourceImpl implements PostAdRemoteDataSource {
       queryParams: {'includes': 'children'},
     );
 
-    // API can return either List or Map. We normalize it to List.
     final data = res['data'];
     if (data is List) return data;
     if (data is Map<String, dynamic>) return <dynamic>[data];
@@ -61,6 +80,15 @@ class PostAdRemoteDataSourceImpl implements PostAdRemoteDataSource {
   Future<List<dynamic>> getDiscounts() async {
     final res = await api.get(ApiEndpoints.discounts);
     return (res['data'] as List?) ?? [];
+  }
+
+  @override
+  Future<Map<String, dynamic>> getAdForEdit(int adId) async {
+    final res = await api.get(
+      ApiEndpoints.adDetails(adId),
+      queryParams: {'includes': 'images,attributes,ad_categories,categories'},
+    );
+    return (res['data'] as Map?)?.cast<String, dynamic>() ?? {};
   }
 
   @override
@@ -128,4 +156,78 @@ class PostAdRemoteDataSourceImpl implements PostAdRemoteDataSource {
   }
 
   String _encodeJson(dynamic value) => jsonEncode(value);
+
+  @override
+  Future<Map<String, dynamic>> updateAd({
+    required int adId,
+    required int userId,
+    required String title,
+    String? titleEn,
+    required num price,
+    required int currencyId,
+    required String lat,
+    required String lng,
+    required String address,
+    required List<int> adCategories,
+    required List<Map<String, dynamic>> attributes,
+    List<int> removeImageIds = const [],
+    List<File> images = const [],
+  }) async {
+    final form = FormData();
+
+    form.fields.addAll([
+      MapEntry('user_id', userId.toString()),
+      MapEntry('title', title),
+      MapEntry('price', price.toString()),
+      MapEntry('currency_id', currencyId.toString()),
+      MapEntry('lat', lat),
+      MapEntry('lng', lng),
+      MapEntry('address', address),
+      MapEntry('ad_categories', _encodeJson(adCategories)),
+      MapEntry('attributes', _encodeJson(attributes)),
+    ]);
+
+    if (titleEn != null && titleEn.trim().isNotEmpty) {
+      form.fields.add(MapEntry('title_en', titleEn));
+    }
+
+    if (removeImageIds.isNotEmpty) {
+      form.fields.add(
+        MapEntry('remove_image_ids', _encodeJson(removeImageIds)),
+      );
+    }
+
+    for (final file in images) {
+      final fileName = file.path.split('/').last;
+      form.files.add(
+        MapEntry(
+          'ads_images',
+          await MultipartFile.fromFile(file.path, filename: fileName),
+        ),
+      );
+    }
+
+    final res = await api.patch(
+      ApiEndpoints.updateAd(adId),
+      data: form,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+
+    return (res as Map).cast<String, dynamic>();
+  }
+
+  @override
+  Future<Map<String, dynamic>> featureAd(int adId, {int? userId}) async {
+    final res = await api.patch(
+      ApiEndpoints.featureAd(adId),
+      data: userId != null ? {'user_id': userId} : null,
+    );
+    return (res as Map).cast<String, dynamic>();
+  }
+
+  @override
+  Future<Map<String, dynamic>> refundFeaturedAd(int adId) async {
+    final res = await api.patch(ApiEndpoints.refundFeaturedAd(adId));
+    return (res as Map).cast<String, dynamic>();
+  }
 }

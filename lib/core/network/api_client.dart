@@ -89,6 +89,35 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> patch(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    bool isMultipart = false,
+  }) async {
+    try {
+      Options finalOptions = options ?? await _getDefaultOptions();
+
+      if (isMultipart) {
+        finalOptions = finalOptions.copyWith(
+          contentType: 'multipart/form-data',
+        );
+      }
+
+      final response = await client.patch(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: finalOptions,
+      );
+
+      return response.data;
+    } on DioException catch (e) {
+      throw Exceptions.handleDioException(e);
+    }
+  }
+
   Future<Map<String, dynamic>> put(
     String url, {
     Map<String, dynamic>? data,

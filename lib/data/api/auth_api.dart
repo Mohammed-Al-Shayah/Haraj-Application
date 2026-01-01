@@ -7,13 +7,12 @@ import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 class AuthApi {
   final ApiClient api;
 
   AuthApi(this.api);
 
-  /// REGISTER — send OTP, then navigate to OTP screen
+  /// REGISTER: send OTP, then navigate to OTP screen
   Future<void> register({
     required String phone,
     required String email,
@@ -29,7 +28,7 @@ class AuthApi {
     }
   }
 
-  /// LOGIN — send OTP, then navigate to OTP screen
+  /// LOGIN: send OTP, then navigate to OTP screen
   Future<void> login({String? phone, String? email}) async {
     assert(
       (phone != null && email == null) || (phone == null && email != null),
@@ -49,12 +48,27 @@ class AuthApi {
     }
   }
 
-  /// RESPOND OTP — resend OTP to phone
+  /// RESPOND OTP: resend OTP to phone
   Future<void> resendOtp({required String phone}) async {
     await api.post(ApiEndpoints.resendOtp, data: {"phone": phone});
   }
 
-  /// VERIFY OTP — save token & navigate to home
+  /// UPDATE PROFILE
+  Future<Map<String, dynamic>> updateProfile({
+    required String name,
+    String? phone,
+    String? email,
+  }) async {
+    final payload = <String, dynamic>{
+      'name': name,
+      if (phone != null) 'phone': phone,
+      if (email != null) 'email': email,
+    };
+
+    return await api.patch(ApiEndpoints.updateProfile, data: payload);
+  }
+
+  /// VERIFY OTP: save token & navigate to home
   Future<Map<String, dynamic>> verifyOtp({required String otp}) async {
     try {
       final res = await api.post(ApiEndpoints.verifyOtp, data: {"otp": otp});
@@ -89,7 +103,7 @@ class AuthApi {
     }
   }
 
-  /// LOGOUT — remove token & navigate to login
+  /// LOGOUT: remove token & navigate to login
   Future<void> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -125,8 +139,7 @@ class AuthApi {
     }
   }
 
-
-  /// GOOGLE AUTH — redirect to google auth page
+  /// GOOGLE AUTH: redirect to google auth page
   Future<void> googleAuthRedirect() async {
     try {
       final options = Options(headers: {'Content-Type': 'application/json'});

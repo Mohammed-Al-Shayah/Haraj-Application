@@ -7,11 +7,13 @@ import 'package:haraj_adan_app/core/theme/color.dart';
 import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/core/theme/typography.dart';
 import 'package:haraj_adan_app/features/create_ads/controllers/create_ads_controller.dart';
+import 'package:haraj_adan_app/features/create_ads/controllers/post_ad_form_controller.dart';
 
 class PhotosForm extends StatelessWidget {
-  const PhotosForm({super.key, required this.controller});
+  const PhotosForm({super.key, required this.controller, this.postForm});
 
   final CreateAdsController controller;
+  final PostAdFormController? postForm;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +22,61 @@ class PhotosForm extends StatelessWidget {
       children: [
         Text(AppStrings.uploadPhotosText, style: AppTypography.bold14),
         SizedBox(height: 12),
+        Obx(() {
+          if (controller.existingImages.isEmpty) return SizedBox.shrink();
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(AppStrings.currentImages, style: AppTypography.medium14),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children:
+                    controller.existingImages.map((img) {
+                      final url = (img['url'] ?? img['image'] ?? '').toString();
+                      final int id = (img['id'] as num?)?.toInt() ?? 0;
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              url,
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: -8,
+                            right: -8,
+                            child: GestureDetector(
+                              onTap: () {
+                                if (id > 0) {
+                                  postForm?.removeImageIds.add(id);
+                                }
+                                controller.removeExistingImage(id);
+                              },
+                              child: const CircleAvatar(
+                                radius: 12,
+                                backgroundColor: Colors.white,
+                                child: Icon(
+                                  Icons.cancel,
+                                  color: AppColors.primary,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+              ),
+              const SizedBox(height: 16),
+            ],
+          );
+        }),
         GestureDetector(
           onTap: controller.pickImage,
           child: CustomPaint(

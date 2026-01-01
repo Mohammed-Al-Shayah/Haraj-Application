@@ -15,10 +15,15 @@ class PostAdRepositoryImpl implements PostAdRepository {
       remote.getCategoryAttributes(categoryId);
 
   @override
-  Future<Map<String, dynamic>> getFeaturedSettings() => remote.getFeaturedSettings();
+  Future<Map<String, dynamic>> getFeaturedSettings() =>
+      remote.getFeaturedSettings();
 
   @override
   Future<List<dynamic>> getDiscounts() => remote.getDiscounts();
+
+  @override
+  Future<Map<String, dynamic>> getAdForEdit(int adId) =>
+      remote.getAdForEdit(adId);
 
   @override
   Future<Map<String, dynamic>> createAd({
@@ -51,5 +56,48 @@ class PostAdRepositoryImpl implements PostAdRepository {
       attributes: attributes,
       featured: featured,
     );
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateAd({
+    required int adId,
+    required int userId,
+    required String title,
+    String? titleEn,
+    required num price,
+    required int currencyId,
+    required String lat,
+    required String lng,
+    required String address,
+    required List<int> adCategories,
+    required List<Map<String, dynamic>> attributes,
+    List<int> removeImageIds = const [],
+    List<File> images = const [],
+  }) {
+    return remote.updateAd(
+      adId: adId,
+      userId: userId,
+      title: title,
+      titleEn: titleEn,
+      price: price,
+      currencyId: currencyId,
+      lat: lat,
+      lng: lng,
+      address: address,
+      adCategories: adCategories,
+      attributes: attributes,
+      removeImageIds: removeImageIds,
+      images: images,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> featureAd(int adId, {int? userId}) {
+    return remote.featureAd(adId, userId: userId);
+  }
+
+  @override
+  Future<Map<String, dynamic>> refundFeaturedAd(int adId) {
+    return remote.refundFeaturedAd(adId);
   }
 }
