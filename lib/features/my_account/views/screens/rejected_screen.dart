@@ -67,6 +67,7 @@ class _RejectedScreenState extends State<RejectedScreen> {
               status: ad.status,
               latitude: ad.latitude,
               longitude: ad.longitude,
+              currencySymbol: ad.currencySymbol,
               onEdit: () => controller.editAd(ad.id),
               onFeature: () => controller.featureAd(ad.id),
               onTap: () => Get.toNamed(

@@ -7,6 +7,7 @@ class OnAirEntity {
   final String? status;
   final double? latitude;
   final double? longitude;
+  final String? currencySymbol;
 
   OnAirEntity({
     required this.id,
@@ -17,5 +18,6 @@ class OnAirEntity {
     this.status,
     this.latitude,
     this.longitude,
+    this.currencySymbol,
   });
 }

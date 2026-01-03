@@ -7,6 +7,7 @@ class UserFeaturedAdEntity {
   final String? status;
   final double? latitude;
   final double? longitude;
+  final String? currencySymbol;
 
   UserFeaturedAdEntity({
     required this.id,
@@ -17,5 +18,6 @@ class UserFeaturedAdEntity {
     this.status,
     this.latitude,
     this.longitude,
+    this.currencySymbol,
   });
 }

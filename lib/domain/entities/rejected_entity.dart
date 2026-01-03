@@ -7,6 +7,7 @@ class RejectedEntity {
   final String? status;
   final double? latitude;
   final double? longitude;
+  final String? currencySymbol;
 
   RejectedEntity({
     required this.id,
@@ -17,5 +18,6 @@ class RejectedEntity {
     this.status,
     this.latitude,
     this.longitude,
+    this.currencySymbol,
   });
 }

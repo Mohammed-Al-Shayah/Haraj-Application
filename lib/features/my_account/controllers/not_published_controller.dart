@@ -1,11 +1,12 @@
-import 'package:dio/dio.dart';
 import 'package:haraj_adan_app/core/storage/user_storage.dart';
 import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
+import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/domain/entities/not_published_entity.dart';
 import 'package:haraj_adan_app/domain/repositories/not_published_repository.dart';
 import 'package:haraj_adan_app/domain/repositories/post_ad_repository.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/features/my_account/views/widgets/feature_plan_sheet.dart';
 
 class NotPublishedController extends GetxController {
   final NotPublishedRepository repository;
@@ -35,26 +36,20 @@ class NotPublishedController extends GetxController {
   }
 
   Future<void> featureAd(int adId) async {
-    final userId = await getUserIdFromPrefs();
-    if (userId == null) {
-      AppSnack.error('خطأ', 'المستخدم غير معروف');
+    if (await getUserIdFromPrefs() == null) {
+      AppSnack.error(AppStrings.errorTitle, AppStrings.userNotFound);
       return;
     }
     if (featuringIds.contains(adId)) return;
     featuringIds.add(adId);
     try {
-      await postAdRepository.featureAd(adId, userId: userId);
-      await loadAds();
-      AppSnack.success('تم', 'تم إرسال طلب التمييز بنجاح');
+      await FeaturePlanSheet.show(
+        adId: adId,
+        postAdRepository: postAdRepository,
+        onApplied: loadAds,
+      );
     } catch (e) {
-      String message = 'تعذر تنفيذ التمييز، حاول مجدداً';
-      if (e is DioException) {
-        final data = e.response?.data;
-        if (data is Map && data['message'] is String) {
-          message = data['message'].toString();
-        }
-      }
-      AppSnack.error('خطأ', message);
+      AppSnack.error(AppStrings.errorTitle, AppStrings.featureRequestFailed);
     } finally {
       featuringIds.remove(adId);
       featuringIds.refresh();
@@ -71,7 +66,7 @@ class NotPublishedController extends GetxController {
           adCategories.isNotEmpty ? adCategories.first : null;
 
       if (categoryId == null || categoryId == 0) {
-        AppSnack.error('خطأ', 'لا يمكن تحديد التصنيف لهذا الإعلان');
+        AppSnack.error(AppStrings.errorTitle, AppStrings.adCategoryNotFound);
         return;
       }
 
@@ -92,7 +87,7 @@ class NotPublishedController extends GetxController {
         loadAds();
       }
     } catch (_) {
-      AppSnack.error('خطأ', 'تعذر تحميل بيانات الإعلان للتعديل');
+      AppSnack.error(AppStrings.errorTitle, AppStrings.adDataLoadFailed);
     } finally {
       isLoading.value = false;
     }

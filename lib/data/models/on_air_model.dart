@@ -11,6 +11,7 @@ class OnAirModel extends OnAirEntity {
     super.status,
     super.latitude,
     super.longitude,
+    super.currencySymbol,
   });
 
   factory OnAirModel.fromJson(Map<String, dynamic> json) {
@@ -52,6 +53,19 @@ class OnAirModel extends OnAirEntity {
       status: json['status']?.toString(),
       latitude: toDouble(json['latitude'] ?? json['lat']),
       longitude: toDouble(json['longitude'] ?? json['lng']),
+      currencySymbol: _currencySymbol(json),
     );
+  }
+
+  static String? _currencySymbol(Map<String, dynamic> json) {
+    final currencies = json['currencies'];
+    if (currencies is Map) {
+      final symbol = currencies['symbol'] ?? currencies['currency_symbol'];
+      if (symbol != null) return symbol.toString();
+    }
+    if (json['currency_symbol'] != null) {
+      return json['currency_symbol'].toString();
+    }
+    return null;
   }
 }

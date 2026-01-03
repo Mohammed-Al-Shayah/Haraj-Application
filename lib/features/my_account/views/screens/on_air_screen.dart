@@ -68,6 +68,7 @@ class _OnAirScreenState extends State<OnAirScreen> {
               status: ad.status,
               latitude: ad.latitude,
               longitude: ad.longitude,
+              currencySymbol: ad.currencySymbol,
               onEdit: () => controller.editAd(ad.id),
               onFeature: () => controller.featureAd(ad.id),
               onTap:

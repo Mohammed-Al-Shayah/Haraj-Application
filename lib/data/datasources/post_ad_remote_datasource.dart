@@ -43,7 +43,12 @@ abstract class PostAdRemoteDataSource {
     List<File> images,
   });
 
-  Future<Map<String, dynamic>> featureAd(int adId, {int? userId});
+  Future<Map<String, dynamic>> featureAd(
+    int adId, {
+    int? userId,
+    int? discountId,
+    bool? status,
+  });
   Future<Map<String, dynamic>> refundFeaturedAd(int adId);
 }
 
@@ -217,10 +222,20 @@ class PostAdRemoteDataSourceImpl implements PostAdRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> featureAd(int adId, {int? userId}) async {
+  Future<Map<String, dynamic>> featureAd(
+    int adId, {
+    int? userId,
+    int? discountId,
+    bool? status,
+  }) async {
+    final Map<String, dynamic> payload = {};
+    if (userId != null) payload['user_id'] = userId;
+    if (discountId != null) payload['discount_id'] = discountId;
+    if (status != null) payload['status'] = status;
+
     final res = await api.patch(
       ApiEndpoints.featureAd(adId),
-      data: userId != null ? {'user_id': userId} : null,
+      data: payload.isEmpty ? null : payload,
     );
     return (res as Map).cast<String, dynamic>();
   }

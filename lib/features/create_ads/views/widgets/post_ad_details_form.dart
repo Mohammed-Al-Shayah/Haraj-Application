@@ -177,8 +177,10 @@ class PostAdDetailsForm extends StatelessWidget {
           if (postForm != null) ...[
             _AttributesSection(form: postForm!),
             const SizedBox(height: 15),
-            _FeaturedSection(form: postForm!),
-            const SizedBox(height: 15),
+            if (!(postForm?.isEditMode ?? false)) ...[
+              _FeaturedSection(form: postForm!),
+              const SizedBox(height: 15),
+            ],
           ],
         ],
       );

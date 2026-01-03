@@ -31,8 +31,6 @@ class PostAdCategoriesController extends GetxController {
   }
 
   void onSelectCategory(CategoryModel category) {
-    // Business rule: only non-root categories are valid for posting.
-    // Root categories are the ones with parent_id == null.
     if (category.parentId == null) {
       AppSnack.error('Error', 'Please choose a sub-category');
       return;

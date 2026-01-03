@@ -7,6 +7,7 @@ class NotPublishedEntity {
   final String? status;
   final double? latitude;
   final double? longitude;
+  final String? currencySymbol;
 
   NotPublishedEntity({
     required this.id,
@@ -17,5 +18,6 @@ class NotPublishedEntity {
     this.status,
     this.latitude,
     this.longitude,
+    this.currencySymbol,
   });
 }

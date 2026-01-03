@@ -39,6 +39,11 @@ abstract class PostAdRepository {
     List<File> images,
   });
 
-  Future<Map<String, dynamic>> featureAd(int adId, {int? userId});
+  Future<Map<String, dynamic>> featureAd(
+    int adId, {
+    int? userId,
+    int? discountId,
+    bool? status,
+  });
   Future<Map<String, dynamic>> refundFeaturedAd(int adId);
 }

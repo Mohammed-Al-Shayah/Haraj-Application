@@ -64,6 +64,7 @@ class PostAdFormController extends GetxController {
   final RxList<int> removeImageIds = <int>[].obs;
   final RxList<int> editAdCategories = <int>[].obs;
   int? editAdId;
+  bool get isEditMode => editAdId != null && editAdId! > 0;
 
   // Lifecycle
   @override

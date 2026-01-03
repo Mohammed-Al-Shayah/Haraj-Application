@@ -200,6 +200,15 @@ class AppStrings {
   static String get amount => 'amount'.tr();
   static String get enterAmount => 'enter_amount'.tr();
   static String get submit => 'submit'.tr();
+  static String get depositInvoiceAndAmountRequired =>
+      'deposit_invoice_and_amount_required'.tr();
+  static String get depositInvalidAmount => 'deposit_invalid_amount'.tr();
+  static String get depositRequestSuccess => 'deposit_request_success'.tr();
+  static String get featureRequestSuccess => 'feature_request_success'.tr();
+  static String get featureRequestFailed => 'feature_request_failed'.tr();
+  static String get adCategoryNotFound => 'ad_category_not_found'.tr();
+  static String get adDataLoadFailed => 'ad_data_load_failed'.tr();
+  static String get userNotFound => 'user_not_found'.tr();
   static String get advertisementManagementText =>
       'advertisement_management_text'.tr();
   static String get onAirText => 'on_air_text'.tr();
@@ -216,6 +225,10 @@ class AppStrings {
   static String get successTitle => 'success_title'.tr();
   static String get errorTitle => 'error_title'.tr();
   static String get loginRequired => 'login_required'.tr();
+  static String get profileNameRequired => 'profile_name_required'.tr();
+  static String get profileContactRequired => 'profile_contact_required'.tr();
+  static String get profileUpdateSuccess => 'profile_update_success'.tr();
+  static String get profileUpdateFailed => 'profile_update_failed'.tr();
   static String get likeAdded => 'like_added'.tr();
   static String get likeRemoved => 'like_removed'.tr();
   static String get likeUpdateFailed => 'like_update_failed'.tr();

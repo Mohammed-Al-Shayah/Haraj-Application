@@ -3,6 +3,7 @@ import 'package:haraj_adan_app/core/storage/user_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
+import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'dart:io';
 
 class DepositController extends GetxController {
@@ -28,21 +29,21 @@ class DepositController extends GetxController {
   Future<void> submit() async {
     final userId = await getUserIdFromPrefs();
     if (userId == null) {
-      AppSnack.error("Error", "User not found");
+      AppSnack.error(AppStrings.errorTitle, AppStrings.userNotFound);
       return;
     }
 
     if (uploadedFile.value == null || price.value.isEmpty) {
       AppSnack.error(
-        "Error",
-        "Please upload an invoice and enter the amount",
+        AppStrings.errorTitle,
+        AppStrings.depositInvoiceAndAmountRequired,
       );
       return;
     }
 
     final amount = num.tryParse(price.value);
     if (amount == null || amount <= 0) {
-      AppSnack.error("Error", "Invalid amount");
+      AppSnack.error(AppStrings.errorTitle, AppStrings.depositInvalidAmount);
       return;
     }
 
@@ -55,8 +56,8 @@ class DepositController extends GetxController {
       );
 
       AppSnack.success(
-        "Success",
-        "Deposit request sent successfully",
+        AppStrings.successTitle,
+        AppStrings.depositRequestSuccess,
       );
       uploadedFile.value = null;
       price.value = '';

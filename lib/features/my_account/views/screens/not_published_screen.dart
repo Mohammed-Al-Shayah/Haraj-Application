@@ -58,6 +58,7 @@ class NotPublishedScreen extends StatelessWidget {
               status: ad.status,
               latitude: ad.latitude,
               longitude: ad.longitude,
+              currencySymbol: ad.currencySymbol,
               onEdit: () => controller.editAd(ad.id),
               onFeature: () => controller.featureAd(ad.id),
 

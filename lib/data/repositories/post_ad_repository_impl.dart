@@ -92,8 +92,18 @@ class PostAdRepositoryImpl implements PostAdRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> featureAd(int adId, {int? userId}) {
-    return remote.featureAd(adId, userId: userId);
+  Future<Map<String, dynamic>> featureAd(
+    int adId, {
+    int? userId,
+    int? discountId,
+    bool? status,
+  }) {
+    return remote.featureAd(
+      adId,
+      userId: userId,
+      discountId: discountId,
+      status: status,
+    );
   }
 
   @override

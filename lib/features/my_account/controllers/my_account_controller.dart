@@ -6,6 +6,7 @@ import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/storage/user_storage.dart';
 import 'package:haraj_adan_app/data/api/auth_api.dart';
+import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:localize_and_translate/localize_and_translate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -101,12 +102,15 @@ class MyAccountController extends GetxController {
     final phone = phoneController.text.trim();
 
     if (name.isEmpty) {
-      AppSnack.error('خطأ', 'الاسم مطلوب');
+      AppSnack.error(AppStrings.errorTitle, AppStrings.profileNameRequired);
       return;
     }
 
     if (email.isEmpty && phone.isEmpty) {
-      AppSnack.error('خطأ', 'يجب إدخال بريد أو هاتف واحد على الأقل');
+      AppSnack.error(
+        AppStrings.errorTitle,
+        AppStrings.profileContactRequired,
+      );
       return;
     }
 
@@ -134,12 +138,20 @@ class MyAccountController extends GetxController {
       emailController.text = userEmail.value;
       phoneController.text = userPhone.value;
 
-      AppSnack.success('تم', 'تم تحديث الملف الشخصي بنجاح');
+      AppSnack.success(
+        AppStrings.successTitle,
+        AppStrings.profileUpdateSuccess,
+      );
     } on DioException catch (e) {
-      final message = e.response?.data?['message'] ?? 'فشل تحديث الملف الشخصي';
-      AppSnack.error('خطأ', message.toString());
+      final message =
+          e.response?.data?['message']?.toString() ??
+              AppStrings.profileUpdateFailed;
+      AppSnack.error(AppStrings.errorTitle, message);
     } catch (_) {
-      AppSnack.error('خطأ', 'حدث خطأ غير متوقع');
+      AppSnack.error(
+        AppStrings.errorTitle,
+        AppStrings.profileUpdateFailed,
+      );
     } finally {
       isUpdating.value = false;
     }

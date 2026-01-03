@@ -50,6 +50,7 @@ class FeaturedAdsScreen extends StatelessWidget {
               status: ad.status,
               latitude: ad.latitude,
               longitude: ad.longitude,
+              currencySymbol: ad.currencySymbol,
               onTap:
                   () => Get.toNamed(
                     Routes.adDetailsScreen,

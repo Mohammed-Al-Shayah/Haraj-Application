@@ -33,12 +33,7 @@ class MyProfileScreen extends StatelessWidget {
       ),
       drawer: SideMenu(),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _myProfileHeader(),
-            _editableContentInner(),
-          ],
-        ),
+        child: Column(children: [_myProfileHeader(), _editableContentInner()]),
       ),
     );
   }
@@ -69,10 +64,11 @@ class MyProfileScreen extends StatelessWidget {
               InputField(
                 controller: controller.emailController,
                 labelText: AppStrings.emailText,
-                validator: (value) =>
-                    (value == null || value.isEmpty)
-                        ? null
-                        : Validators.validateEmail(value),
+                validator:
+                    (value) =>
+                        (value == null || value.isEmpty)
+                            ? null
+                            : Validators.validateEmail(value),
                 hintText: AppStrings.inputFieldEmailHint,
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -80,14 +76,15 @@ class MyProfileScreen extends StatelessWidget {
               InputField(
                 controller: controller.phoneController,
                 labelText: AppStrings.inputFieldPhoneLabel,
-                validator: (value) =>
-                    (value == null || value.isEmpty)
-                        ? null
-                        : Validators.validatePhone(value),
+                validator:
+                    (value) =>
+                        (value == null || value.isEmpty)
+                            ? null
+                            : Validators.validatePhone(value),
                 hintText: AppStrings.inputFieldPhoneLabel,
                 keyboardType: TextInputType.phone,
               ),
-              SizedBox(height: MediaQuery.of(Get.context!).size.height * 0.2),
+              SizedBox(height: MediaQuery.of(Get.context!).size.height * 0.1),
               Obx(
                 () => PrimaryButton(
                   onPressed: () {
