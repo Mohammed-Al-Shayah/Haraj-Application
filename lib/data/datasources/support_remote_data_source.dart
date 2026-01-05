@@ -10,6 +10,7 @@ abstract class SupportRemoteDataSource {
     required int page,
     int limit,
     String? search,
+    int? userId,
   });
 
   Future<PaginatedResult<SupportMessageModel>> fetchMessages({
@@ -18,12 +19,12 @@ abstract class SupportRemoteDataSource {
     int limit,
   });
 
-  Future<SupportMessageModel?> sendText({
-    required int chatId,
-    required int userId,
-    required String message,
-    bool isAdmin = false,
-  });
+  // Future<SupportMessageModel?> sendText({
+  //   required int chatId,
+  //   required int userId,
+  //   required String message,
+  //   bool isAdmin = false,
+  // });
 
   Future<SupportMessageModel?> uploadMedia({
     required int chatId,
@@ -44,23 +45,28 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     required int page,
     int limit = 10,
     String? search,
+    int? userId,
   }) async {
     dynamic res;
     final query = {
       'page': page,
       'limit': limit,
       if (search != null && search.isNotEmpty) 'search': search,
+      if (userId != null) ...{
+        'userId': userId,
+        'user_id': userId,
+      },
     };
 
     try {
       res = await apiClient.get(
-        ApiEndpoints.supportChatsCustomerPaginate,
+        ApiEndpoints.supportChatsPaginate,
         queryParams: query,
       );
     } on Object {
-      // Fallback for older backends that don't expose the customer endpoint.
+      // Fallback for backends that only expose the customer-scoped endpoint.
       res = await apiClient.get(
-        ApiEndpoints.supportChatsPaginate,
+        ApiEndpoints.supportChatsCustomerPaginate,
         queryParams: query,
       );
     }
@@ -100,6 +106,17 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
             .whereType<Map<String, dynamic>>()
             .map((e) => SupportMessageModel.fromMap(e))
             .toList();
+    items.sort((a, b) {
+      final aTime = a.createdAt;
+      final bTime = b.createdAt;
+      if (aTime != null && bTime != null) {
+        return aTime.compareTo(bTime);
+      }
+      if (a.id != null && b.id != null) {
+        return a.id!.compareTo(b.id!);
+      }
+      return 0;
+    });
 
     final hasMore = _hasMore(meta, page, limit, items.length);
 
@@ -110,33 +127,30 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     );
   }
 
-  @override
-  Future<SupportMessageModel?> sendText({
-    required int chatId,
-    required int userId,
-    required String message,
-    bool isAdmin = false,
-  }) async {
-    final data = {
-      'chatId': chatId,
-      'support_chat_id': chatId,
-      'message': message,
-      'type': 'text',
-      'userId': userId,
-      'sender_id': userId,
-      'is_admin': isAdmin ? 1 : 0,
-    };
+  // @override
+  // Future<SupportMessageModel?> sendText({
+  //   required int chatId,
+  //   required int userId,
+  //   required String message,
+  //   bool isAdmin = false,
+  // }) async {
+  //   final data = {
+  //     'chatId': chatId,
+  //     'support_chat_id': chatId,
+  //     'message': message,
+  //     'type': 'text',
+  //     'userId': userId,
+  //     'sender_id': userId,
+  //     'is_admin': isAdmin ? 1 : 0,
+  //   };
 
-    dynamic res;
-    try {
-      res = await apiClient.post(ApiEndpoints.supportChatMessages, data: data);
-    } on Object {
-      res = await apiClient.post(ApiEndpoints.supportChats, data: data);
-    }
-
-    _extractData(res);
-    return SupportMessageModel.fromMap(data);
-  }
+  //   final res = await apiClient.post(ApiEndpoints.supportChatMessages, data: data);
+  //   final parsed = _extractData(res);
+  //   if (parsed is Map<String, dynamic>) {
+  //     return SupportMessageModel.fromMap(parsed);
+  //   }
+  //   return null;
+  // }
 
   @override
   Future<SupportMessageModel?> uploadMedia({

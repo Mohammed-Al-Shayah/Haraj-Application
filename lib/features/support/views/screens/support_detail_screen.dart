@@ -36,6 +36,7 @@ class SupportDetailScreen extends StatelessWidget {
         ),
         chatId: chatId,
         chatName: chatName,
+        // useRestFallback: true,
       ),
     );
 

@@ -94,7 +94,7 @@ class ChatBubble extends StatelessWidget {
                 fit: BoxFit.cover,
                 height: 180,
                 width: MediaQuery.of(context).size.width * 0.7,
-                errorBuilder: (_, __, ___) {
+                errorBuilder: (_, Object error, StackTrace? stack) {
                   return _fallbackAttachment(context, textColor);
                 },
               )
@@ -103,7 +103,7 @@ class ChatBubble extends StatelessWidget {
                 fit: BoxFit.cover,
                 height: 180,
                 width: MediaQuery.of(context).size.width * 0.7,
-                errorBuilder: (_, __, ___) {
+                errorBuilder: (_, Object error, StackTrace? stack) {
                   return _fallbackAttachment(context, textColor);
                 },
               );

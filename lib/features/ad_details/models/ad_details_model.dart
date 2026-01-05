@@ -99,40 +99,112 @@ class AdDetailsModel {
                 : null)
             : null;
 
-    String? extractOwnerName(Map<String, dynamic> root) {
-      final user = root['user'];
-      if (user is Map) {
-        final name = user['name'] ?? user['user_name'];
-        if (name != null && name.toString().isNotEmpty) {
-          return name.toString();
-        }
+    Map<String, dynamic>? extractUser(Map<String, dynamic> root) {
+      const userKeys = [
+        'user',
+        'users',
+        'owner',
+        'owner_data',
+        'advertiser',
+        'creator',
+        'created_by',
+        'customer',
+        'publisher',
+      ];
+      for (final key in userKeys) {
+        final candidate = root[key];
+        if (candidate is Map<String, dynamic>) return candidate;
       }
-      final name = root['user_name'] ?? root['owner_name'];
-      return name?.toString();
+      return null;
+    }
+
+    String? extractOwnerName(Map<String, dynamic> root) {
+      final user = extractUser(root);
+      const nameKeys = [
+        'name',
+        'user_name',
+        'username',
+        'full_name',
+        'first_name',
+        'last_name',
+      ];
+      if (user != null) {
+        for (final key in nameKeys) {
+          final val = user[key];
+          if (val != null && val.toString().trim().isNotEmpty) {
+            return val.toString().trim();
+          }
+        }
+        final fn = user['first_name']?.toString().trim() ?? '';
+        final ln = user['last_name']?.toString().trim() ?? '';
+        final combined =
+            [fn, ln].where((e) => e.isNotEmpty).join(' ').trim();
+        if (combined.isNotEmpty) return combined;
+      }
+      final rootName = root['user_name'] ?? root['owner_name'];
+      if (rootName != null && rootName.toString().trim().isNotEmpty) {
+        return rootName.toString().trim();
+      }
+      return null;
     }
 
     String? extractOwnerPhone(Map<String, dynamic> root) {
-      final user = root['user'];
-      if (user is Map) {
-        final phone = user['phone'] ?? user['mobile'] ?? user['phone_number'];
-        if (phone != null && phone.toString().isNotEmpty) {
-          return phone.toString();
+      final user = extractUser(root);
+      const phoneKeys = [
+        'phone',
+        'mobile',
+        'phone_number',
+        'phoneNumber',
+        'contact_phone',
+        'whatsapp',
+        'whats_app',
+        'contact',
+      ];
+      if (user != null) {
+        for (final key in phoneKeys) {
+          final val = user[key];
+          if (val != null && val.toString().trim().isNotEmpty) {
+            return val.toString().trim();
+          }
         }
       }
-      final phone = root['phone'] ?? root['mobile'] ?? root['phone_number'];
-      return phone?.toString();
+      for (final key in phoneKeys) {
+        final val = root[key];
+        if (val != null && val.toString().trim().isNotEmpty) {
+          return val.toString().trim();
+        }
+      }
+      return null;
     }
 
     int? extractOwnerId(Map<String, dynamic> root) {
-      final user = root['user'];
-      if (user is Map) {
-        final id = user['id'] ?? user['user_id'];
-        if (id is num) return id.toInt();
-        return int.tryParse(id?.toString() ?? '');
+      final user = extractUser(root);
+      const idKeys = [
+        'id',
+        'user_id',
+        'userId',
+        'owner_id',
+        'advertiser_id',
+        'creator_id',
+        'created_by',
+        'customer_id',
+        'publisher_id',
+      ];
+      if (user != null) {
+        for (final key in idKeys) {
+          final val = user[key];
+          if (val is num) return val.toInt();
+          final parsed = int.tryParse(val?.toString() ?? '');
+          if (parsed != null) return parsed;
+        }
       }
-      final id = root['user_id'] ?? root['owner_id'];
-      if (id is num) return id.toInt();
-      return int.tryParse(id?.toString() ?? '');
+      for (final key in idKeys) {
+        final val = root[key];
+        if (val is num) return val.toInt();
+        final parsed = int.tryParse(val?.toString() ?? '');
+        if (parsed != null) return parsed;
+      }
+      return null;
     }
 
     return AdDetailsModel(

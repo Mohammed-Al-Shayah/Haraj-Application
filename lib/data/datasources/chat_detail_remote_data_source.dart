@@ -1,20 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
+import 'package:haraj_adan_app/domain/entities/paginated_result.dart';
 
 import '../models/message_model.dart';
 
 abstract class ChatDetailRemoteDataSource {
-  Future<List<MessageModel>> fetchMessages({
+  Future<PaginatedResult<MessageModel>> fetchMessages({
     required int chatId,
-    required int userId,
-  });
-
-  Future<MessageModel?> sendText({
-    required int chatId,
-    required int userId,
-    required String message,
-    int? receiverId,
+    required int currentUserId,
+    int? otherUserId,
+    int page = 1,
+    int limit = 20,
   });
 
   Future<MessageModel?> uploadMedia({
@@ -32,45 +29,39 @@ class ChatDetailRemoteDataSourceImpl implements ChatDetailRemoteDataSource {
   ChatDetailRemoteDataSourceImpl(this.apiClient);
 
   @override
-  Future<List<MessageModel>> fetchMessages({
+  Future<PaginatedResult<MessageModel>> fetchMessages({
     required int chatId,
-    required int userId,
+    required int currentUserId,
+    int? otherUserId,
+    int page = 1,
+    int limit = 20,
   }) async {
     final res = await apiClient.get(
       ApiEndpoints.chatMessages,
-      queryParams: {'chat_id': chatId, 'chatId': chatId, 'userId': userId},
-    );
-
-    final list = _extractList(res);
-    return list
-        .whereType<Map<String, dynamic>>()
-        .map((e) => MessageModel.fromMap(e, currentUserId: userId))
-        .toList();
-  }
-
-  @override
-  Future<MessageModel?> sendText({
-    required int chatId,
-    required int userId,
-    required String message,
-    int? receiverId,
-  }) async {
-    final res = await apiClient.post(
-      ApiEndpoints.chatMessages,
-      data: {
+      queryParams: {
+        'chat_id': chatId,
         'chatId': chatId,
-        'senderId': userId,
-        'message': message,
-        'type': 'text',
-        if (receiverId != null) 'receiverId': receiverId,
+        // The API expects the other participant id as `userId`
+        'userId': otherUserId ?? currentUserId,
+        'page': page,
+        'limit': limit,
       },
     );
 
-    final data = _extractData(res);
-    if (data is Map<String, dynamic>) {
-      return MessageModel.fromMap(data, currentUserId: userId);
-    }
-    return null;
+    final list = _extractList(res);
+    final meta = _extractMeta(res);
+    final items =
+        list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => MessageModel.fromMap(e, currentUserId: currentUserId))
+            .toList();
+    final hasMore = _hasMore(meta, page, limit, items.length);
+
+    return PaginatedResult<MessageModel>(
+      items: items,
+      page: page,
+      hasMore: hasMore,
+    );
   }
 
   @override
@@ -109,6 +100,28 @@ class ChatDetailRemoteDataSourceImpl implements ChatDetailRemoteDataSource {
     }
     if (res is List) return res;
     return const [];
+  }
+
+  Map<String, dynamic>? _extractMeta(dynamic res) {
+    if (res is Map<String, dynamic>) {
+      if (res['meta'] is Map<String, dynamic>) return res['meta'];
+      final data = res['data'];
+      if (data is Map && data['meta'] is Map<String, dynamic>) {
+        return data['meta'];
+      }
+    }
+    return null;
+  }
+
+  bool _hasMore(Map<String, dynamic>? meta, int page, int limit, int fetched) {
+    if (meta != null) {
+      final total = meta['total'];
+      if (total is num) {
+        // meta.total represents total count of messages
+        return (page * limit) < total.toInt();
+      }
+    }
+    return fetched >= limit;
   }
 
   dynamic _extractData(dynamic res) {

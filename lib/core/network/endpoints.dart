@@ -16,6 +16,7 @@ class ApiEndpoints {
   static String categoriesHome = '$baseUrl/categories/home-page-menu';
   static String filterCategories = '$baseUrl/categories/filter-page';
   static String currencies = '$baseUrl/currencies';
+  static String userById(int userId) => '$baseUrl/users/$userId';
 
   static String adDetails(int id) => '$baseUrl/ads/$id';
   static String adCommentsPaginate = '$baseUrl/ads/comments/paginate';
@@ -51,7 +52,7 @@ class ApiEndpoints {
 
   static String chatList = '$baseUrl/chats/paginate/customer';
   static String chatMessages = '$baseUrl/chats/messages';
-    static String chats = '$baseUrl/chats';
+  static String chats = '$baseUrl/chats';
 
   static String chatMedia = '$baseUrl/chats/media';
 

@@ -7,6 +7,7 @@ abstract class SupportRepository {
     required int page,
     int limit,
     String? search,
+    int? userId,
   });
 
   Future<PaginatedResult<SupportMessageEntity>> getMessages({
@@ -15,12 +16,12 @@ abstract class SupportRepository {
     int limit,
   });
 
-  Future<SupportMessageEntity?> sendText({
-    required int chatId,
-    required int userId,
-    required String message,
-    bool isAdmin = false,
-  });
+  // Future<SupportMessageEntity?> sendText({
+  //   required int chatId,
+  //   required int userId,
+  //   required String message,
+  //   bool isAdmin = false,
+  // });
 
   Future<SupportMessageEntity?> uploadMedia({
     required int chatId,

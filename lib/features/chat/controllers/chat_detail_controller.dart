@@ -27,6 +27,8 @@ class ChatDetailController extends GetxController {
 
   final messages = <MessageEntity>[].obs;
   final isLoading = true.obs;
+  final isLoadingMore = false.obs;
+  final hasMore = true.obs;
   final isSending = false.obs;
   final chatTitle = ''.obs;
   final scrollController = ScrollController();
@@ -34,11 +36,14 @@ class ChatDetailController extends GetxController {
   int? _currentUserId;
   String? _token;
   bool _triedAltSocketPath = false;
+  int _page = 1;
+  static const int _pageSize = 20;
 
   @override
   void onInit() {
     super.onInit();
     chatTitle.value = chatName;
+    scrollController.addListener(_onScroll);
     _init();
   }
 
@@ -46,32 +51,76 @@ class ChatDetailController extends GetxController {
     _currentUserId = await getUserIdFromPrefs();
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('_accessToken') ?? prefs.getString('_loginToken');
-    await loadMessages();
+    await loadMessages(reset: true);
     await _initSocket();
   }
 
-  Future<void> loadMessages() async {
-    isLoading.value = true;
+  Future<void> loadMessages({bool reset = false}) async {
     final userId = _currentUserId ?? await getUserIdFromPrefs();
     _currentUserId = userId;
     if (userId == null) {
       isLoading.value = false;
+      isLoadingMore.value = false;
       return;
     }
 
-    messages.value = await repository.getMessages(
+    if (reset) {
+      _page = 1;
+      hasMore.value = true;
+    } else {
+      if (!hasMore.value || isLoadingMore.value) return;
+    }
+
+    if (reset) {
+      isLoading.value = true;
+    } else {
+      isLoadingMore.value = true;
+    }
+
+    double? distanceFromBottom;
+    if (!reset && scrollController.hasClients) {
+      final pos = scrollController.position;
+      distanceFromBottom = pos.maxScrollExtent - pos.pixels;
+    }
+
+    final result = await repository.getMessages(
       chatId: chatId,
-      userId: userId,
+      currentUserId: userId,
+      otherUserId: otherUserId,
+      page: _page,
+      limit: _pageSize,
     );
 
-    if (otherUserId == null && messages.isNotEmpty) {
-      otherUserId = messages
+    if (otherUserId == null && result.items.isNotEmpty) {
+      otherUserId = result.items
           .map((m) => m.senderId)
           .firstWhere((id) => id != null && id != userId, orElse: () => null);
     }
 
+    if (reset) {
+      messages.assignAll(result.items);
+      _scrollToBottom();
+    } else {
+      messages.insertAll(0, result.items);
+      if (distanceFromBottom != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!scrollController.hasClients) return;
+          final max = scrollController.position.maxScrollExtent;
+          final target = (max - distanceFromBottom!).clamp(
+            scrollController.position.minScrollExtent,
+            scrollController.position.maxScrollExtent,
+          );
+          scrollController.jumpTo(target);
+        });
+      }
+    }
+
+    hasMore.value = result.hasMore;
+    _page = result.page + 1;
+
     isLoading.value = false;
-    _scrollToBottom();
+    isLoadingMore.value = false;
+    socket?.readUserMessages(chatId);
   }
 
   Future<void> _initSocket() async {
@@ -90,7 +139,8 @@ class ChatDetailController extends GetxController {
         );
 
     void joinAndRead() {
-      socket?.joinUserRoom(userId);
+      socket?.joinRoom(userId);
+      socket?.joinUserRoom(chatId);
       socket?.readUserMessages(chatId);
     }
 
@@ -117,8 +167,27 @@ class ChatDetailController extends GetxController {
             messages.any((m) => m.id != null && m.id == incomingId)) {
           return;
         }
+
+        if (incoming.senderId == userId && incomingId != null) {
+          final pendingIndex = messages.indexWhere(
+            (m) =>
+                m.id == null &&
+                m.senderId == userId &&
+                m.text == incoming.text &&
+                m.type == incoming.type,
+          );
+          if (pendingIndex != -1) {
+            messages[pendingIndex] = incoming;
+            messages.refresh();
+            _scrollToBottom();
+            socket?.readUserMessages(chatId);
+            return;
+          }
+        }
+
         messages.add(incoming);
         _scrollToBottom();
+        socket?.readUserMessages(chatId);
       }
     });
     socket?.onNotificationCount((_) {});
@@ -136,6 +205,7 @@ class ChatDetailController extends GetxController {
             .map((m) => m.senderId)
             .firstWhere((id) => id != null && id != userId, orElse: () => null);
     otherUserId = receiverId ?? otherUserId;
+    if (receiverId == null) return;
 
     final pending = MessageModel(
       text: trimmed,
@@ -148,26 +218,13 @@ class ChatDetailController extends GetxController {
     _scrollToBottom();
     _connectSocket(userId);
     socket?.sendUserMessage(
-      chatId: chatId,
-      message: trimmed,
+      senderId: userId,
       receiverId: receiverId,
+      message: trimmed,
+      type: 'text',
+      chatId: chatId,
     );
     socket?.readUserMessages(chatId);
-
-    try {
-      final sent = await repository.sendText(
-        chatId: chatId,
-        userId: userId,
-        message: trimmed,
-        receiverId: receiverId,
-      );
-      if (sent != null) {
-        _replacePending(pending, sent);
-      }
-    } catch (e) {
-      // ignore: avoid_print
-      print('sendMessage failed: $e');
-    }
   }
 
   Future<void> sendMedia({
@@ -237,12 +294,14 @@ class ChatDetailController extends GetxController {
       socket?.connect(
         query: {'userId': userId},
         onConnect: () {
-          socket?.joinUserRoom(userId);
+          socket?.joinRoom(userId);
+          socket?.joinUserRoom(chatId);
           socket?.readUserMessages(chatId);
         },
       );
     } else {
-      socket?.joinUserRoom(userId);
+      socket?.joinRoom(userId);
+      socket?.joinUserRoom(chatId);
     }
   }
 
@@ -262,7 +321,8 @@ class ChatDetailController extends GetxController {
     socket?.connect(
       query: {'userId': userId},
       onConnect: () {
-        socket?.joinUserRoom(userId);
+        socket?.joinRoom(userId);
+        socket?.joinUserRoom(chatId);
         socket?.readUserMessages(chatId);
       },
     );
@@ -289,8 +349,21 @@ class ChatDetailController extends GetxController {
 
   @override
   void onClose() {
+    scrollController.removeListener(_onScroll);
     scrollController.dispose();
     socket?.disconnect();
     super.onClose();
+  }
+
+  void _onScroll() {
+    if (!scrollController.hasClients ||
+        isLoading.value ||
+        isLoadingMore.value) {
+      return;
+    }
+    if (scrollController.position.pixels <=
+        scrollController.position.minScrollExtent + 120) {
+      loadMessages();
+    }
   }
 }

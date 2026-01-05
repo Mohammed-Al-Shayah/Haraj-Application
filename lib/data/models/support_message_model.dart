@@ -44,7 +44,11 @@ class SupportMessageModel extends SupportMessageEntity {
       message: pickString(map, ['message', 'text', 'body', 'content']),
       type: map['type']?.toString() ?? 'text',
       senderId: parseInt(sender),
-      isAdmin: map['is_admin'] == true || map['isAdmin'] == true,
+      isAdmin:
+          map['is_admin'] == true ||
+          map['isAdmin'] == true ||
+          map['is_admin'] == 1 ||
+          map['isAdmin'] == 1,
       isRead: map['is_read'] == true || map['isRead'] == true,
       createdAt: parseDate(map['created_at'] ?? map['created']),
       mediaUrl: pickString(map, ['file_url', 'file', 'media_url', 'url']),

@@ -1,8 +1,11 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
+import 'package:haraj_adan_app/core/network/api_client.dart';
+import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/domain/repositories/ad_details_repository.dart';
 import 'package:haraj_adan_app/domain/repositories/likes_repository.dart';
 import 'package:haraj_adan_app/features/ad_details/models/ad_details_model.dart';
@@ -41,15 +44,12 @@ class AdDetailsController extends GetxController {
   }
 
   Future<void> _init() async {
-    // ✅ لا تعمل toggleFavourite هنا
     await _loadFavouriteState();
     await fetchAdDetails();
     await fetchComments();
   }
 
-  // ----------------------------
   // User Id (for likes query param & like body)
-  // ----------------------------
   Future<int?> _getUserIdFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString("_userData");
@@ -77,6 +77,7 @@ class AdDetailsController extends GetxController {
         userId: userId,
       );
 
+      await _loadOwnerInfoIfNeeded();
       await _loadFavouriteState();
     } catch (_) {
       AppSnack.error(
@@ -233,6 +234,102 @@ class AdDetailsController extends GetxController {
   Future<void> _notifyFavouriteList() async {
     if (!Get.isRegistered<FavouriteAdsController>()) return;
     await Get.find<FavouriteAdsController>().loadFavouriteAds();
+  }
+
+  Future<void> _loadOwnerInfoIfNeeded() async {
+    final currentAd = ad.value;
+    if (currentAd == null) return;
+    final ownerId = currentAd.ownerId;
+    if (ownerId == null) return;
+
+    final hasName = (currentAd.ownerName ?? '').trim().isNotEmpty;
+    final hasPhone = (currentAd.ownerPhone ?? '').trim().isNotEmpty;
+    if (hasName && hasPhone) return;
+
+    try {
+      final api = ApiClient(client: Dio());
+      final res = await api.get(ApiEndpoints.userById(ownerId));
+      final user = _extractUserMap(res);
+      if (user == null) return;
+
+      final name = _pickString(user, const [
+        'name',
+        'user_name',
+        'full_name',
+        'username',
+        'first_name',
+      ]);
+      final phone = _pickString(user, const [
+        'phone',
+        'mobile',
+        'phone_number',
+        'phoneNumber',
+        'contact_phone',
+        'whatsapp',
+      ]);
+
+      ad.value = _copyAdWithOwner(
+        currentAd,
+        name: name,
+        phone: phone,
+        ownerId: ownerId,
+      );
+      update();
+    } catch (_) {
+      // Silent fail; ad details still usable without owner info.
+    }
+  }
+
+  Map<String, dynamic>? _extractUserMap(dynamic res) {
+    if (res is Map<String, dynamic>) {
+      final data = res['data'];
+      if (data is Map<String, dynamic>) return data;
+      if (res['user'] is Map<String, dynamic>) {
+        return res['user'] as Map<String, dynamic>;
+      }
+      return res;
+    }
+    return null;
+  }
+
+  String? _pickString(Map<String, dynamic> src, List<String> keys) {
+    for (final k in keys) {
+      final val = src[k];
+      if (val != null && val.toString().trim().isNotEmpty) {
+        return val.toString().trim();
+      }
+    }
+    return null;
+  }
+
+  AdDetailsModel _copyAdWithOwner(
+    AdDetailsModel ad, {
+    String? name,
+    String? phone,
+    int? ownerId,
+  }) {
+    return AdDetailsModel(
+      id: ad.id,
+      title: ad.title,
+      titleEn: ad.titleEn,
+      price: ad.price,
+      address: ad.address,
+      images: ad.images,
+      latitude: ad.latitude,
+      longitude: ad.longitude,
+      attributes: ad.attributes,
+      description: ad.description,
+      currencySymbol: ad.currencySymbol,
+      likesCount: ad.likesCount,
+      isLiked: ad.isLiked,
+      likeId: ad.likeId,
+      createdAt: ad.createdAt,
+      categoryName: ad.categoryName,
+      categoryNameEn: ad.categoryNameEn,
+      ownerName: name ?? ad.ownerName,
+      ownerPhone: phone ?? ad.ownerPhone,
+      ownerId: ownerId ?? ad.ownerId,
+    );
   }
 
   void _syncHomeFavourite(bool favourite) {

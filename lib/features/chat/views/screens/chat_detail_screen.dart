@@ -10,7 +10,6 @@ import '../../../../data/repositories/chat_detail_repository_impl.dart';
 import '../../controllers/chat_detail_controller.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_actions.dart';
-import '../widgets/chat_ad_preview.dart';
 
 class ChatDetailScreen extends StatelessWidget {
   const ChatDetailScreen({super.key});
@@ -52,18 +51,33 @@ class ChatDetailScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          const ChatAdPreview(),
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value) {
                 return const Center(child: CircularProgressIndicator());
               }
+              final showLoader = controller.isLoadingMore.value;
+              final itemCount =
+                  controller.messages.length + (showLoader ? 1 : 0);
               return ListView.builder(
                 controller: controller.scrollController,
                 padding: const EdgeInsets.all(16),
-                itemCount: controller.messages.length,
+                itemCount: itemCount,
                 itemBuilder: (_, index) {
-                  final msg = controller.messages[index];
+                  if (showLoader && index == 0) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    );
+                  }
+                  final msg =
+                      controller.messages[showLoader ? index - 1 : index];
                   return ChatBubble(message: msg);
                 },
               );

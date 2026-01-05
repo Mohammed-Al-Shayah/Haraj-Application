@@ -21,7 +21,7 @@ class SupportController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadChats(reset: true);
+    _init();
   }
 
   @override
@@ -29,6 +29,10 @@ class SupportController extends GetxController {
     searchController.dispose();
     _debounce?.cancel();
     super.onClose();
+  }
+
+  Future<void> _init() async {
+    await loadChats(reset: true);
   }
 
   Future<void> loadChats({bool reset = false}) async {
@@ -51,6 +55,7 @@ class SupportController extends GetxController {
     final result = await repository.getChats(
       page: _page,
       search: search.isEmpty ? null : search,
+      userId: null, // backend does not accept userId in support chats query
     );
 
     if (reset) {

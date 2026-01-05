@@ -14,11 +14,13 @@ class SupportRepositoryImpl implements SupportRepository {
     required int page,
     int limit = 10,
     String? search,
+    int? userId,
   }) async {
     final result = await remote.fetchChats(
       page: page,
       limit: limit,
       search: search,
+      userId: userId,
     );
     return PaginatedResult<SupportChatEntity>(
       items: result.items,
@@ -45,20 +47,20 @@ class SupportRepositoryImpl implements SupportRepository {
     );
   }
 
-  @override
-  Future<SupportMessageEntity?> sendText({
-    required int chatId,
-    required int userId,
-    required String message,
-    bool isAdmin = false,
-  }) {
-    return remote.sendText(
-      chatId: chatId,
-      userId: userId,
-      message: message,
-      isAdmin: isAdmin,
-    );
-  }
+  // @override
+  // Future<SupportMessageEntity?> sendText({
+  //   required int chatId,
+  //   required int userId,
+  //   required String message,
+  //   bool isAdmin = false,
+  // }) {
+  //   return remote.sendText(
+  //     chatId: chatId,
+  //     userId: userId,
+  //     message: message,
+  //     isAdmin: isAdmin,
+  //   );
+  // }
 
   @override
   Future<SupportMessageEntity?> uploadMedia({

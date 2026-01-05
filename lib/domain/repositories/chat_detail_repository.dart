@@ -1,16 +1,13 @@
 import '../entities/message_entity.dart';
+import '../entities/paginated_result.dart';
 
 abstract class ChatDetailRepository {
-  Future<List<MessageEntity>> getMessages({
+  Future<PaginatedResult<MessageEntity>> getMessages({
     required int chatId,
-    required int userId,
-  });
-
-  Future<MessageEntity?> sendText({
-    required int chatId,
-    required int userId,
-    required String message,
-    int? receiverId,
+    required int currentUserId,
+    int? otherUserId,
+    int page = 1,
+    int limit = 20,
   });
 
   Future<MessageEntity?> uploadMedia({
