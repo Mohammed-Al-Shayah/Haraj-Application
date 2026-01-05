@@ -25,18 +25,14 @@ class ChatDetailScreen extends StatelessWidget {
     if (chatId == null) {
       return Scaffold(
         appBar: MainBar(title: chatName),
-        body: const Center(
-          child: Text('Missing chat id'),
-        ),
+        body: const Center(child: Text('Missing chat id')),
       );
     }
 
     final controller = Get.put(
       ChatDetailController(
         ChatDetailRepositoryImpl(
-          ChatDetailRemoteDataSourceImpl(
-            ApiClient(client: Dio()),
-          ),
+          ChatDetailRemoteDataSourceImpl(ApiClient(client: Dio())),
         ),
         chatId: chatId,
         chatName: chatName,
@@ -63,11 +59,12 @@ class ChatDetailScreen extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
               return ListView.builder(
+                controller: controller.scrollController,
                 padding: const EdgeInsets.all(16),
                 itemCount: controller.messages.length,
                 itemBuilder: (_, index) {
                   final msg = controller.messages[index];
-                  return ChatBubble(text: msg.text, isSender: msg.isSender);
+                  return ChatBubble(message: msg);
                 },
               );
             }),

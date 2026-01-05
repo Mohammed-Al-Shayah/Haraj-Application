@@ -11,6 +11,33 @@ class ChatDetailRepositoryImpl implements ChatDetailRepository {
   Future<List<MessageEntity>> getMessages({
     required int chatId,
     required int userId,
-  }) =>
-      remote.fetchMessages(chatId: chatId, userId: userId);
+  }) => remote.fetchMessages(chatId: chatId, userId: userId);
+
+  @override
+  Future<MessageEntity?> sendText({
+    required int chatId,
+    required int userId,
+    required String message,
+    int? receiverId,
+  }) => remote.sendText(
+    chatId: chatId,
+    userId: userId,
+    message: message,
+    receiverId: receiverId,
+  );
+
+  @override
+  Future<MessageEntity?> uploadMedia({
+    required int chatId,
+    required int userId,
+    required String type,
+    required String filePath,
+    int? receiverId,
+  }) => remote.uploadMedia(
+    chatId: chatId,
+    userId: userId,
+    type: type,
+    filePath: filePath,
+    receiverId: receiverId,
+  );
 }

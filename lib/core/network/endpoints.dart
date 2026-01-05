@@ -51,4 +51,18 @@ class ApiEndpoints {
 
   static String chatList = '$baseUrl/chats/paginate/customer';
   static String chatMessages = '$baseUrl/chats/messages';
+    static String chats = '$baseUrl/chats';
+
+  static String chatMedia = '$baseUrl/chats/media';
+
+  /// Support chat
+  static String supportChats = '$baseUrl/support-chats';
+  static String supportChatsPaginate = '$baseUrl/support-chats/paginate';
+  static String supportChatsCustomerPaginate =
+      '$baseUrl/support-chats/customer/paginate';
+  static String supportChatDetail(int chatId) =>
+      '$baseUrl/support-chats/$chatId';
+  static String supportChatMessages = '$baseUrl/support-chats/messages';
+  static String supportChatMedia = '$baseUrl/support-chats/media';
+  static String supportSocketUrl = 'https://unityaid.net';
 }

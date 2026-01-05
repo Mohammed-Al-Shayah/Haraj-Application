@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/widgets/main_bar.dart';
+import 'package:haraj_adan_app/data/datasources/support_remote_data_source.dart';
+import 'package:haraj_adan_app/data/repositories/support_repository_impl.dart';
 import '../../../../core/routes/routes.dart';
 import '../../../../core/theme/assets.dart';
 import '../../../../core/theme/strings.dart';
+import '../../controllers/support_detail_controller.dart';
 import '../widgets/support_actions.dart';
 import '../widgets/support_bubble_list.dart';
 
@@ -13,9 +18,30 @@ class SupportDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final args = Get.arguments as Map<String, dynamic>? ?? const {};
+    final chatId = args['chatId'] as int?;
+    final chatName = args['chatName']?.toString() ?? AppStrings.supportTitle;
+
+    if (chatId == null) {
+      return Scaffold(
+        appBar: MainBar(title: chatName),
+        body: const Center(child: Text('Missing support chat id')),
+      );
+    }
+
+    final controller = Get.put(
+      SupportDetailController(
+        SupportRepositoryImpl(
+          SupportRemoteDataSourceImpl(ApiClient(client: Dio())),
+        ),
+        chatId: chatId,
+        chatName: chatName,
+      ),
+    );
+
     return Scaffold(
       appBar: MainBar(
-        title: AppStrings.supportTitle,
+        title: chatName,
         customActions: [
           IconButton(
             onPressed: () => Get.toNamed(Routes.supportScreen),
@@ -28,9 +54,9 @@ class SupportDetailScreen extends StatelessWidget {
         ],
       ),
       body: Column(
-        children: const [
-          Expanded(child: SupportBubbleList()),
-          SupportActions(),
+        children: [
+          Expanded(child: SupportBubbleList(controller: controller)),
+          SupportActions(controller: controller),
         ],
       ),
     );

@@ -102,16 +102,17 @@ class MyAccountContent extends StatelessWidget {
               _customTile(
                 title: AppStrings.onAirText,
                 trailing: Obx(
-                  () => controller.isStatsLoading.value
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          '(${controller.publishedCount.value})',
-                          style: AppTypography.normal12,
-                        ),
+                  () =>
+                      controller.isStatsLoading.value
+                          ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : Text(
+                            '(${controller.publishedCount.value})',
+                            style: AppTypography.normal12,
+                          ),
                 ),
                 onTap: () => Get.toNamed(Routes.onAirScreen),
               ),
@@ -119,16 +120,17 @@ class MyAccountContent extends StatelessWidget {
               _customTile(
                 title: AppStrings.notPublishedText,
                 trailing: Obx(
-                  () => controller.isStatsLoading.value
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          '(${controller.unpublishedCount.value})',
-                          style: AppTypography.normal12,
-                        ),
+                  () =>
+                      controller.isStatsLoading.value
+                          ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : Text(
+                            '(${controller.unpublishedCount.value})',
+                            style: AppTypography.normal12,
+                          ),
                 ),
                 onTap: () => Get.toNamed(Routes.notPublishedScreen),
               ),
@@ -136,16 +138,17 @@ class MyAccountContent extends StatelessWidget {
               _customTile(
                 title: AppStrings.featuredAdsText,
                 trailing: Obx(
-                  () => controller.isStatsLoading.value
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          '(${controller.featuredCount.value})',
-                          style: AppTypography.normal12,
-                        ),
+                  () =>
+                      controller.isStatsLoading.value
+                          ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : Text(
+                            '(${controller.featuredCount.value})',
+                            style: AppTypography.normal12,
+                          ),
                 ),
                 onTap: () => Get.toNamed(Routes.featuredAdsScreen),
               ),
@@ -153,16 +156,17 @@ class MyAccountContent extends StatelessWidget {
               _customTile(
                 title: AppStrings.rejectedAdsText,
                 trailing: Obx(
-                  () => controller.isStatsLoading.value
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          '(${controller.rejectedCount.value})',
-                          style: AppTypography.normal12,
-                        ),
+                  () =>
+                      controller.isStatsLoading.value
+                          ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : Text(
+                            '(${controller.rejectedCount.value})',
+                            style: AppTypography.normal12,
+                          ),
                 ),
                 onTap: () => Get.toNamed(Routes.rejectedScreen),
               ),

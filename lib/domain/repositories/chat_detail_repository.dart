@@ -5,4 +5,19 @@ abstract class ChatDetailRepository {
     required int chatId,
     required int userId,
   });
+
+  Future<MessageEntity?> sendText({
+    required int chatId,
+    required int userId,
+    required String message,
+    int? receiverId,
+  });
+
+  Future<MessageEntity?> uploadMedia({
+    required int chatId,
+    required int userId,
+    required String type,
+    required String filePath,
+    int? receiverId,
+  });
 }

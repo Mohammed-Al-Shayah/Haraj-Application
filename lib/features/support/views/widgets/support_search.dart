@@ -5,7 +5,10 @@ import '../../../../core/widgets/input_field.dart';
 import '../../../../core/theme/color.dart';
 
 class SupportSearch extends StatelessWidget {
-  const SupportSearch({super.key});
+  final TextEditingController? controller;
+  final ValueChanged<String>? onChanged;
+
+  const SupportSearch({super.key, this.controller, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -14,6 +17,8 @@ class SupportSearch extends StatelessWidget {
       keyboardType: TextInputType.text,
       prefixIconPath: AppAssets.searchIcon,
       prefixIconColor: AppColors.grey,
+      controller: controller,
+      onChanged: onChanged,
     );
   }
 }

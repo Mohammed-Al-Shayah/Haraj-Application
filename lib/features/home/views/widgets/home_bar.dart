@@ -43,7 +43,7 @@ class HomeBar extends StatelessWidget implements PreferredSizeWidget {
           Row(
             children: [
               IconButton(
-                onPressed: () => Get.toNamed(Routes.supportDetailScreen),
+                onPressed: () => Get.toNamed(Routes.supportScreen),
                 icon: SvgPicture.asset(
                   AppAssets.headphoneIcon,
                   width: 24,

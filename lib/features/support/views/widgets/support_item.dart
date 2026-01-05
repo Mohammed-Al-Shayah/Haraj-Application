@@ -1,19 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/routes/routes.dart';
 import '../../../../core/theme/color.dart';
 import '../../../../core/theme/typography.dart';
-import '../../../../core/routes/routes.dart';
-import '../../models/support_model.dart';
+import '../../../../domain/entities/support_chat_entity.dart';
 
 class SupportItem extends StatelessWidget {
-  final Support support;
+  final SupportChatEntity support;
 
   const SupportItem({super.key, required this.support});
+
+  String _formatTime() {
+    if (support.lastMessageAt == null) return '';
+    final date = support.lastMessageAt!.toLocal();
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Get.toNamed(Routes.supportDetailScreen),
+      onTap:
+          () => Get.toNamed(
+            Routes.supportDetailScreen,
+            arguments: {'chatId': support.id, 'chatName': support.name},
+          ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
@@ -23,9 +33,9 @@ class SupportItem extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(15),
                   child:
-                      support.image.isNotEmpty
+                      (support.image ?? '').isNotEmpty
                           ? Image.network(
-                            support.image,
+                            support.image!,
                             width: 50,
                             height: 50,
                             fit: BoxFit.cover,
@@ -36,7 +46,10 @@ class SupportItem extends StatelessWidget {
                             color: Colors.blue,
                             child: Center(
                               child: Text(
-                                support.name.substring(0, 1),
+                                (support.name.isNotEmpty
+                                        ? support.name.substring(0, 1)
+                                        : '?')
+                                    .toUpperCase(),
                                 style: const TextStyle(
                                   fontSize: 20,
                                   color: Colors.white,
@@ -69,7 +82,7 @@ class SupportItem extends StatelessWidget {
                   Text(support.name, style: AppTypography.semiBold14),
                   const SizedBox(height: 2),
                   Text(
-                    support.message,
+                    support.lastMessage ?? '',
                     style: AppTypography.normal14.copyWith(
                       color: AppColors.gray500,
                     ),
@@ -82,13 +95,13 @@ class SupportItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  support.time,
+                  _formatTime(),
                   style: AppTypography.normal12.copyWith(
                     color: AppColors.gray500,
                   ),
                 ),
                 const SizedBox(height: 5),
-                if (support.isOnline)
+                if (support.unreadCount > 0)
                   Container(
                     width: 20,
                     height: 20,
@@ -98,7 +111,7 @@ class SupportItem extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        '1',
+                        support.unreadCount.toString(),
                         textAlign: TextAlign.center,
                         style: AppTypography.semiBold10.copyWith(
                           color: AppColors.white,

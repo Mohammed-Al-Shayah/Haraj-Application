@@ -1,16 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:haraj_adan_app/core/storage/user_storage.dart';
-import '../../../domain/entities/chat_entity.dart';
-import '../../../domain/repositories/chat_repository.dart';
+import 'package:haraj_adan_app/domain/entities/support_chat_entity.dart';
+import 'package:haraj_adan_app/domain/repositories/support_repository.dart';
 
-class ChatController extends GetxController {
-  final ChatRepository repository;
+class SupportController extends GetxController {
+  final SupportRepository repository;
 
-  ChatController(this.repository);
+  SupportController(this.repository);
 
-  final chats = <ChatEntity>[].obs;
+  final chats = <SupportChatEntity>[].obs;
   final isLoading = true.obs;
   final isLoadingMore = false.obs;
   final hasMore = true.obs;
@@ -47,18 +46,9 @@ class ChatController extends GetxController {
       isLoadingMore.value = true;
     }
 
-    final userId = await getUserIdFromPrefs();
-    if (userId == null) {
-      chats.clear();
-      isLoading.value = false;
-      isLoadingMore.value = false;
-      return;
-    }
-
     final search = searchController.text.trim();
 
     final result = await repository.getChats(
-      userId: userId,
       page: _page,
       search: search.isEmpty ? null : search,
     );

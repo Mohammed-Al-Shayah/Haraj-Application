@@ -36,17 +36,49 @@ class ChatsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const ChatSearch(),
+            ChatSearch(
+              controller: controller.searchController,
+              onChanged: controller.onSearchChanged,
+            ),
             const SizedBox(height: 10),
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                return ListView.builder(
-                  itemCount: controller.chats.length,
-                  itemBuilder:
-                      (_, index) => ChatItem(chat: controller.chats[index]),
+                return NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    if (notification.metrics.pixels >=
+                        notification.metrics.maxScrollExtent - 100) {
+                      controller.loadMore();
+                    }
+                    return false;
+                  },
+                  child: RefreshIndicator(
+                    onRefresh: () => controller.loadChats(reset: true),
+                    child: ListView.builder(
+                      itemCount:
+                          controller.chats.length +
+                          (controller.isLoadingMore.value ? 1 : 0),
+                      itemBuilder: (_, index) {
+                        if (index >= controller.chats.length) {
+                          return const Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        return ChatItem(chat: controller.chats[index]);
+                      },
+                    ),
+                  ),
                 );
               }),
             ),
