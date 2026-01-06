@@ -1,3 +1,5 @@
+import 'package:haraj_adan_app/domain/entities/message_entity.dart';
+
 class SupportMessageEntity {
   final int? id;
   final String message;
@@ -18,4 +20,26 @@ class SupportMessageEntity {
     this.createdAt,
     this.mediaUrl,
   });
+}
+
+
+extension SupportMessageMapper on SupportMessageEntity {
+  MessageEntity toMessageEntity({
+    required int? currentUserId,
+  }) {
+    return MessageEntity(
+      id: id,
+      senderId: senderId,
+      text: message,
+      // بما أن رسالة الدعم:
+      // isAdmin == true  => الرسالة من الدعم
+      // isAdmin == false => من المستخدم
+      isSender: !isAdmin && senderId == currentUserId,
+      type: type,
+      isRead: isRead,
+      createdAt: createdAt,
+      mediaUrl: mediaUrl,
+      localFilePath: null,
+    );
+  }
 }

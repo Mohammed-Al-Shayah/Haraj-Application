@@ -17,19 +17,19 @@ class ChatActions extends StatefulWidget {
 }
 
 class _ChatActionsState extends State<ChatActions> {
-  final TextEditingController _controller = TextEditingController();
-  final ImagePicker _picker = ImagePicker();
-  late final ChatDetailController chatController;
+  final _textController = TextEditingController();
+  final _picker = ImagePicker();
+  late final ChatDetailController controller;
 
   @override
   void initState() {
     super.initState();
-    chatController = Get.find<ChatDetailController>();
+    controller = Get.find<ChatDetailController>();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _textController.dispose();
     super.dispose();
   }
 
@@ -45,7 +45,7 @@ class _ChatActionsState extends State<ChatActions> {
           const SizedBox(width: 8),
           Expanded(
             child: InputField(
-              controller: _controller,
+              controller: _textController,
               hintText: AppStrings.typeHere,
               keyboardType: TextInputType.text,
               onEditingComplete: _sendText,
@@ -89,18 +89,22 @@ class _ChatActionsState extends State<ChatActions> {
   }
 
   Future<void> _sendText() async {
-    await chatController.sendMessage(_controller.text);
-    _controller.clear();
+    await controller.sendMessage(_textController.text);
+    _textController.clear();
   }
 
   Future<void> _pickImage() async {
-    if (chatController.isSending.value) return;
+    if (controller.isSending.value) return;
+
     final result = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 75,
     );
     if (result == null) return;
+
     final confirmed = await _confirmSendMedia(
+      // ignore: use_build_context_synchronously
+      context: context,
       filePath: result.path,
       type: 'image',
       preview: ClipRRect(
@@ -115,11 +119,13 @@ class _ChatActionsState extends State<ChatActions> {
       name: result.name,
     );
     if (!confirmed) return;
-    await chatController.sendMedia(filePath: result.path, type: 'image');
+
+    await controller.sendMedia(filePath: result.path, type: 'image');
   }
 
   Future<void> _pickFile() async {
-    if (chatController.isSending.value) return;
+    if (controller.isSending.value) return;
+
     final res = await FilePicker.platform.pickFiles(
       withData: false,
       allowMultiple: false,
@@ -127,8 +133,10 @@ class _ChatActionsState extends State<ChatActions> {
     );
     final file = res?.files.single;
     if (file?.path == null) return;
+
     final ext = file!.extension?.toLowerCase() ?? '';
     final isImage = ['png', 'jpg', 'jpeg', 'heic', 'webp'].contains(ext);
+
     final preview =
         isImage
             ? ClipRRect(
@@ -152,30 +160,34 @@ class _ChatActionsState extends State<ChatActions> {
             );
 
     final confirmed = await _confirmSendMedia(
+      // ignore: use_build_context_synchronously
+      context: context,
       filePath: file.path!,
       type: isImage ? 'image' : 'file',
       preview: preview,
       name: file.name,
     );
     if (!confirmed) return;
-    await chatController.sendMedia(
+
+    await controller.sendMedia(
       filePath: file.path!,
       type: isImage ? 'image' : 'file',
     );
   }
 
   Future<bool> _confirmSendMedia({
+    required BuildContext context,
     required String filePath,
     required String type,
     Widget? preview,
     String? name,
   }) async {
-    if (!mounted) return false;
     int? fileSizeKb;
     try {
       final bytes = File(filePath).lengthSync();
       fileSizeKb = (bytes / 1024).ceil();
     } catch (_) {}
+
     final result = await showDialog<bool>(
       context: context,
       builder:

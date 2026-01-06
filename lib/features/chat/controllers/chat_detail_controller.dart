@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -39,6 +40,9 @@ class ChatDetailController extends GetxController {
   String? _token;
   bool _triedAltSocketPath = false;
   bool _listenersAttached = false;
+  Timer? _syncTimer;
+  bool _isSyncing = false;
+  bool _pendingSyncAfterLoad = false;
   int _page = 1;
   static const int _pageSize = 20;
 
@@ -56,6 +60,7 @@ class ChatDetailController extends GetxController {
     _token = prefs.getString('_accessToken') ?? prefs.getString('_loginToken');
     await loadMessages(reset: true);
     await _initSocket();
+    _startSyncTimer();
   }
 
   Future<void> loadMessages({bool reset = false}) async {
@@ -128,6 +133,10 @@ class ChatDetailController extends GetxController {
       _clearUnreadInList();
     }
     update();
+    if (_pendingSyncAfterLoad && !isLoading.value && !isLoadingMore.value) {
+      _pendingSyncAfterLoad = false;
+      _syncLatest();
+    }
   }
 
   Future<void> _initSocket() async {
@@ -218,6 +227,103 @@ class ChatDetailController extends GetxController {
     messages.add(incoming);
     _scrollToBottom();
     _markRead();
+  }
+
+  void _startSyncTimer() {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _syncLatest(),
+    );
+  }
+
+  Future<void> _syncLatest() async {
+    if (_isSyncing) return;
+    if (isLoading.value || isLoadingMore.value) {
+      _pendingSyncAfterLoad = true;
+      return;
+    }
+    final userId = _currentUserId ?? await getUserIdFromPrefs();
+    _currentUserId = userId;
+    if (userId == null) return;
+
+    _isSyncing = true;
+    try {
+      final result = await repository.getMessages(
+        chatId: chatId,
+        currentUserId: userId,
+        otherUserId: otherUserId,
+        page: 1,
+        limit: _pageSize,
+      );
+      if (otherUserId == null && result.items.isNotEmpty) {
+        otherUserId = result.items
+            .map((m) => m.senderId)
+            .firstWhere((id) => id != null && id != userId, orElse: () => null);
+      }
+      _mergeLatest(result.items);
+    } finally {
+      _isSyncing = false;
+    }
+  }
+
+  void _mergeLatest(List<MessageEntity> latest) {
+    if (latest.isEmpty) return;
+    final ordered = _normalizeLatestOrder(latest);
+    final existingIds =
+        messages
+            .where((m) => m.id != null)
+            .map((m) => m.id!)
+            .toSet();
+
+    final userId = _currentUserId;
+    var changed = false;
+
+    for (final incoming in ordered) {
+      final incomingId = incoming.id;
+      if (incomingId != null && existingIds.contains(incomingId)) {
+        continue;
+      }
+
+      if (userId != null &&
+          incoming.senderId == userId &&
+          incomingId != null) {
+        final pendingIndex = messages.indexWhere(
+          (m) =>
+              m.id == null &&
+              m.senderId == userId &&
+              m.text == incoming.text &&
+              m.type == incoming.type,
+        );
+        if (pendingIndex != -1) {
+          messages[pendingIndex] = incoming;
+          changed = true;
+          continue;
+        }
+      }
+
+      messages.add(incoming);
+      if (incomingId != null) {
+        existingIds.add(incomingId);
+      }
+      changed = true;
+    }
+
+    if (changed) {
+      messages.refresh();
+      _scrollToBottom();
+      _markRead();
+    }
+  }
+
+  List<MessageEntity> _normalizeLatestOrder(List<MessageEntity> latest) {
+    if (latest.length < 2) return latest;
+    final first = latest.first.createdAt;
+    final last = latest.last.createdAt;
+    if (first != null && last != null && first.isAfter(last)) {
+      return latest.reversed.toList();
+    }
+    return latest;
   }
 
   Future<void> sendMessage(String text) async {
@@ -318,11 +424,11 @@ class ChatDetailController extends GetxController {
       return;
     }
     _registerSocketHandlers();
-    final query = <String, dynamic>{
-      'userId': userId,
-      if ((_token ?? '').isNotEmpty) 'token': _token,
-    };
     if (socket?.isConnected != true) {
+      final query = <String, dynamic>{
+        'userId': userId,
+        if ((_token ?? '').isNotEmpty) 'token': _token,
+      };
       socket?.connect(
         query: query,
         onConnect: () {
@@ -423,6 +529,7 @@ class ChatDetailController extends GetxController {
 
   @override
   void onClose() {
+    _syncTimer?.cancel();
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
     socket?.disconnect();

@@ -1,7 +1,11 @@
 import 'package:get/get_navigation/src/routes/get_route.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/features/chat/bindings/chat_bindings.dart';
+import 'package:haraj_adan_app/features/chat/bindings/chat_detail_bindings.dart';
 import 'package:haraj_adan_app/features/create_ads/views/screens/post_ad_categories_screen.dart';
 import 'package:haraj_adan_app/features/my_account/binding/wallet_binding.dart';
+import 'package:haraj_adan_app/features/support/bindings/support_bindings.dart';
+import 'package:haraj_adan_app/features/support/bindings/support_detail_bindings.dart';
 import '../../features/my_account/views/screens/deposit_screen.dart';
 import '../../features/my_account/views/screens/wallet_screen.dart';
 import '../../features/subcategories/views/screens/subcategories_screen.dart';
@@ -111,10 +115,15 @@ class Routes {
     ),
     GetPage(name: Routes.adsResultScreen, page: () => const AdsResultScreen()),
     GetPage(name: Routes.searchScreen, page: () => const SearchScreen()),
-    GetPage(name: Routes.supportScreen, page: () => SupportScreen()),
+    GetPage(
+      name: Routes.supportScreen,
+      page: () => const SupportScreen(),
+      binding: SupportBindings(),
+    ),
     GetPage(
       name: Routes.supportDetailScreen,
-      page: () => SupportDetailScreen(),
+      page: () => const SupportDetailScreen(),
+      binding: SupportDetailBindings(),
     ),
 
     /// Ad Details Screens
@@ -125,10 +134,15 @@ class Routes {
     ),
 
     /// Chats Screens
-    GetPage(name: Routes.chatsScreen, page: () => ChatsScreen()),
+    GetPage(
+      name: Routes.chatsScreen,
+      page: () => const ChatsScreen(),
+      binding: ChatBindings(),
+    ),
     GetPage(
       name: Routes.chatDetailsScreen,
       page: () => const ChatDetailScreen(),
+      binding: ChatDetailBindings(),
     ),
 
     /// My Account Screens
@@ -171,5 +185,7 @@ class Routes {
       name: Routes.postAdCategoriesScreen,
       page: () => const PostAdCategoriesScreen(),
     ),
+
+    // Support + chat routes are defined above with bindings.
   ];
 }

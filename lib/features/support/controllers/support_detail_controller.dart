@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
@@ -14,14 +16,19 @@ class SupportDetailController extends GetxController {
   final String chatName;
   final SocketService? initialSocket;
 
+  final int? initialUserId;
+
   SupportDetailController(
-    this.repository, {
+    this.repository,
+    this.initialSocket, {
     required this.chatId,
     required this.chatName,
-    this.initialSocket,
+    this.initialUserId,
   });
 
+
   final messages = <SupportMessageEntity>[].obs;
+
   final isLoading = true.obs;
   final isLoadingMore = false.obs;
   final hasMore = true.obs;
@@ -32,11 +39,17 @@ class SupportDetailController extends GetxController {
   SocketService? socket;
 
   int _page = 1;
+  static const int _pageSize = 20;
+
   int? _currentUserId;
+  int? get currentUserId => _currentUserId;
   String? _token;
 
   bool _triedAltSocketPath = false;
   bool _listenersAttached = false;
+  Timer? _syncTimer;
+  bool _isSyncing = false;
+  bool _pendingSyncAfterLoad = false;
 
   void _log(String message, [dynamic data]) {
     // ignore: avoid_print
@@ -50,35 +63,45 @@ class SupportDetailController extends GetxController {
     _init();
   }
 
+  @override
+  void onClose() {
+    _syncTimer?.cancel();
+    scrollController.removeListener(_onScroll);
+    scrollController.dispose();
+    socket?.disconnect();
+    super.onClose();
+  }
+
   void _onScroll() {
     if (!scrollController.hasClients) return;
+    if (isLoading.value || isLoadingMore.value) return;
+
     if (scrollController.position.pixels <=
         scrollController.position.minScrollExtent + 120) {
       loadMessages();
-      update();
     }
   }
 
   Future<void> _init() async {
-    _currentUserId = await getUserIdFromPrefs();
+    _currentUserId = initialUserId ?? await getUserIdFromPrefs();
     await _loadToken();
     await loadMessages(reset: true);
     await _initSocket();
+    _startSyncTimer();
     update();
   }
 
   Future<void> _loadToken() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('_accessToken') ?? prefs.getString('_loginToken');
-    update();
   }
 
   Future<void> _ensureToken() async {
     if ((_token ?? '').isNotEmpty) return;
     await _loadToken();
-    update();
   }
 
+  // ---------------------------
   Future<void> loadMessages({bool reset = false}) async {
     if (reset) {
       _page = 1;
@@ -99,24 +122,18 @@ class SupportDetailController extends GetxController {
       distanceFromBottom = pos.maxScrollExtent - pos.pixels;
     }
 
-    final result = await repository.getMessages(chatId: chatId, page: _page);
+    final result = await repository.getMessages(
+      chatId: chatId,
+      page: _page,
+      limit: _pageSize,
+    );
 
     if (reset) {
       messages.assignAll(result.items);
       _scrollToBottom();
     } else {
       messages.insertAll(0, result.items);
-      if (distanceFromBottom != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!scrollController.hasClients) return;
-          final max = scrollController.position.maxScrollExtent;
-          final target = (max - distanceFromBottom!).clamp(
-            scrollController.position.minScrollExtent,
-            scrollController.position.maxScrollExtent,
-          );
-          scrollController.jumpTo(target);
-        });
-      }
+      _restoreScroll(distanceFromBottom);
     }
 
     hasMore.value = result.hasMore;
@@ -127,8 +144,13 @@ class SupportDetailController extends GetxController {
 
     _sendReadReceiptsIfNeeded();
     update();
+    if (_pendingSyncAfterLoad && !isLoading.value && !isLoadingMore.value) {
+      _pendingSyncAfterLoad = false;
+      _syncLatest();
+    }
   }
 
+  // ---------------------------
   Future<void> _initSocket() async {
     final userId = _currentUserId ?? await getUserIdFromPrefs();
     _currentUserId = userId;
@@ -153,7 +175,7 @@ class SupportDetailController extends GetxController {
     if (socket == null) return;
 
     void joinRooms() {
-      _log('joining support rooms', {'userId': userId, 'chatId': chatId});
+      _log('join support rooms', {'userId': userId, 'chatId': chatId});
       socket?.joinRoom(userId);
       socket?.joinSupportRoom(chatId);
       _sendReadReceiptsIfNeeded();
@@ -161,8 +183,6 @@ class SupportDetailController extends GetxController {
     }
 
     if (socket?.isConnected != true) {
-      _log('connecting socket', {'userId': userId, 'chatId': chatId});
-
       final query = <String, dynamic>{
         'userId': userId,
         if ((_token ?? '').isNotEmpty) 'token': _token,
@@ -176,11 +196,11 @@ class SupportDetailController extends GetxController {
   void _retrySocket() {
     if (_triedAltSocketPath) return;
     _triedAltSocketPath = true;
+
     _listenersAttached = false;
+    _log('retry socket with fallback path');
 
-    _log('retrying socket with fallback path');
     socket?.disconnect();
-
     socket = SocketService(
       socketUrl: ApiEndpoints.supportSocketUrl,
       token: _token,
@@ -188,12 +208,34 @@ class SupportDetailController extends GetxController {
     );
 
     final userId = _currentUserId;
-    if (userId != null) {
-      _registerSocketHandlers();
-      _connectSocket(userId);
-    }
+    if (userId == null) return;
+
+    _registerSocketHandlers();
+    _connectSocket(userId);
   }
 
+  void _registerSocketHandlers() {
+    if (socket == null || _listenersAttached) return;
+    _listenersAttached = true;
+
+    socket?.ensureDebugLogging(logger: (e, d) => _log(e, d));
+
+    socket?.onConnectError((data) {
+      _log('connect_error', data);
+      _retrySocket();
+    });
+
+    socket?.onError((data) {
+      _log('error', data);
+      _retrySocket();
+    });
+
+    socket?.onNewSupportMessage(_handleIncomingSupportMessage);
+
+    socket?.onSupportMessagesRead(_handleSupportMessagesRead);
+  }
+
+  // ---------------------------
   void sendText(String text) async {
     final userId = _currentUserId ?? await getUserIdFromPrefs();
     _currentUserId = userId;
@@ -203,9 +245,7 @@ class SupportDetailController extends GetxController {
 
     await _ensureToken();
 
-    _log('sendText', {'chatId': chatId, 'userId': userId, 'text': trimmed});
-
-    // Pending
+    // UI pending
     final pending = SupportMessageModel.pendingText(
       text: trimmed,
       senderId: userId,
@@ -216,7 +256,6 @@ class SupportDetailController extends GetxController {
     _scrollToBottom();
 
     _sendViaSocket(userId: userId, text: trimmed);
-    update();
   }
 
   Future<void> uploadMedia({
@@ -237,6 +276,7 @@ class SupportDetailController extends GetxController {
         filePath: filePath,
         isAdmin: isAdmin,
       );
+
       if (uploaded != null) {
         messages.add(uploaded);
         _scrollToBottom();
@@ -257,18 +297,6 @@ class SupportDetailController extends GetxController {
           path: '/haraj/socket.io',
         );
 
-    if (initialSocket == null &&
-        (_token ?? '').isNotEmpty &&
-        (socket?.token == null || (socket?.token ?? '').isEmpty)) {
-      socket?.disconnect();
-      socket = SocketService(
-        socketUrl: ApiEndpoints.supportSocketUrl,
-        token: _token,
-        path: '/haraj/socket.io',
-      );
-      _listenersAttached = false;
-    }
-
     _registerSocketHandlers();
 
     _connectSocket(
@@ -281,7 +309,7 @@ class SupportDetailController extends GetxController {
           'is_admin': false,
         };
 
-        _log('emitting sendSupportMessage', payload);
+        _log('emit sendSupportMessage', payload);
 
         socket?.sendSupportMessage(
           userId: userId,
@@ -292,6 +320,176 @@ class SupportDetailController extends GetxController {
         _sendReadReceiptsIfNeeded();
       },
     );
+  }
+
+  // ---------------------------
+  void _handleIncomingSupportMessage(dynamic data) {
+    final payload = _coerceToMap(data);
+    if (payload == null) return;
+
+    final messageData = _extractSupportMessagePayload(payload);
+    if (messageData.isEmpty) return;
+
+    final incomingChatId = _parseInt(
+      messageData['support_chat_id'] ??
+          messageData['supportChatId'] ??
+          messageData['chat_id'] ??
+          messageData['chatId'],
+    );
+
+    if (incomingChatId != null && incomingChatId != chatId) return;
+
+    final message = SupportMessageModel.fromMap(messageData);
+    _log('newSupportMessage', messageData);
+
+    if (message.id != null && messages.any((m) => m.id == message.id)) return;
+
+    // replace pending
+    final currentUserId = _currentUserId;
+    if (currentUserId != null &&
+        message.senderId == currentUserId &&
+        message.id != null) {
+      final pendingIndex = messages.indexWhere(
+        (m) =>
+            m.id == null &&
+            m.senderId == currentUserId &&
+            m.message == message.message &&
+            m.type == message.type,
+      );
+      if (pendingIndex != -1) {
+        messages[pendingIndex] = message;
+        messages.refresh();
+        _scrollToBottom();
+        _sendReadReceiptsIfNeeded();
+        return;
+      }
+    }
+
+    messages.add(message);
+    _scrollToBottom();
+    _sendReadReceiptsIfNeeded();
+  }
+
+  void _startSyncTimer() {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _syncLatest(),
+    );
+  }
+
+  Future<void> _syncLatest() async {
+    if (_isSyncing) return;
+    if (isLoading.value || isLoadingMore.value) {
+      _pendingSyncAfterLoad = true;
+      return;
+    }
+    final userId = _currentUserId ?? await getUserIdFromPrefs();
+    _currentUserId = userId;
+    if (userId == null) return;
+
+    _isSyncing = true;
+    try {
+      final result = await repository.getMessages(
+        chatId: chatId,
+        page: 1,
+        limit: _pageSize,
+      );
+      _mergeLatest(result.items);
+    } finally {
+      _isSyncing = false;
+    }
+  }
+
+  void _mergeLatest(List<SupportMessageEntity> latest) {
+    if (latest.isEmpty) return;
+    final ordered = _normalizeLatestOrder(latest);
+    final existingIds =
+        messages
+            .where((m) => m.id != null)
+            .map((m) => m.id!)
+            .toSet();
+
+    final userId = _currentUserId;
+    var changed = false;
+
+    for (final incoming in ordered) {
+      final incomingId = incoming.id;
+      if (incomingId != null && existingIds.contains(incomingId)) {
+        continue;
+      }
+
+      if (userId != null &&
+          incoming.senderId == userId &&
+          incomingId != null) {
+        final pendingIndex = messages.indexWhere(
+          (m) =>
+              m.id == null &&
+              m.senderId == userId &&
+              m.message == incoming.message &&
+              m.type == incoming.type,
+        );
+        if (pendingIndex != -1) {
+          messages[pendingIndex] = incoming;
+          changed = true;
+          continue;
+        }
+      }
+
+      messages.add(incoming);
+      if (incomingId != null) {
+        existingIds.add(incomingId);
+      }
+      changed = true;
+    }
+
+    if (changed) {
+      messages.refresh();
+      _scrollToBottom();
+      _sendReadReceiptsIfNeeded();
+    }
+  }
+
+  List<SupportMessageEntity> _normalizeLatestOrder(
+    List<SupportMessageEntity> latest,
+  ) {
+    if (latest.length < 2) return latest;
+    final first = latest.first.createdAt;
+    final last = latest.last.createdAt;
+    if (first != null && last != null && first.isAfter(last)) {
+      return latest.reversed.toList();
+    }
+    return latest;
+  }
+
+  void _handleSupportMessagesRead(dynamic data) {
+    if (data is! Map) return;
+    final map = data.map((k, v) => MapEntry(k.toString(), v));
+
+    final ids = map['messageIds'] ?? map['ids'];
+    if (ids is! List) return;
+
+    final readIds =
+        ids
+            .map((e) => e is num ? e.toInt() : int.tryParse(e.toString()))
+            .whereType<int>()
+            .toSet();
+
+    messages.value =
+        messages
+            .map(
+              (m) => SupportMessageModel(
+                id: m.id,
+                message: m.message,
+                type: m.type,
+                senderId: m.senderId,
+                isAdmin: m.isAdmin,
+                isRead: m.isRead || (m.id != null && readIds.contains(m.id)),
+                createdAt: m.createdAt,
+                mediaUrl: m.mediaUrl,
+              ),
+            )
+            .toList();
   }
 
   void _sendReadReceiptsIfNeeded() {
@@ -320,6 +518,7 @@ class SupportDetailController extends GetxController {
     return msg.senderId == id;
   }
 
+  // ---------------------------
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!scrollController.hasClients) return;
@@ -331,9 +530,49 @@ class SupportDetailController extends GetxController {
     });
   }
 
+  void _restoreScroll(double? distanceFromBottom) {
+    if (distanceFromBottom == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!scrollController.hasClients) return;
+      final max = scrollController.position.maxScrollExtent;
+      final target = (max - distanceFromBottom).clamp(
+        scrollController.position.minScrollExtent,
+        scrollController.position.maxScrollExtent,
+      );
+      scrollController.jumpTo(target);
+    });
+  }
+
   int? _parseInt(dynamic value) {
     if (value is num) return value.toInt();
     return int.tryParse(value?.toString() ?? '');
+  }
+
+  Map<String, dynamic>? _coerceToMap(dynamic data) {
+    dynamic current = data;
+
+    if (current is String) {
+      try {
+        current = jsonDecode(current);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    if (current is List) {
+      for (final item in current.reversed) {
+        final map = _coerceToMap(item);
+        if (map != null) return map;
+      }
+      return null;
+    }
+
+    if (current is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(current);
+    }
+    if (current is Map) return current.map((k, v) => MapEntry(k.toString(), v));
+
+    return null;
   }
 
   Map<String, dynamic> _extractSupportMessagePayload(
@@ -345,6 +584,7 @@ class SupportDetailController extends GetxController {
           data['chat_id'] ??
           data['chatId'],
     );
+
     if (chatIdValue == null) {
       final chat = data['chat'];
       if (chat is Map) {
@@ -368,143 +608,20 @@ class SupportDetailController extends GetxController {
       result.putIfAbsent('chatId', () => chatIdValue);
     }
 
-    if (data['sender_id'] != null && result['sender_id'] == null) {
-      result['sender_id'] = data['sender_id'];
-    }
-    if (data['senderId'] != null && result['senderId'] == null) {
-      result['senderId'] = data['senderId'];
-    }
-    if (data['is_admin'] != null && result['is_admin'] == null) {
-      result['is_admin'] = data['is_admin'];
-    }
-    if (data['isAdmin'] != null && result['isAdmin'] == null) {
-      result['isAdmin'] = data['isAdmin'];
-    }
-    if (data['created_at'] != null && result['created_at'] == null) {
-      result['created_at'] = data['created_at'];
-    }
-    if (data['created'] != null && result['created'] == null) {
-      result['created'] = data['created'];
+    // normalize common fields
+    for (final key in [
+      'sender_id',
+      'senderId',
+      'is_admin',
+      'isAdmin',
+      'created_at',
+      'created',
+    ]) {
+      if (data[key] != null && result[key] == null) {
+        result[key] = data[key];
+      }
     }
 
     return result;
-  }
-
-  void _registerSocketHandlers() {
-    if (socket == null || _listenersAttached) return;
-    _listenersAttached = true;
-
-    socket?.ensureDebugLogging(logger: _log);
-
-    socket?.onConnectError((data) {
-      _log('socket connect_error', data);
-      _retrySocket();
-    });
-
-    socket?.onError((data) {
-      _log('socket error', data);
-      _retrySocket();
-    });
-
-    socket?.onNewSupportMessage((data) {
-      final payload =
-          data is Map<String, dynamic> ? Map<String, dynamic>.from(data) : null;
-      if (payload == null) return;
-
-      final messageData = _extractSupportMessagePayload(payload);
-      final incomingChatId = _parseInt(
-        messageData['support_chat_id'] ??
-            messageData['supportChatId'] ??
-            messageData['chat_id'] ??
-            messageData['chatId'] ??
-            payload['support_chat_id'] ??
-            payload['supportChatId'] ??
-            payload['chat_id'] ??
-            payload['chatId'],
-      );
-
-      if (incomingChatId != null && incomingChatId != chatId) return;
-
-      if (messageData.isNotEmpty) {
-        final message = SupportMessageModel.fromMap(messageData);
-        final incomingId = message.id;
-        _log('newSupportMessage', data);
-
-        if (incomingId != null &&
-            messages.any((m) => m.id != null && m.id == incomingId)) {
-          return;
-        }
-
-        final currentUserId = _currentUserId;
-        if (currentUserId != null &&
-            message.senderId == currentUserId &&
-            message.id != null) {
-          final pendingIndex = messages.indexWhere(
-            (m) =>
-                m.id == null &&
-                m.senderId == currentUserId &&
-                m.message == message.message &&
-                m.type == message.type,
-          );
-          if (pendingIndex != -1) {
-            messages[pendingIndex] = message;
-            messages.refresh();
-            _scrollToBottom();
-            _sendReadReceiptsIfNeeded();
-            return;
-          }
-        }
-
-        messages.add(message);
-        _scrollToBottom();
-        _sendReadReceiptsIfNeeded();
-      }
-    });
-    socket?.onSupportMessagesRead((data) {
-      if (data is Map<String, dynamic>) {
-        final ids = data['messageIds'] ?? data['ids'];
-        if (ids is List) {
-          final readIds =
-              ids
-                  .map((e) {
-                    if (e is num) return e.toInt();
-                    return int.tryParse(e.toString());
-                  })
-                  .whereType<int>()
-                  .toSet();
-
-          messages.value =
-              messages
-                  .map(
-                    (m) => SupportMessageModel(
-                      id: m.id,
-                      message: m.message,
-                      type: m.type,
-                      senderId: m.senderId,
-                      isAdmin: m.isAdmin,
-                      isRead:
-                          m.isRead || (m.id != null && readIds.contains(m.id)),
-                      createdAt: m.createdAt,
-                      mediaUrl: m.mediaUrl,
-                    ),
-                  )
-                  .toList();
-        }
-      }
-    });
-  }
-
-  @override
-  void onReady() {
-    super.onReady();
-    _scrollToBottom();
-  }
-
-  @override
-  void onClose() {
-    scrollController.removeListener(_onScroll);
-    scrollController.dispose();
-    socket?.disconnect();
-    super.onClose();
   }
 }

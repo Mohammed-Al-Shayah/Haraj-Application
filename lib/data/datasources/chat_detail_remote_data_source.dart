@@ -2,8 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/domain/entities/paginated_result.dart';
-
 import '../models/message_model.dart';
+import 'pagination_response_parser.dart';
 
 abstract class ChatDetailRemoteDataSource {
   Future<PaginatedResult<MessageModel>> fetchMessages({
@@ -25,8 +25,10 @@ abstract class ChatDetailRemoteDataSource {
 
 class ChatDetailRemoteDataSourceImpl implements ChatDetailRemoteDataSource {
   final ApiClient apiClient;
+  final PaginationResponseParser _parser;
 
-  ChatDetailRemoteDataSourceImpl(this.apiClient);
+  ChatDetailRemoteDataSourceImpl(this.apiClient, {PaginationResponseParser? parser})
+      : _parser = parser ?? const PaginationResponseParser();
 
   @override
   Future<PaginatedResult<MessageModel>> fetchMessages({
@@ -39,24 +41,23 @@ class ChatDetailRemoteDataSourceImpl implements ChatDetailRemoteDataSource {
     final res = await apiClient.get(
       ApiEndpoints.chatMessages,
       queryParams: {
-        if (chatId != null) ...{
-          'chat_id': chatId,
-          'chatId': chatId,
-        },
+        if (chatId != null) ...{'chat_id': chatId, 'chatId': chatId},
+        // Keep backend compatibility:
         'userId': otherUserId ?? currentUserId,
         'page': page,
         'limit': limit,
       },
     );
 
-    final list = _extractList(res);
-    final meta = _extractMeta(res);
-    final items =
-        list
-            .whereType<Map<String, dynamic>>()
-            .map((e) => MessageModel.fromMap(e, currentUserId: currentUserId))
-            .toList();
-    final hasMore = _hasMore(meta, page, limit, items.length);
+    final list = _parser.extractList(res);
+    final meta = _parser.extractMeta(res);
+
+    final items = list
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MessageModel.fromMap(e, currentUserId: currentUserId))
+        .toList();
+
+    final hasMore = _parser.hasMore(meta: meta, page: page, limit: limit, fetched: items.length);
 
     return PaginatedResult<MessageModel>(
       items: items,
@@ -76,8 +77,14 @@ class ChatDetailRemoteDataSourceImpl implements ChatDetailRemoteDataSource {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath),
       'chatId': chatId,
+      'chat_id': chatId,
       'senderId': userId,
-      if (receiverId != null) ...{'receiverId': receiverId},
+      'sender_id': userId,
+      if (receiverId != null) ...{
+        'receiverId': receiverId,
+        'receiver_id': receiverId,
+      },
+      'type': type,
     });
 
     final res = await apiClient.post(
@@ -86,49 +93,10 @@ class ChatDetailRemoteDataSourceImpl implements ChatDetailRemoteDataSource {
       isMultipart: true,
     );
 
-    final data = _extractData(res);
+    final data = _parser.extractData(res);
     if (data is Map<String, dynamic>) {
       return MessageModel.fromMap(data, currentUserId: userId);
     }
     return null;
-  }
-
-  List<dynamic> _extractList(dynamic res) {
-    if (res is Map<String, dynamic>) {
-      final data = res['data'];
-      if (data is List) return data;
-      if (data is Map && data['data'] is List) return data['data'] as List;
-    }
-    if (res is List) return res;
-    return const [];
-  }
-
-  Map<String, dynamic>? _extractMeta(dynamic res) {
-    if (res is Map<String, dynamic>) {
-      if (res['meta'] is Map<String, dynamic>) return res['meta'];
-      final data = res['data'];
-      if (data is Map && data['meta'] is Map<String, dynamic>) {
-        return data['meta'];
-      }
-    }
-    return null;
-  }
-
-  bool _hasMore(Map<String, dynamic>? meta, int page, int limit, int fetched) {
-    if (meta != null) {
-      final total = meta['total'];
-      if (total is num) {
-        // meta.total represents total count of messages
-        return (page * limit) < total.toInt();
-      }
-    }
-    return fetched >= limit;
-  }
-
-  dynamic _extractData(dynamic res) {
-    if (res is Map<String, dynamic>) {
-      return res['data'] ?? res['result'] ?? res;
-    }
-    return res;
   }
 }

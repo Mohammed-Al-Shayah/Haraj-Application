@@ -1,129 +1,147 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/routes/routes.dart';
-import '../../../../core/theme/color.dart';
-import '../../../../core/theme/typography.dart';
-import '../../../../domain/entities/support_chat_entity.dart';
+import 'package:haraj_adan_app/core/routes/routes.dart';
+import 'package:haraj_adan_app/core/theme/color.dart';
+import 'package:haraj_adan_app/domain/entities/support_chat_entity.dart';
 
 class SupportItem extends StatelessWidget {
   final SupportChatEntity support;
 
   const SupportItem({super.key, required this.support});
 
-  String _formatTime() {
-    if (support.lastMessageAt == null) return '';
-    final date = support.lastMessageAt!.toLocal();
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final theme = Theme.of(context);
+
+    return InkWell(
       onTap:
           () => Get.toNamed(
             Routes.supportDetailScreen,
-            arguments: {'chatId': support.id, 'chatName': support.name},
+            arguments: {
+              'chatId': support.id,
+              'chatName': support.name,
+              'userId': support.userId,
+            },
           ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.gray700.withOpacity(0.35)),
+        ),
         child: Row(
           children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child:
-                      (support.image ?? '').isNotEmpty
-                          ? Image.network(
-                            support.image!,
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                          )
-                          : Container(
-                            width: 50,
-                            height: 50,
-                            color: Colors.blue,
-                            child: Center(
-                              child: Text(
-                                (support.name.isNotEmpty
-                                        ? support.name.substring(0, 1)
-                                        : '?')
-                                    .toUpperCase(),
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                ),
-                if (support.isOnline)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 15,
-                      height: 15,
-                      decoration: BoxDecoration(
-                        color: AppColors.green00CD52,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            _avatar(theme),
             const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(support.name, style: AppTypography.semiBold14),
-                  const SizedBox(height: 2),
-                  Text(
-                    support.lastMessage ?? '',
-                    style: AppTypography.normal14.copyWith(
-                      color: AppColors.gray500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  _formatTime(),
-                  style: AppTypography.normal12.copyWith(
-                    color: AppColors.gray500,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                if (support.unreadCount > 0)
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        support.unreadCount.toString(),
-                        textAlign: TextAlign.center,
-                        style: AppTypography.semiBold10.copyWith(
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            Expanded(child: _content(theme)),
+            const SizedBox(width: 10),
+            _meta(theme),
           ],
         ),
       ),
     );
+  }
+
+  Widget _avatar(ThemeData theme) {
+    final hasImage = (support.image?.trim().isNotEmpty ?? false);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        CircleAvatar(
+          radius: 22,
+          backgroundColor: theme.colorScheme.surface,
+          backgroundImage: hasImage ? NetworkImage(support.image!) : null,
+          child:
+              hasImage
+                  ? null
+                  : Icon(Icons.support_agent, color: theme.colorScheme.primary),
+        ),
+        if (support.isOnline)
+          Positioned(
+            right: -1,
+            bottom: -1,
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: Colors.green,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: theme.scaffoldBackgroundColor,
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _content(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          support.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          support.lastMessage ?? '',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.textTheme.bodySmall?.color?.withOpacity(0.75),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _meta(ThemeData theme) {
+    final unread = support.unreadCount;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          _timeLabel(support.lastMessageAt),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.textTheme.bodySmall?.color?.withOpacity(0.65),
+          ),
+        ),
+        const SizedBox(height: 6),
+        if (unread > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              unread > 99 ? '99+' : unread.toString(),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _timeLabel(DateTime? dt) {
+    if (dt == null) return '';
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$h:$m';
   }
 }

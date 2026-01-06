@@ -1,27 +1,17 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:haraj_adan_app/core/network/api_client.dart';
+import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/core/widgets/main_bar.dart';
 import 'package:haraj_adan_app/core/widgets/side_menu.dart';
-import 'package:haraj_adan_app/data/datasources/chat_remote_datasource.dart';
-import '../../../../data/repositories/chat_repository_impl.dart';
-import '../../controllers/chat_controller.dart';
-import '../../../../core/theme/strings.dart';
+import 'package:haraj_adan_app/features/chat/controllers/chat_controller.dart';
 import '../widgets/chat_item.dart';
 import '../widgets/chat_search.dart';
 
-class ChatsScreen extends StatelessWidget {
+class ChatsScreen extends GetView<ChatController> {
   const ChatsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(
-      ChatController(
-        ChatRepositoryImpl(ChatRemoteDataSourceImpl(ApiClient(client: Dio()))),
-      ),
-    );
-
     final scaffoldKey = GlobalKey<ScaffoldState>();
 
     return Scaffold(
@@ -46,6 +36,7 @@ class ChatsScreen extends StatelessWidget {
                 if (controller.isLoading.value) {
                   return const Center(child: CircularProgressIndicator());
                 }
+
                 return NotificationListener<ScrollNotification>(
                   onNotification: (notification) {
                     if (notification.metrics.pixels >=

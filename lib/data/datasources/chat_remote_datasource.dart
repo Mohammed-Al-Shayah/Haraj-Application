@@ -2,6 +2,7 @@ import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/domain/entities/paginated_result.dart';
 import '../models/chat_model.dart';
+import 'pagination_response_parser.dart';
 
 abstract class ChatRemoteDataSource {
   Future<PaginatedResult<ChatModel>> fetchChats({
@@ -14,8 +15,10 @@ abstract class ChatRemoteDataSource {
 
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   final ApiClient apiClient;
+  final PaginationResponseParser _parser;
 
-  ChatRemoteDataSourceImpl(this.apiClient);
+  ChatRemoteDataSourceImpl(this.apiClient, {PaginationResponseParser? parser})
+    : _parser = parser ?? const PaginationResponseParser();
 
   @override
   Future<PaginatedResult<ChatModel>> fetchChats({
@@ -34,51 +37,26 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
       },
     );
 
-    final List<dynamic> list = _extractList(res);
-    final meta = _extractMeta(res);
+    final list = _parser.extractList(res);
+    final meta = _parser.extractMeta(res);
 
     final items =
         list
             .whereType<Map<String, dynamic>>()
             .map((e) => ChatModel.fromMap(e, currentUserId: userId))
             .toList();
-    final hasMore = _hasMore(meta, page, limit, items.length);
+
+    final hasMore = _parser.hasMore(
+      meta: meta,
+      page: page,
+      limit: limit,
+      fetched: items.length,
+    );
 
     return PaginatedResult<ChatModel>(
       items: items,
       page: page,
       hasMore: hasMore,
     );
-  }
-
-  List<dynamic> _extractList(dynamic res) {
-    if (res is Map<String, dynamic>) {
-      final data = res['data'];
-      if (data is List) return data;
-      if (data is Map && data['data'] is List) return data['data'] as List;
-    }
-    if (res is List) return res;
-    return const [];
-  }
-
-  Map<String, dynamic>? _extractMeta(dynamic res) {
-    if (res is Map<String, dynamic>) {
-      if (res['meta'] is Map<String, dynamic>) return res['meta'];
-      final data = res['data'];
-      if (data is Map && data['meta'] is Map<String, dynamic>) {
-        return data['meta'];
-      }
-    }
-    return null;
-  }
-
-  bool _hasMore(Map<String, dynamic>? meta, int page, int limit, int fetched) {
-    if (meta != null) {
-      final total = meta['total'];
-      if (total is num) {
-        return page < total.toInt();
-      }
-    }
-    return fetched >= limit;
   }
 }

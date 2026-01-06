@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/assets.dart';
-import '../../../../core/theme/strings.dart';
-import '../../../../core/widgets/input_field.dart';
-import '../../../../core/theme/color.dart';
+import 'package:haraj_adan_app/core/theme/assets.dart';
+import 'package:haraj_adan_app/core/theme/color.dart';
+import 'package:haraj_adan_app/core/theme/strings.dart';
+import 'package:haraj_adan_app/core/widgets/input_field.dart';
 
 class ChatSearch extends StatelessWidget {
   final TextEditingController controller;

@@ -4,6 +4,7 @@ import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/domain/entities/paginated_result.dart';
 import '../models/support_chat_model.dart';
 import '../models/support_message_model.dart';
+import 'pagination_response_parser.dart';
 
 abstract class SupportRemoteDataSource {
   Future<PaginatedResult<SupportChatModel>> fetchChats({
@@ -19,13 +20,6 @@ abstract class SupportRemoteDataSource {
     int limit,
   });
 
-  // Future<SupportMessageModel?> sendText({
-  //   required int chatId,
-  //   required int userId,
-  //   required String message,
-  //   bool isAdmin = false,
-  // });
-
   Future<SupportMessageModel?> uploadMedia({
     required int chatId,
     required int userId,
@@ -37,8 +31,10 @@ abstract class SupportRemoteDataSource {
 
 class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
   final ApiClient apiClient;
+  final PaginationResponseParser _parser;
 
-  SupportRemoteDataSourceImpl(this.apiClient);
+  SupportRemoteDataSourceImpl(this.apiClient, {PaginationResponseParser? parser})
+      : _parser = parser ?? const PaginationResponseParser();
 
   @override
   Future<PaginatedResult<SupportChatModel>> fetchChats({
@@ -47,39 +43,29 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     String? search,
     int? userId,
   }) async {
-    dynamic res;
     final query = {
       'page': page,
       'limit': limit,
       if (search != null && search.isNotEmpty) 'search': search,
-      if (userId != null) ...{
-        'userId': userId,
-        'user_id': userId,
-      },
+      if (userId != null) ...{'userId': userId, 'user_id': userId},
     };
 
+    dynamic res;
     try {
-      res = await apiClient.get(
-        ApiEndpoints.supportChatsPaginate,
-        queryParams: query,
-      );
+      res = await apiClient.get(ApiEndpoints.supportChatsPaginate, queryParams: query);
     } on Object {
-      // Fallback for backends that only expose the customer-scoped endpoint.
-      res = await apiClient.get(
-        ApiEndpoints.supportChatsCustomerPaginate,
-        queryParams: query,
-      );
+      res = await apiClient.get(ApiEndpoints.supportChatsCustomerPaginate, queryParams: query);
     }
 
-    final list = _extractList(res);
-    final meta = _extractMeta(res);
-    final items =
-        list
-            .whereType<Map<String, dynamic>>()
-            .map((e) => SupportChatModel.fromMap(e))
-            .toList();
+    final list = _parser.extractList(res);
+    final meta = _parser.extractMeta(res);
 
-    final hasMore = _hasMore(meta, page, limit, items.length);
+    final items = list
+        .whereType<Map<String, dynamic>>()
+        .map((e) => SupportChatModel.fromMap(e))
+        .toList();
+
+    final hasMore = _parser.hasMore(meta: meta, page: page, limit: limit, fetched: items.length);
 
     return PaginatedResult<SupportChatModel>(
       items: items,
@@ -99,26 +85,22 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
       queryParams: {'page': page, 'limit': limit},
     );
 
-    final list = _extractList(res);
-    final meta = _extractMeta(res);
-    final items =
-        list
-            .whereType<Map<String, dynamic>>()
-            .map((e) => SupportMessageModel.fromMap(e))
-            .toList();
-    items.sort((a, b) {
-      final aTime = a.createdAt;
-      final bTime = b.createdAt;
-      if (aTime != null && bTime != null) {
-        return aTime.compareTo(bTime);
-      }
-      if (a.id != null && b.id != null) {
-        return a.id!.compareTo(b.id!);
-      }
-      return 0;
-    });
+    final list = _parser.extractList(res, nestedListKeys: const ['support_chat_messages']);
+    final meta = _parser.extractMeta(res);
 
-    final hasMore = _hasMore(meta, page, limit, items.length);
+    final items = list
+        .whereType<Map<String, dynamic>>()
+        .map((e) => SupportMessageModel.fromMap(e))
+        .toList()
+      ..sort((a, b) {
+        final at = a.createdAt;
+        final bt = b.createdAt;
+        if (at != null && bt != null) return at.compareTo(bt);
+        if (a.id != null && b.id != null) return a.id!.compareTo(b.id!);
+        return 0;
+      });
+
+    final hasMore = _parser.hasMore(meta: meta, page: page, limit: limit, fetched: items.length);
 
     return PaginatedResult<SupportMessageModel>(
       items: items,
@@ -126,31 +108,6 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
       hasMore: hasMore,
     );
   }
-
-  // @override
-  // Future<SupportMessageModel?> sendText({
-  //   required int chatId,
-  //   required int userId,
-  //   required String message,
-  //   bool isAdmin = false,
-  // }) async {
-  //   final data = {
-  //     'chatId': chatId,
-  //     'support_chat_id': chatId,
-  //     'message': message,
-  //     'type': 'text',
-  //     'userId': userId,
-  //     'sender_id': userId,
-  //     'is_admin': isAdmin ? 1 : 0,
-  //   };
-
-  //   final res = await apiClient.post(ApiEndpoints.supportChatMessages, data: data);
-  //   final parsed = _extractData(res);
-  //   if (parsed is Map<String, dynamic>) {
-  //     return SupportMessageModel.fromMap(parsed);
-  //   }
-  //   return null;
-  // }
 
   @override
   Future<SupportMessageModel?> uploadMedia({
@@ -163,8 +120,11 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath),
       'chatId': chatId,
+      'chat_id': chatId,
+      'support_chat_id': chatId,
       'type': type,
       'userId': userId,
+      'user_id': userId,
       'is_admin': isAdmin ? 1 : 0,
     });
 
@@ -174,53 +134,10 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
       isMultipart: true,
     );
 
-    final data = _extractData(res);
+    final data = _parser.extractData(res);
     if (data is Map<String, dynamic>) {
       return SupportMessageModel.fromMap(data);
     }
     return null;
-  }
-
-  List<dynamic> _extractList(dynamic res) {
-    if (res is Map<String, dynamic>) {
-      final data = res['data'];
-      if (data is List) return data;
-      if (data is Map) {
-        if (data['data'] is List) return data['data'] as List;
-        if (data['support_chat_messages'] is List) {
-          return data['support_chat_messages'] as List;
-        }
-      }
-    }
-    if (res is List) return res;
-    return const [];
-  }
-
-  Map<String, dynamic>? _extractMeta(dynamic res) {
-    if (res is Map<String, dynamic>) {
-      if (res['meta'] is Map<String, dynamic>) return res['meta'];
-      final data = res['data'];
-      if (data is Map && data['meta'] is Map<String, dynamic>) {
-        return data['meta'];
-      }
-    }
-    return null;
-  }
-
-  dynamic _extractData(dynamic res) {
-    if (res is Map<String, dynamic>) {
-      return res['data'] ?? res['result'] ?? res;
-    }
-    return res;
-  }
-
-  bool _hasMore(Map<String, dynamic>? meta, int page, int limit, int fetched) {
-    if (meta != null) {
-      final total = meta['total'];
-      if (total is num) {
-        return page < total.toInt();
-      }
-    }
-    return fetched >= limit;
   }
 }

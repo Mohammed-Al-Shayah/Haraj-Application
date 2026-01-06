@@ -10,18 +10,22 @@ class SupportController extends GetxController {
   SupportController(this.repository);
 
   final chats = <SupportChatEntity>[].obs;
+
   final isLoading = true.obs;
   final isLoadingMore = false.obs;
   final hasMore = true.obs;
+
   final searchController = TextEditingController();
 
   int _page = 1;
+  static const int _pageSize = 10;
+
   Timer? _debounce;
 
   @override
   void onInit() {
     super.onInit();
-    _init();
+    loadChats(reset: true);
   }
 
   @override
@@ -29,10 +33,6 @@ class SupportController extends GetxController {
     searchController.dispose();
     _debounce?.cancel();
     super.onClose();
-  }
-
-  Future<void> _init() async {
-    await loadChats(reset: true);
   }
 
   Future<void> loadChats({bool reset = false}) async {
@@ -54,8 +54,9 @@ class SupportController extends GetxController {
 
     final result = await repository.getChats(
       page: _page,
+      limit: _pageSize,
       search: search.isEmpty ? null : search,
-      userId: null, // backend does not accept userId in support chats query
+      userId: null, // keep backend compatibility
     );
 
     if (reset) {
