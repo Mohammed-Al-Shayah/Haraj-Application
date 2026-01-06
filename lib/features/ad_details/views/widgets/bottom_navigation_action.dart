@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
@@ -76,6 +76,7 @@ class BottomNavigationAction extends StatelessWidget {
   Future<void> _openChatWithOwner() async {
     final ad = controller.ad.value;
     final ownerId = ad?.ownerId;
+    final adId = ad?.id ?? controller.adId;
     final ownerName =
         (ad?.ownerName ?? '').trim().isEmpty ? 'Owner' : ad!.ownerName!.trim();
 
@@ -91,17 +92,20 @@ class BottomNavigationAction extends StatelessWidget {
     }
 
     try {
+      final api = ApiClient(client: Dio());
       final chatData =
           await _findExistingChat(
+            apiClient: api,
             currentUserId: currentUserId,
             ownerId: ownerId,
             fallbackName: ownerName,
           ) ??
           await _createChatWithOwner(
+            apiClient: api,
             currentUserId: currentUserId,
             ownerId: ownerId,
             fallbackName: ownerName,
-            adId: ad?.id,
+            adId: adId,
           );
 
       if (chatData == null) {
@@ -126,17 +130,27 @@ class BottomNavigationAction extends StatelessWidget {
     required int currentUserId,
     required int ownerId,
     required String fallbackName,
+    ApiClient? apiClient,
   }) async {
-    final api = ApiClient(client: Dio());
-    final res = await api.get(
-      ApiEndpoints.chatList,
-      queryParams: {'userId': currentUserId, 'user_id': currentUserId},
-    );
+    final api = apiClient ?? ApiClient(client: Dio());
+    final attempts = <dynamic>[
+      await api.get(
+        ApiEndpoints.chatList,
+        queryParams: {'page': 1, 'limit': 50},
+      ),
+      await api.get(
+        ApiEndpoints.chatList,
+        queryParams: {
+          'page': 1,
+          'limit': 50,
+          'userId': currentUserId,
+          'user_id': currentUserId,
+        },
+      ),
+    ];
 
-    final data = _extractList(res);
-    for (final item in data) {
-      if (item is! Map<String, dynamic>) continue;
-      final parsed = _parseChat(item, ownerId, fallbackName);
+    for (final res in attempts) {
+      final parsed = _parseChatResponse(res, ownerId, fallbackName);
       if (parsed != null) return parsed;
     }
     return null;
@@ -146,25 +160,77 @@ class BottomNavigationAction extends StatelessWidget {
     required int currentUserId,
     required int ownerId,
     required String fallbackName,
-    int? adId,
+    required int adId,
+    ApiClient? apiClient,
   }) async {
-    final api = ApiClient(client: Dio());
-    final payload = {
-      'userId': currentUserId,
-      'senderId': currentUserId,
-      'receiverId': ownerId,
-      'receiver_id': ownerId,
-      'sender_id': currentUserId,
-      'user_id': currentUserId,
-      if (adId != null) ...{'adId': adId, 'ad_id': adId},
-    };
+    final api = apiClient ?? ApiClient(client: Dio());
+    final attempts = <_ChatCreateAttempt>[];
+    if (adId > 0) {
+      attempts.add(_ChatCreateAttempt(data: {'adId': adId}));
+      attempts.add(_ChatCreateAttempt(data: {'ad_id': adId}));
+      attempts.add(
+        _ChatCreateAttempt(
+          data: <String, dynamic>{},
+          query: {'adId': adId},
+        ),
+      );
+      attempts.add(
+        _ChatCreateAttempt(
+          data: <String, dynamic>{},
+          query: {'ad_id': adId},
+        ),
+      );
+    }
+    attempts.add(_ChatCreateAttempt(data: <String, dynamic>{}));
 
-    final res = await api.post(ApiEndpoints.chats, data: payload);
-    final map = _extractDataMap(res);
-    if (map == null) return null;
+    for (final attempt in attempts) {
+      try {
+        final res = await api.post(
+          ApiEndpoints.chats,
+          data: attempt.data,
+          queryParameters: attempt.query,
+        );
+        final created = _parseChatResponse(res, ownerId, fallbackName);
+        if (created != null) return created;
+      } catch (_) {
+        // Try next payload variation.
+      }
+    }
 
-    return _parseChat(map, ownerId, fallbackName) ??
-        _fallbackChat(map, ownerId, fallbackName);
+    final found = await _findExistingChat(
+      apiClient: api,
+      currentUserId: currentUserId,
+      ownerId: ownerId,
+      fallbackName: fallbackName,
+    );
+    if (found != null) return found;
+
+    return _findExistingChat(
+      apiClient: api,
+      currentUserId: currentUserId,
+      ownerId: ownerId,
+      fallbackName: fallbackName,
+    );
+  }
+
+  _ChatLaunchData? _parseChatResponse(
+    dynamic res,
+    int ownerId,
+    String fallbackName,
+  ) {
+    final mapCandidate = _extractMap(res);
+    if (mapCandidate != null) {
+      final parsed = _parseChat(mapCandidate, ownerId, fallbackName);
+      if (parsed != null) return parsed;
+    }
+
+    final data = _extractList(res);
+    for (final item in data) {
+      if (item is! Map<String, dynamic>) continue;
+      final parsed = _parseChat(item, ownerId, fallbackName);
+      if (parsed != null) return parsed;
+    }
+    return null;
   }
 
   List<dynamic> _extractList(dynamic res) {
@@ -177,26 +243,19 @@ class BottomNavigationAction extends StatelessWidget {
     return const [];
   }
 
-  Map<String, dynamic>? _extractDataMap(dynamic res) {
+  Map<String, dynamic>? _extractMap(dynamic res) {
     if (res is Map<String, dynamic>) {
-      if (res['data'] is Map<String, dynamic>) {
-        return res['data'] as Map<String, dynamic>;
+      final data = res['data'];
+      if (data is Map<String, dynamic>) return data;
+      final result = res['result'];
+      if (result is Map<String, dynamic>) return result;
+      final chat = res['chat'];
+      if (chat is Map<String, dynamic>) return chat;
+      if (res['id'] != null ||
+          res['chat_id'] != null ||
+          res['chatId'] != null) {
+        return res;
       }
-      if (res['data'] is List && (res['data'] as List).isNotEmpty) {
-        final first = (res['data'] as List).first;
-        if (first is Map<String, dynamic>) return first;
-      }
-      if (res['chat'] is Map<String, dynamic>) {
-        return res['chat'] as Map<String, dynamic>;
-      }
-      if (res['result'] is Map<String, dynamic>) {
-        return res['result'] as Map<String, dynamic>;
-      }
-      final nestedData = res['data'];
-      if (nestedData is Map && nestedData['chat'] is Map<String, dynamic>) {
-        return nestedData['chat'] as Map<String, dynamic>;
-      }
-      return res;
     }
     return null;
   }
@@ -227,7 +286,6 @@ class BottomNavigationAction extends StatelessWidget {
       }
     }
 
-    // fallback if members missing
     chatId ??= _toInt(item['id'] ?? item['chat_id'] ?? item['chatId']);
     final title = _extractUserName(item) ?? chatTitle;
     final other =
@@ -238,33 +296,10 @@ class BottomNavigationAction extends StatelessWidget {
               item['user_id'] ??
               item['userId'],
         ) ??
+        _toInt(item['owner_id'] ?? item['ownerId']) ??
         otherUserId;
 
     if (chatId == null) return null;
-    return _ChatLaunchData(
-      chatId: chatId,
-      chatTitle: title,
-      otherUserId: other,
-    );
-  }
-
-  _ChatLaunchData? _fallbackChat(
-    Map<String, dynamic> item,
-    int ownerId,
-    String fallbackName,
-  ) {
-    final chatId = _toInt(item['id'] ?? item['chat_id'] ?? item['chatId']);
-    if (chatId == null) return null;
-    final title = _extractUserName(item) ?? fallbackName;
-    final other =
-        _toInt(
-          item['other_user_id'] ??
-              item['receiver_id'] ??
-              item['receiverId'] ??
-              item['user_id'] ??
-              item['userId'],
-        ) ??
-        ownerId;
     return _ChatLaunchData(
       chatId: chatId,
       chatTitle: title,
@@ -406,4 +441,11 @@ class _ChatLaunchData {
     required this.chatTitle,
     required this.otherUserId,
   });
+}
+
+class _ChatCreateAttempt {
+  final Map<String, dynamic> data;
+  final Map<String, dynamic>? query;
+
+  _ChatCreateAttempt({required this.data, this.query});
 }

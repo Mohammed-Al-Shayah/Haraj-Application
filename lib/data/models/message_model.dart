@@ -71,11 +71,85 @@ class MessageModel extends MessageEntity {
       return null;
     }
 
-    final type = map['type']?.toString();
-    final extractedText = extractText(map);
+    String? type = map['type']?.toString();
+    String extractedText = extractText(map);
     String? mediaUrl = extractMediaUrl(map);
 
+    bool hasKnownExtension(String value) {
+      final lower = value.toLowerCase();
+      const exts = [
+        '.png',
+        '.jpg',
+        '.jpeg',
+        '.heic',
+        '.webp',
+        '.gif',
+        '.pdf',
+        '.doc',
+        '.docx',
+        '.xls',
+        '.xlsx',
+        '.ppt',
+        '.pptx',
+        '.zip',
+        '.rar',
+        '.mp3',
+        '.wav',
+        '.aac',
+        '.mp4',
+        '.mov',
+        '.avi',
+        '.mkv',
+      ];
+      return exts.any((ext) => lower.endsWith(ext));
+    }
+
+    bool looksLikeAttachmentName(String value) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return false;
+      if (trimmed.contains(' ')) return false;
+      return hasKnownExtension(trimmed);
+    }
+
+    String? inferTypeFromPath(String value) {
+      final lower = value.toLowerCase();
+      const imageExts = ['.png', '.jpg', '.jpeg', '.heic', '.webp', '.gif'];
+      const audioExts = ['.mp3', '.wav', '.aac'];
+      if (imageExts.any((ext) => lower.endsWith(ext))) return 'image';
+      if (audioExts.any((ext) => lower.endsWith(ext))) return 'audio';
+      if (hasKnownExtension(lower)) return 'file';
+      return null;
+    }
+
     // Some backends send only the filename in `message` for media.
+    if ((mediaUrl == null || mediaUrl.isEmpty) && extractedText.isNotEmpty) {
+      final inferred = inferTypeFromPath(extractedText);
+      if (inferred != null &&
+          (type == null || type.isEmpty || type == 'text')) {
+        type = inferred;
+      }
+      final isLikelyAttachment =
+          inferred != null &&
+          (looksLikeAttachmentName(extractedText) ||
+              extractedText.startsWith('http'));
+      if (isLikelyAttachment) {
+        final filename = extractedText;
+        if (type == null || type.isEmpty) {
+          type = inferred;
+        }
+        if (filename.startsWith('http')) {
+          mediaUrl = filename;
+        } else {
+          final base = ApiEndpoints.imageUrl;
+          final normalizedBase = base.endsWith('/') ? base : '$base/';
+          final normalizedPath =
+              filename.startsWith('/') ? filename.substring(1) : filename;
+          mediaUrl = '$normalizedBase$normalizedPath';
+        }
+        extractedText = '';
+      }
+    }
+
     if ((mediaUrl == null || mediaUrl.isEmpty) &&
         type != null &&
         type.toLowerCase() == 'image' &&
@@ -86,6 +160,7 @@ class MessageModel extends MessageEntity {
       final normalizedPath =
           filename.startsWith('/') ? filename.substring(1) : filename;
       mediaUrl = '$normalizedBase$normalizedPath';
+      extractedText = '';
     }
 
     final textValue =

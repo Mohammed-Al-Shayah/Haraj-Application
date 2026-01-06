@@ -10,7 +10,7 @@ class ChatDetailRepositoryImpl implements ChatDetailRepository {
 
   @override
   Future<PaginatedResult<MessageEntity>> getMessages({
-    required int chatId,
+    int? chatId,
     required int currentUserId,
     int? otherUserId,
     int page = 1,

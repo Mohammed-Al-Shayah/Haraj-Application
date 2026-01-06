@@ -7,7 +7,7 @@ import '../models/message_model.dart';
 
 abstract class ChatDetailRemoteDataSource {
   Future<PaginatedResult<MessageModel>> fetchMessages({
-    required int chatId,
+    int? chatId,
     required int currentUserId,
     int? otherUserId,
     int page = 1,
@@ -30,7 +30,7 @@ class ChatDetailRemoteDataSourceImpl implements ChatDetailRemoteDataSource {
 
   @override
   Future<PaginatedResult<MessageModel>> fetchMessages({
-    required int chatId,
+    int? chatId,
     required int currentUserId,
     int? otherUserId,
     int page = 1,
@@ -39,9 +39,10 @@ class ChatDetailRemoteDataSourceImpl implements ChatDetailRemoteDataSource {
     final res = await apiClient.get(
       ApiEndpoints.chatMessages,
       queryParams: {
-        'chat_id': chatId,
-        'chatId': chatId,
-        // The API expects the other participant id as `userId`
+        if (chatId != null) ...{
+          'chat_id': chatId,
+          'chatId': chatId,
+        },
         'userId': otherUserId ?? currentUserId,
         'page': page,
         'limit': limit,

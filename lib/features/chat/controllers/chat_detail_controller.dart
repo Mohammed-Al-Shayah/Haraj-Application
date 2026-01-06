@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
@@ -6,6 +7,7 @@ import 'package:haraj_adan_app/core/storage/user_storage.dart';
 import 'package:haraj_adan_app/data/models/message_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'chat_controller.dart';
 import '../../../domain/entities/message_entity.dart';
 import '../../../domain/repositories/chat_detail_repository.dart';
 
@@ -36,6 +38,7 @@ class ChatDetailController extends GetxController {
   int? _currentUserId;
   String? _token;
   bool _triedAltSocketPath = false;
+  bool _listenersAttached = false;
   int _page = 1;
   static const int _pageSize = 20;
 
@@ -120,7 +123,11 @@ class ChatDetailController extends GetxController {
 
     isLoading.value = false;
     isLoadingMore.value = false;
-    socket?.readUserMessages(chatId);
+    _markRead();
+    if (reset) {
+      _clearUnreadInList();
+    }
+    update();
   }
 
   Future<void> _initSocket() async {
@@ -137,60 +144,80 @@ class ChatDetailController extends GetxController {
           token: _token,
           path: '/haraj/socket.io',
         );
+    _listenersAttached = false;
+    _registerSocketHandlers();
 
     void joinAndRead() {
       socket?.joinRoom(userId);
       socket?.joinUserRoom(chatId);
-      socket?.readUserMessages(chatId);
+      _markRead();
     }
 
+    final query = <String, dynamic>{
+      'userId': userId,
+      if ((_token ?? '').isNotEmpty) 'token': _token,
+    };
     if (socket?.isConnected != true) {
-      socket?.connect(query: {'userId': userId}, onConnect: joinAndRead);
+      socket?.connect(query: query, onConnect: joinAndRead);
     } else {
       joinAndRead();
     }
 
+    update();
+  }
+
+  void _registerSocketHandlers() {
+    if (socket == null || _listenersAttached) return;
+    _listenersAttached = true;
+
     socket?.ensureDebugLogging();
     socket?.onConnectError((data) => _retrySocket());
     socket?.onError((data) => _retrySocket());
-
-    socket?.onNewUserMessage((data) {
-      final incomingChatId =
-          data is Map<String, dynamic>
-              ? data['chat_id'] ?? data['chatId']
-              : null;
-      if (incomingChatId != null && incomingChatId != chatId) return;
-      if (data is Map<String, dynamic>) {
-        final incoming = MessageModel.fromMap(data, currentUserId: userId);
-        final incomingId = incoming.id;
-        if (incomingId != null &&
-            messages.any((m) => m.id != null && m.id == incomingId)) {
-          return;
-        }
-
-        if (incoming.senderId == userId && incomingId != null) {
-          final pendingIndex = messages.indexWhere(
-            (m) =>
-                m.id == null &&
-                m.senderId == userId &&
-                m.text == incoming.text &&
-                m.type == incoming.type,
-          );
-          if (pendingIndex != -1) {
-            messages[pendingIndex] = incoming;
-            messages.refresh();
-            _scrollToBottom();
-            socket?.readUserMessages(chatId);
-            return;
-          }
-        }
-
-        messages.add(incoming);
-        _scrollToBottom();
-        socket?.readUserMessages(chatId);
-      }
-    });
+    socket?.onNewUserMessage(_handleIncomingMessage);
     socket?.onNotificationCount((_) {});
+  }
+
+  void _handleIncomingMessage(dynamic data) {
+    final payload = _coercePayload(data);
+    if (payload == null) return;
+    final messageData = _extractMessagePayload(payload);
+    final incomingChatId = _parseInt(
+      messageData['chat_id'] ??
+          messageData['chatId'] ??
+          payload['chat_id'] ??
+          payload['chatId'],
+    );
+    if (incomingChatId != null && incomingChatId != chatId) return;
+    if (messageData.isEmpty) return;
+
+    final userId = _currentUserId;
+    final incoming = MessageModel.fromMap(messageData, currentUserId: userId);
+    final incomingId = incoming.id;
+    if (incomingId != null &&
+        messages.any((m) => m.id != null && m.id == incomingId)) {
+      return;
+    }
+
+    if (userId != null && incoming.senderId == userId && incomingId != null) {
+      final pendingIndex = messages.indexWhere(
+        (m) =>
+            m.id == null &&
+            m.senderId == userId &&
+            m.text == incoming.text &&
+            m.type == incoming.type,
+      );
+      if (pendingIndex != -1) {
+        messages[pendingIndex] = incoming;
+        messages.refresh();
+        _scrollToBottom();
+        _markRead();
+        return;
+      }
+    }
+
+    messages.add(incoming);
+    _scrollToBottom();
+    _markRead();
   }
 
   Future<void> sendMessage(String text) async {
@@ -224,7 +251,7 @@ class ChatDetailController extends GetxController {
       type: 'text',
       chatId: chatId,
     );
-    socket?.readUserMessages(chatId);
+    _markRead();
   }
 
   Future<void> sendMedia({
@@ -290,13 +317,18 @@ class ChatDetailController extends GetxController {
       _initSocket();
       return;
     }
+    _registerSocketHandlers();
+    final query = <String, dynamic>{
+      'userId': userId,
+      if ((_token ?? '').isNotEmpty) 'token': _token,
+    };
     if (socket?.isConnected != true) {
       socket?.connect(
-        query: {'userId': userId},
+        query: query,
         onConnect: () {
           socket?.joinRoom(userId);
           socket?.joinUserRoom(chatId);
-          socket?.readUserMessages(chatId);
+          _markRead();
         },
       );
     } else {
@@ -308,6 +340,7 @@ class ChatDetailController extends GetxController {
   void _retrySocket() {
     if (_triedAltSocketPath) return;
     _triedAltSocketPath = true;
+    _listenersAttached = false;
     socket?.disconnect();
     socket = SocketService(
       socketUrl: Uri.parse(
@@ -318,15 +351,19 @@ class ChatDetailController extends GetxController {
     );
     final userId = _currentUserId;
     if (userId == null) return;
+    _registerSocketHandlers();
+    final query = <String, dynamic>{
+      'userId': userId,
+      if ((_token ?? '').isNotEmpty) 'token': _token,
+    };
     socket?.connect(
-      query: {'userId': userId},
+      query: query,
       onConnect: () {
         socket?.joinRoom(userId);
         socket?.joinUserRoom(chatId);
-        socket?.readUserMessages(chatId);
+        _markRead();
       },
     );
-    socket?.ensureDebugLogging();
   }
 
   void _scrollToBottom() {
@@ -339,6 +376,43 @@ class ChatDetailController extends GetxController {
         curve: Curves.easeOut,
       );
     });
+  }
+
+  void _clearUnreadInList() {
+    if (!Get.isRegistered<ChatController>()) return;
+    Get.find<ChatController>().clearUnread(chatId);
+  }
+
+  void _markRead() {
+    socket?.readUserMessages(
+      chatId,
+      userId: _currentUserId,
+      receiverId: otherUserId,
+    );
+    _updateReadMarker();
+  }
+
+  void _updateReadMarker() {
+    if (!Get.isRegistered<ChatController>()) return;
+    if (messages.isEmpty) return;
+
+    MessageEntity? latest;
+    for (final msg in messages) {
+      final createdAt = msg.createdAt;
+      if (createdAt == null) continue;
+      if (latest == null || createdAt.isAfter(latest.createdAt!)) {
+        latest = msg;
+      }
+    }
+    latest ??= messages.last;
+
+    final lastMessage = latest.text;
+    final lastTime = latest.createdAt?.toIso8601String() ?? '';
+    Get.find<ChatController>().markChatRead(
+      chatId,
+      lastMessage: lastMessage,
+      lastTime: lastTime,
+    );
   }
 
   @override
@@ -365,5 +439,78 @@ class ChatDetailController extends GetxController {
         scrollController.position.minScrollExtent + 120) {
       loadMessages();
     }
+  }
+
+  int? _parseInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  Map<String, dynamic>? _coercePayload(dynamic data) {
+    dynamic current = data;
+    if (current is String) {
+      try {
+        current = jsonDecode(current);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    if (current is List) {
+      for (final item in current.reversed) {
+        if (item is Map<String, dynamic>) {
+          return Map<String, dynamic>.from(item);
+        }
+        if (item is Map) {
+          return item.map((key, value) => MapEntry(key.toString(), value));
+        }
+      }
+      return null;
+    }
+
+    if (current is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(current);
+    }
+    if (current is Map) {
+      return current.map((key, value) => MapEntry(key.toString(), value));
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _extractMessagePayload(Map<String, dynamic> data) {
+    int? chatIdValue = _parseInt(data['chat_id'] ?? data['chatId']);
+    if (chatIdValue == null) {
+      final chat = data['chat'];
+      if (chat is Map) {
+        chatIdValue = _parseInt(chat['id'] ?? chat['chat_id']);
+      }
+    }
+
+    final rawNested = data['message'] ?? data['data'] ?? data['payload'];
+    final nested =
+        rawNested is Map<String, dynamic>
+            ? Map<String, dynamic>.from(rawNested)
+            : null;
+    final result = nested ?? Map<String, dynamic>.from(data);
+
+    if (chatIdValue != null) {
+      result.putIfAbsent('chat_id', () => chatIdValue);
+      result.putIfAbsent('chatId', () => chatIdValue);
+    }
+
+    if (data['sender_id'] != null && result['sender_id'] == null) {
+      result['sender_id'] = data['sender_id'];
+    }
+    if (data['senderId'] != null && result['senderId'] == null) {
+      result['senderId'] = data['senderId'];
+    }
+    if (data['created_at'] != null && result['created_at'] == null) {
+      result['created_at'] = data['created_at'];
+    }
+    if (data['created'] != null && result['created'] == null) {
+      result['created'] = data['created'];
+    }
+
+    return result;
   }
 }

@@ -9,6 +9,7 @@ class ChatModel extends ChatEntity {
     required super.image,
     required super.isOnline,
     super.otherUserId,
+    super.unreadCount = 0,
   });
 
   factory ChatModel.fromMap(
@@ -74,6 +75,12 @@ class ChatModel extends ChatEntity {
     }
 
     final otherUser = extractOtherUser(map);
+    int? parseInt(dynamic value) {
+      if (value is num) return value.toInt();
+      return int.tryParse(value?.toString() ?? '');
+    }
+
+    final unread = parseInt(map['unread_count'] ?? map['unreadCount'] ?? map['unread']);
     final lastMessage =
         map['lastMessage'] is Map ? map['lastMessage'] as Map<String, dynamic> : null;
     final messageText =
@@ -102,6 +109,7 @@ class ChatModel extends ChatEntity {
           : extractString(map, ['image', 'avatar', 'user_image']),
       isOnline: extractOnline(map),
       otherUserId: extractOtherUserId(map),
+      unreadCount: unread ?? 0,
     );
   }
 }

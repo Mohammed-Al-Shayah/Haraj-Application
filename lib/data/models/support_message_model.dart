@@ -1,3 +1,4 @@
+import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/domain/entities/support_message_entity.dart';
 
 class SupportMessageModel extends SupportMessageEntity {
@@ -31,6 +32,53 @@ class SupportMessageModel extends SupportMessageEntity {
       return int.tryParse(v?.toString() ?? '');
     }
 
+    bool hasKnownExtension(String value) {
+      final lower = value.toLowerCase();
+      const exts = [
+        '.png',
+        '.jpg',
+        '.jpeg',
+        '.heic',
+        '.webp',
+        '.gif',
+        '.pdf',
+        '.doc',
+        '.docx',
+        '.xls',
+        '.xlsx',
+        '.ppt',
+        '.pptx',
+        '.zip',
+        '.rar',
+        '.mp3',
+        '.wav',
+        '.aac',
+        '.mp4',
+        '.mov',
+        '.avi',
+        '.mkv',
+      ];
+      return exts.any((ext) => lower.endsWith(ext));
+    }
+
+    String? inferTypeFromPath(String value) {
+      final lower = value.toLowerCase();
+      const imageExts = ['.png', '.jpg', '.jpeg', '.heic', '.webp', '.gif'];
+      const audioExts = ['.mp3', '.wav', '.aac'];
+      if (imageExts.any((ext) => lower.endsWith(ext))) return 'image';
+      if (audioExts.any((ext) => lower.endsWith(ext))) return 'audio';
+      if (hasKnownExtension(lower)) return 'file';
+      return null;
+    }
+
+    String resolveUrl(String path) {
+      if (path.startsWith('http')) return path;
+      final base = ApiEndpoints.imageUrl;
+      final normalizedBase = base.endsWith('/') ? base : '$base/';
+      final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+      return '$normalizedBase$normalizedPath';
+    }
+
     DateTime? parseDate(dynamic v) {
       if (v == null) return null;
       return DateTime.tryParse(v.toString());
@@ -39,10 +87,35 @@ class SupportMessageModel extends SupportMessageEntity {
     final sender = map['sender_id'] ?? map['senderId'] ?? map['user_id'];
     final id = map['id'] ?? map['message_id'];
 
+    String message = pickString(map, ['message', 'text', 'body', 'content']);
+    String type = map['type']?.toString() ?? 'text';
+    String mediaUrl = pickString(map, ['file_url', 'file', 'media_url', 'url']);
+
+    if (mediaUrl.isEmpty && message.isNotEmpty) {
+      final inferred = inferTypeFromPath(message);
+      if (inferred != null && (type.isEmpty || type == 'text')) {
+        type = inferred;
+      }
+      if (inferred != null || message.startsWith('http')) {
+        mediaUrl = resolveUrl(message);
+        message = '';
+      }
+    }
+
+    if (mediaUrl.isNotEmpty) {
+      if (type.isEmpty || type == 'text') {
+        final inferred = inferTypeFromPath(mediaUrl);
+        if (inferred != null) type = inferred;
+      }
+      if (!mediaUrl.startsWith('http')) {
+        mediaUrl = resolveUrl(mediaUrl);
+      }
+    }
+
     return SupportMessageModel(
       id: parseInt(id),
-      message: pickString(map, ['message', 'text', 'body', 'content']),
-      type: map['type']?.toString() ?? 'text',
+      message: message,
+      type: type,
       senderId: parseInt(sender),
       isAdmin:
           map['is_admin'] == true ||
@@ -51,7 +124,7 @@ class SupportMessageModel extends SupportMessageEntity {
           map['isAdmin'] == 1,
       isRead: map['is_read'] == true || map['isRead'] == true,
       createdAt: parseDate(map['created_at'] ?? map['created']),
-      mediaUrl: pickString(map, ['file_url', 'file', 'media_url', 'url']),
+      mediaUrl: mediaUrl.isEmpty ? null : mediaUrl,
     );
   }
 

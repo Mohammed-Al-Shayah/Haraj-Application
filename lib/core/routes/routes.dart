@@ -13,6 +13,7 @@ import '../../features/authentication/onboarding/views/screens/onboarding_screen
 import '../../features/authentication/register/views/screens/register_screen.dart';
 import '../../features/authentication/reset_password/views/screens/reset_password_screen.dart';
 import '../../features/authentication/splash/views/screens/splash_screen.dart';
+import '../../features/authentication/login/binding/login_binding.dart';
 import '../../features/chat/views/screens/chat_detail_screen.dart';
 import '../../features/chat/views/screens/chats_screen.dart';
 import '../../features/home/views/screens/home_screen.dart';
@@ -84,7 +85,11 @@ class Routes {
       page: () => const OnboardingScreen(),
     ),
     GetPage(name: Routes.registerScreen, page: () => const RegisterScreen()),
-    GetPage(name: Routes.loginScreen, page: () => const LoginScreen()),
+    GetPage(
+      name: Routes.loginScreen,
+      page: () => const LoginScreen(),
+      binding: LoginBinding(),
+    ),
     GetPage(
       name: Routes.forgotPasswordScreen,
       page: () => const ForgotPasswordScreen(),

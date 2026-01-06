@@ -3,7 +3,7 @@ import '../entities/paginated_result.dart';
 
 abstract class ChatDetailRepository {
   Future<PaginatedResult<MessageEntity>> getMessages({
-    required int chatId,
+    int? chatId,
     required int currentUserId,
     int? otherUserId,
     int page = 1,

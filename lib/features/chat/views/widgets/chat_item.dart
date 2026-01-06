@@ -104,7 +104,7 @@ class ChatItem extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 5),
-                if (chat.isOnline)
+                if (chat.unreadCount > 0)
                   Container(
                     width: 20,
                     height: 20,
@@ -114,7 +114,7 @@ class ChatItem extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        '1',
+                        chat.unreadCount.toString(),
                         textAlign: TextAlign.center,
                         style: AppTypography.semiBold10.copyWith(
                           color: AppColors.white,

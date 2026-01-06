@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
@@ -14,32 +13,13 @@ class SocketService {
 
   bool get isConnected => _socket?.connected == true;
 
-  // void connect({Map<String, dynamic>? query, void Function()? onConnect}) {
-  //   final builder = io.OptionBuilder()
-  //       .setTransports(['websocket', 'polling'])
-  //       .disableAutoConnect()
-  //       .setQuery(query ?? {})
-  //       .setExtraHeaders(
-  //         token != null ? {'Authorization': 'Bearer $token'} : {},
-  //       );
-  //   if (path != null) {
-  //     builder.setPath(path!);
-  //   }
-  //   _socket = io.io(socketUrl, builder.build());
-  //   if (onConnect != null) {
-  //     _socket?.onConnect((_) => onConnect());
-  //     _socket?.on('reconnect', (_) => onConnect());
-  //   }
-  //   _socket?.connect();
-  // }
+
 
   void connect({Map<String, dynamic>? query, void Function()? onConnect}) {
-    // 1) لو في Socket موجود، لا تعمله recreate
     if (_socket != null) {
-      // حدّث query فقط إذا بدك (اختياري)
       if (_socket!.connected != true) {
         if (onConnect != null) {
-          _socket!.off('connect'); // تجنب تكرار handlers
+          _socket!.off('connect'); 
           _socket!.onConnect((_) => onConnect());
         }
         _socket!.connect();
@@ -49,7 +29,6 @@ class SocketService {
       return;
     }
 
-    // 2) أنشئ socket مرة واحدة
     final builder = io.OptionBuilder()
         .setTransports(['websocket', 'polling'])
         .disableAutoConnect()
@@ -64,8 +43,6 @@ class SocketService {
     if (path != null) builder.setPath(path!);
 
     _socket = io.io(socketUrl, builder.build());
-
-    // 3) ركب debug + handlers قبل connect
     ensureDebugLogging();
 
     if (onConnect != null) {
@@ -82,12 +59,10 @@ class SocketService {
     _socket = null;
   }
 
-  /// Join personal notification channel user_{userId}
   void joinRoom(int userId) {
     _socket?.emit('joinRoom', {'userId': userId});
   }
 
-  /// Join a specific chat room user_chat_{chatId}
   void joinUserRoom(int chatId) {
     _socket?.emit('joinUserRoom', {
       'chatId': chatId,
@@ -112,66 +87,52 @@ class SocketService {
     });
   }
 
-  void readUserMessages(int chatId) {
-    _socket?.emit('readUserMessages', {'chat_id': chatId});
+  void readUserMessages(int chatId, {int? userId, int? receiverId}) {
+    _socket?.emit('readUserMessages', {
+      'chat_id': chatId,
+      'chatId': chatId,
+      if (userId != null) ...{'userId': userId, 'user_id': userId},
+      if (receiverId != null) ...{
+        'receiverId': receiverId,
+        'receiver_id': receiverId,
+      },
+    });
   }
 
   void onNewUserMessage(void Function(dynamic data) handler) {
-    _socket?.on('newUserMessage', handler);
+    void wrapped(dynamic data) {
+      if (kDebugMode) {
+        print('[socket] newUserMessage => $data');
+      }
+      handler(data);
+    }
+
+    _socket?.on('newUserMessage', wrapped);
+    _socket?.on('newMessage', wrapped);
+    _socket?.on('newChatMessage', wrapped);
+    _socket?.on('message', wrapped);
   }
 
   void onNotificationCount(void Function(dynamic data) handler) {
     _socket?.on('countChatNotifications', handler);
   }
 
-  // void disconnect() {
-  //   _socket?.disconnect();
-  //   _socket?.dispose();
-  //   _socket = null;
-  // }
-
-  /// Support chat helpers
   void joinSupportRoom(int chatId) {
     _socket?.emit('joinSupportChat', {
       'chatId': chatId,
+      'support_chat_id': chatId,
+      'supportChatId': chatId,
+      'chat_id': chatId,
       'room': 'support_chat_$chatId',
     });
   }
 
-  // void sendSupportMessage({
-  //   required int userId,
-  //   required Map<String, dynamic> message,
-  //   int? chatId,
-  // }) {
-  //   final payload = <String, dynamic>{'userId': userId, 'message': message};
-  //   if (chatId != null) {
-  //     payload['chatId'] = chatId;
-  //     payload['support_chat_id'] = chatId;
-  //     payload['chat_id'] = chatId;
-  //     payload['room'] = 'support_chat_$chatId';
-  //   }
-  //   // _socket?.emit('sendSupportMessage', payload);
-  //   _socket?.emitWithAck(
-  //     'sendSupportMessage',
-  //     payload,
-  //     ack: (data) {
-  //       print('[socket] ACK sendSupportMessage => $data');
-  //     },
-  //   );
-  // }
   void sendSupportMessage({
     required int userId,
     required Map<String, dynamic> message,
     int? chatId,
   }) {
     final payload = <String, dynamic>{'userId': userId, 'message': message};
-
-    if (chatId != null) {
-      payload['chatId'] = chatId;
-      payload['support_chat_id'] = chatId;
-      payload['chat_id'] = chatId;
-      payload['room'] = 'support_chat_$chatId';
-    }
 
     if (kDebugMode) {
       print('[socket] sending sendSupportMessage payload => $payload');
@@ -189,12 +150,17 @@ class SocketService {
   }
 
   void onNewSupportMessage(void Function(dynamic data) handler) {
-    _socket?.on('newSupportMessage', handler);
-    _socket?.on('newSupportMessage', (data) {
+    void wrapped(dynamic data) {
       if (kDebugMode) {
         print('[socket] newSupportMessage => $data');
       }
-    });
+      handler(data);
+    }
+
+    _socket?.on('newSupportMessage', wrapped);
+    _socket?.on('supportMessage', wrapped);
+    _socket?.on('supportChatMessage', wrapped);
+    _socket?.on('newSupportChatMessage', wrapped);
 
     _socket?.on('supportMessagesRead', (data) {
       if (kDebugMode) {
@@ -206,6 +172,9 @@ class SocketService {
   void sendSupportReadReceipt(int chatId, List<int> messageIds) {
     _socket?.emit('readSupportMessages', {
       'chatId': chatId,
+      'support_chat_id': chatId,
+      'supportChatId': chatId,
+      'chat_id': chatId,
       'messageIds': messageIds,
     });
   }
@@ -214,15 +183,16 @@ class SocketService {
     _socket?.on('supportMessagesRead', handler);
   }
 
-  /// Attach verbose listeners for debugging socket lifecycle.
   void ensureDebugLogging({void Function(String event, dynamic data)? logger}) {
     if (_debugLoggingAttached) return;
     _debugLoggingAttached = true;
     final log =
         logger ??
         (String event, dynamic data) {
-          // ignore: avoid_print
-          print('SocketService[$socketUrl] $event => $data');
+          
+          if (kDebugMode) {
+            print('SocketService[$socketUrl] $event => $data');
+          }
         };
     _socket?.onConnect((_) => log('connect', null));
     _socket?.onDisconnect((_) => log('disconnect', null));
