@@ -324,6 +324,7 @@ class ChatDetailController extends GetxController {
   Future<void> sendMessage(String text) async {
     final userId = _currentUserId ?? await getUserIdFromPrefs();
     _currentUserId = userId;
+
     final trimmed = text.trim();
     if (trimmed.isEmpty || userId == null) return;
 
@@ -336,24 +337,63 @@ class ChatDetailController extends GetxController {
     if (receiverId == null) return;
 
     final pending = MessageModel(
+      id: null,
+      senderId: userId,
       text: trimmed,
       isSender: true,
       type: 'text',
       isRead: true,
       createdAt: DateTime.now(),
     );
+
     messages.add(pending);
     _scrollToBottom();
+
     _connectSocket(userId);
+
+    // ✅ no chatId
     socket?.sendUserMessage(
       senderId: userId,
       receiverId: receiverId,
       message: trimmed,
       type: 'text',
-      chatId: chatId,
     );
+
     _markRead();
   }
+  // Future<void> sendMessage(String text) async {
+  //   final userId = _currentUserId ?? await getUserIdFromPrefs();
+  //   _currentUserId = userId;
+  //   final trimmed = text.trim();
+  //   if (trimmed.isEmpty || userId == null) return;
+
+  //   final receiverId =
+  //       otherUserId ??
+  //       messages
+  //           .map((m) => m.senderId)
+  //           .firstWhere((id) => id != null && id != userId, orElse: () => null);
+  //   otherUserId = receiverId ?? otherUserId;
+  //   if (receiverId == null) return;
+
+  //   final pending = MessageModel(
+  //     text: trimmed,
+  //     isSender: true,
+  //     type: 'text',
+  //     isRead: true,
+  //     createdAt: DateTime.now(),
+  //   );
+  //   messages.add(pending);
+  //   _scrollToBottom();
+  //   _connectSocket(userId);
+  //   socket?.sendUserMessage(
+  //     senderId: userId,
+  //     receiverId: receiverId,
+  //     message: trimmed,
+  //     type: 'text',
+  //     chatId: chatId,
+  //   );
+  //   _markRead();
+  // }
 
   Future<void> sendMedia({
     required String filePath,

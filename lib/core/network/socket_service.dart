@@ -168,12 +168,8 @@ class SocketService {
   void readUserMessages(int chatId, {int? userId, int? receiverId}) {
     emit(SocketEvents.readUserMessages, {
       'chat_id': chatId,
-      'chatId': chatId,
-      if (userId != null) ...{'userId': userId, 'user_id': userId},
-      if (receiverId != null) ...{
-        'receiverId': receiverId,
-        'receiver_id': receiverId,
-      },
+      if (userId != null) 'user_id': userId,
+      if (receiverId != null) 'receiver_id': receiverId,
     });
   }
 
