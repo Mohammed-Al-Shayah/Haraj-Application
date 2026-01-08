@@ -74,17 +74,13 @@ class ChatDetailRemoteDataSourceImpl implements ChatDetailRemoteDataSource {
     required String filePath,
     int? receiverId,
   }) async {
+    assert(type.isNotEmpty);
+    final fileName = filePath.split(RegExp(r'[\\/]+')).last;
     final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(filePath),
+      'file': await MultipartFile.fromFile(filePath, filename: fileName),
       'chatId': chatId,
-      'chat_id': chatId,
       'senderId': userId,
-      'sender_id': userId,
-      if (receiverId != null) ...{
-        'receiverId': receiverId,
-        'receiver_id': receiverId,
-      },
-      'type': type,
+      if (receiverId != null) 'receiverId': receiverId,
     });
 
     final res = await apiClient.post(

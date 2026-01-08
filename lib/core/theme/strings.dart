@@ -383,6 +383,8 @@ class AppStrings {
 
   /// Search feature
   static String get supportTitle => 'support_title'.tr();
+  static String get supportEmptyTitle => 'support_empty_title'.tr();
+  static String get supportEmptyMessage => 'support_empty_message'.tr();
 
   // Filter Templete
   static String get filter => 'filter'.tr();

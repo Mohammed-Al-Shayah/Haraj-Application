@@ -12,6 +12,11 @@ class SupportDetailBindings extends Bindings {
           rawUserId is int
               ? rawUserId
               : int.tryParse(rawUserId?.toString() ?? '');
+      final rawPartnerId = args['userId'];
+      final parsedPartnerId =
+          rawPartnerId is int
+              ? rawPartnerId
+              : int.tryParse(rawPartnerId?.toString() ?? '');
 
       return SupportDetailController(
         Get.find<SupportRepository>(),
@@ -19,6 +24,7 @@ class SupportDetailBindings extends Bindings {
         chatId: args['chatId'],
         chatName: args['chatName'],
         initialUserId: parsedUserId,
+        partnerId: parsedPartnerId,
       );
     });
   }

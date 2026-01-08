@@ -14,13 +14,11 @@ class SupportRepositoryImpl implements SupportRepository {
     required int page,
     int limit = 10,
     String? search,
-    int? userId,
   }) async {
     final result = await remote.fetchChats(
       page: page,
       limit: limit,
       search: search,
-      userId: userId,
     );
     return PaginatedResult<SupportChatEntity>(
       items: result.items,

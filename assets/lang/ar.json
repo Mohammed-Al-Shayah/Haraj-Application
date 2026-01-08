@@ -431,6 +431,8 @@
   "submit": "إرسال",
   "success_title": "نجاح",
   "support_title": "الدعم الفني",
+  "support_empty_title": "تحتاج مساعدة؟ أرسل تفاصيلك",
+  "support_empty_message": "اكتب مشكلتك أو أرفق صورًا/ملفات وسيرد عليك فريق الدعم الفني قريبًا.",
   "swich": "إيجار",
   "tap_to_upload": "اضغط للتحميل",
   "telephone_line": "خط هاتف",

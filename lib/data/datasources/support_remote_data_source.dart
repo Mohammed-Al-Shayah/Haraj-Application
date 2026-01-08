@@ -11,7 +11,6 @@ abstract class SupportRemoteDataSource {
     required int page,
     int limit,
     String? search,
-    int? userId,
   });
 
   Future<PaginatedResult<SupportMessageModel>> fetchMessages({
@@ -33,44 +32,57 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
   final ApiClient apiClient;
   final PaginationResponseParser _parser;
 
-  SupportRemoteDataSourceImpl(this.apiClient, {PaginationResponseParser? parser})
-      : _parser = parser ?? const PaginationResponseParser();
+  SupportRemoteDataSourceImpl(
+    this.apiClient, {
+    PaginationResponseParser? parser,
+  }) : _parser = parser ?? const PaginationResponseParser();
 
   @override
   Future<PaginatedResult<SupportChatModel>> fetchChats({
     required int page,
     int limit = 10,
     String? search,
-    int? userId,
   }) async {
     final query = {
       'page': page,
       'limit': limit,
       if (search != null && search.isNotEmpty) 'search': search,
-      if (userId != null) ...{'userId': userId, 'user_id': userId},
     };
 
     dynamic res;
     try {
-      res = await apiClient.get(ApiEndpoints.supportChatsPaginate, queryParams: query);
+      res = await apiClient.get(
+        ApiEndpoints.supportChatsPaginate,
+        queryParams: query,
+      );
     } on Object {
-      res = await apiClient.get(ApiEndpoints.supportChatsCustomerPaginate, queryParams: query);
+      res = await apiClient.get(
+        ApiEndpoints.supportChatsCustomerPaginate,
+        queryParams: query,
+      );
     }
 
     final list = _parser.extractList(res);
     final meta = _parser.extractMeta(res);
 
-    final items = list
-        .whereType<Map<String, dynamic>>()
-        .map((e) => SupportChatModel.fromMap(e))
-        .toList();
+    final items =
+        list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => SupportChatModel.fromMap(e))
+            .toList();
 
-    final hasMore = _parser.hasMore(meta: meta, page: page, limit: limit, fetched: items.length);
+    final hasMore = _parser.hasMore(
+      meta: meta,
+      page: page,
+      limit: limit,
+      fetched: items.length,
+    );
 
     return PaginatedResult<SupportChatModel>(
       items: items,
       page: page,
       hasMore: hasMore,
+      meta: meta,
     );
   }
 
@@ -85,27 +97,41 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
       queryParams: {'page': page, 'limit': limit},
     );
 
-    final list = _parser.extractList(res, nestedListKeys: const ['support_chat_messages']);
+    final list = _parser.extractList(
+      res,
+      nestedListKeys: const ['support_chat_messages'],
+    );
     final meta = _parser.extractMeta(res);
 
-    final items = list
-        .whereType<Map<String, dynamic>>()
-        .map((e) => SupportMessageModel.fromMap(e))
-        .toList()
-      ..sort((a, b) {
-        final at = a.createdAt;
-        final bt = b.createdAt;
-        if (at != null && bt != null) return at.compareTo(bt);
-        if (a.id != null && b.id != null) return a.id!.compareTo(b.id!);
-        return 0;
-      });
+    final items =
+        list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => SupportMessageModel.fromMap(e))
+            .toList()
+          ..sort((a, b) {
+            final at = a.createdAt;
+            final bt = b.createdAt;
+            if (at != null && bt != null) {
+              return bt.compareTo(at);
+            }
+            if (a.id != null && b.id != null) {
+              return b.id!.compareTo(a.id!);
+            }
+            return 0;
+          });
 
-    final hasMore = _parser.hasMore(meta: meta, page: page, limit: limit, fetched: items.length);
+    final hasMore = _parser.hasMore(
+      meta: meta,
+      page: page,
+      limit: limit,
+      fetched: items.length,
+    );
 
     return PaginatedResult<SupportMessageModel>(
       items: items,
       page: page,
       hasMore: hasMore,
+      meta: meta,
     );
   }
 
@@ -120,11 +146,8 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath),
       'chatId': chatId,
-      'chat_id': chatId,
-      'support_chat_id': chatId,
       'type': type,
       'userId': userId,
-      'user_id': userId,
       'is_admin': isAdmin ? 1 : 0,
     });
 

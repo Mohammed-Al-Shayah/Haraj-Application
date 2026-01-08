@@ -26,11 +26,11 @@ class SupportItem extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: theme.cardColor,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.gray700.withOpacity(0.35)),
+          border: Border.all(color: AppColors.gray200),
         ),
         child: Row(
           children: [
@@ -52,8 +52,8 @@ class SupportItem extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         CircleAvatar(
-          radius: 22,
-          backgroundColor: theme.colorScheme.surface,
+          radius: 20,
+          backgroundColor: AppColors.gray100,
           backgroundImage: hasImage ? NetworkImage(support.image!) : null,
           child:
               hasImage
@@ -90,7 +90,7 @@ class SupportItem extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 4),
@@ -99,7 +99,7 @@ class SupportItem extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.textTheme.bodySmall?.color?.withOpacity(0.75),
+            color: AppColors.gray500,
           ),
         ),
       ],
@@ -115,7 +115,7 @@ class SupportItem extends StatelessWidget {
         Text(
           _timeLabel(support.lastMessageAt),
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.textTheme.bodySmall?.color?.withOpacity(0.65),
+            color: AppColors.gray400,
           ),
         ),
         const SizedBox(height: 6),

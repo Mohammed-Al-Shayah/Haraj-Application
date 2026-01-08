@@ -27,6 +27,9 @@ class SocketEvents {
   static const supportMessage = 'supportMessage';
   static const supportChatMessage = 'supportChatMessage';
   static const newSupportChatMessage = 'newSupportChatMessage';
+  static const userOnline = 'userOnline';
+  static const userOffline = 'userOffline';
+  static const presenceUpdate = 'presenceUpdate';
 
   static const supportMessagesRead = 'supportMessagesRead';
 }
@@ -99,6 +102,10 @@ class SocketService {
     _socket?.on(event, handler);
   }
 
+  void onDisconnect(void Function(dynamic data) handler) {
+    _socket?.onDisconnect(handler);
+  }
+
   void off(String event, [void Function(dynamic data)? handler]) {
     if (handler != null) {
       _socket?.off(event, handler);
@@ -109,6 +116,20 @@ class SocketService {
 
   void emit(String event, Map<String, dynamic> data) {
     _socket?.emit(event, data);
+  }
+
+  void _attachPresenceHandler(
+    String event,
+    void Function(dynamic data) handler,
+  ) {
+    void wrapped(dynamic data) {
+      if (kDebugMode) {
+        print('[socket] $event => $data');
+      }
+      handler(data);
+    }
+
+    on(event, wrapped);
   }
 
   // -------------------------
@@ -185,16 +206,19 @@ class SocketService {
     });
   }
 
+  void joinSupportAdminsRoom() {
+    emit(SocketEvents.joinSupportChat, {
+      'room': 'admins',
+      'is_admin_room': true,
+    });
+  }
+
   void sendSupportMessage({
     required int userId,
     required Map<String, dynamic> message,
-    int? chatId, // kept for compatibility (even if backend ignores)
+    int? chatId,
   }) {
-    final payload = <String, dynamic>{
-      'userId': userId,
-      'message': message,
-      // intentionally NOT forcing chatId here unless backend requires it
-    };
+    final payload = <String, dynamic>{'userId': userId, 'message': message};
 
     if (kDebugMode) {
       print('[socket] emit sendSupportMessage => $payload');
@@ -229,6 +253,18 @@ class SocketService {
         print('[socket] supportMessagesRead => $data');
       }
     });
+  }
+
+  void onUserOnline(void Function(dynamic data) handler) {
+    _attachPresenceHandler(SocketEvents.userOnline, handler);
+  }
+
+  void onUserOffline(void Function(dynamic data) handler) {
+    _attachPresenceHandler(SocketEvents.userOffline, handler);
+  }
+
+  void onPresenceUpdate(void Function(dynamic data) handler) {
+    _attachPresenceHandler(SocketEvents.presenceUpdate, handler);
   }
 
   void sendSupportReadReceipt(int chatId, List<int> messageIds) {

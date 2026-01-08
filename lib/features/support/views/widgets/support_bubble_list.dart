@@ -20,11 +20,12 @@ class SupportBubbleList extends StatelessWidget {
       final itemCount = controller.messages.length + (showLoader ? 1 : 0);
 
       return ListView.builder(
+        reverse: true,
         controller: controller.scrollController,
         padding: const EdgeInsets.all(16),
         itemCount: itemCount,
         itemBuilder: (_, index) {
-          if (showLoader && index == 0) {
+          if (showLoader && index == itemCount - 1) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
               child: Center(
@@ -37,12 +38,10 @@ class SupportBubbleList extends StatelessWidget {
             );
           }
 
-          final raw = controller.messages[showLoader ? index - 1 : index];
-
+          final raw = controller.messages[index];
           final msg = raw.toMessageEntity(
             currentUserId: controller.currentUserId,
           );
-
           return ChatBubble(message: msg);
         },
       );

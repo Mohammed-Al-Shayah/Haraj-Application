@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:haraj_adan_app/domain/entities/message_entity.dart';
+import 'package:haraj_adan_app/core/theme/color.dart';
 
 class ChatBubble extends StatelessWidget {
   final MessageEntity message;
@@ -10,6 +13,9 @@ class ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isMe = message.isSender;
+    final textColor = isMe ? AppColors.white : AppColors.gray950;
+    final timeColor = isMe ? AppColors.white75 : AppColors.gray500;
+    final maxWidth = MediaQuery.of(context).size.width * 0.75;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -20,45 +26,52 @@ class ChatBubble extends StatelessWidget {
         children: [
           if (!isMe) const SizedBox(width: 8),
           Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: isMe
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: isMe
-                    ? null
-                    : Border.all(
-                        color:
-                            theme.colorScheme.outlineVariant.withOpacity(0.35),
-                      ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if ((message.type ?? 'text') != 'text')
-                    _attachment(theme, message, isMe),
-                  if (message.text.trim().isNotEmpty)
-                    Text(
-                      message.text,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isMe ? Colors.white : null,
-                        height: 1.25,
-                      ),
+            child: IntrinsicWidth(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isMe ? AppColors.primary : AppColors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isMe ? AppColors.primary : AppColors.gray200,
                     ),
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Text(
-                      _timeLabel(message.createdAt),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: (isMe ? Colors.white : null)?.withOpacity(0.75) ??
-                            theme.textTheme.labelSmall?.color?.withOpacity(0.65),
-                      ),
-                    ),
+                    boxShadow: [
+                      if (!isMe)
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                    ],
                   ),
-                ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if ((message.type ?? 'text') != 'text')
+                        _attachment(theme, message, isMe),
+                      if (message.text.trim().isNotEmpty)
+                        Text(
+                          message.text,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: textColor,
+                            height: 1.25,
+                          ),
+                        ),
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.bottomRight,
+                        child: Text(
+                          _timeLabel(message.createdAt),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: timeColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -69,13 +82,55 @@ class ChatBubble extends StatelessWidget {
   }
 
   Widget _attachment(ThemeData theme, MessageEntity m, bool isMe) {
-    final label = (m.type == 'image')
-        ? '📷 Image'
-        : (m.type == 'file')
-            ? '📎 File'
-            : '📦 Attachment';
+    final isImage = (m.type ?? '').toLowerCase() == 'image';
+    final hasUrl = (m.mediaUrl?.trim().isNotEmpty ?? false);
+    final hasLocal = (m.localFilePath?.trim().isNotEmpty ?? false);
 
-    final name = (m.mediaUrl?.trim().isNotEmpty ?? false)
+    if (isImage && (hasUrl || hasLocal)) {
+      final Widget image;
+      if (hasLocal) {
+        image = Image.file(
+          File(m.localFilePath!),
+          fit: BoxFit.cover,
+        );
+      } else {
+        image = Image.network(
+          m.mediaUrl!,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, progress) => progress == null
+              ? child
+              : const SizedBox(
+                  height: 120,
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                ),
+          errorBuilder: (context, error, stack) => const SizedBox(
+            height: 120,
+            child: Center(child: Icon(Icons.broken_image)),
+          ),
+        );
+      }
+
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 200),
+          child: AspectRatio(
+            aspectRatio: 4 / 3,
+            child: image,
+          ),
+        ),
+      );
+    }
+
+    final typeValue = (m.type ?? '').toLowerCase();
+    final url = m.mediaUrl?.toLowerCase() ?? '';
+    final localPath = m.localFilePath?.toLowerCase() ?? '';
+    final isPdf = typeValue == 'pdf' ||
+        url.endsWith('.pdf') ||
+        localPath.endsWith('.pdf');
+
+    const label = 'Attachment';
+    final name = hasUrl
         ? (m.mediaUrl!.split('/').last)
         : (m.localFilePath?.split('/').last ?? label);
 
@@ -92,23 +147,43 @@ class ChatBubble extends StatelessWidget {
               .withOpacity(0.25),
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.attach_file,
-              size: 18, color: isMe ? Colors.white : null),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isPdf ? Icons.picture_as_pdf : Icons.attach_file,
+                size: 18,
                 color: isMe ? Colors.white : null,
               ),
-            ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: isMe ? Colors.white : null,
+                  ),
+                ),
+              ),
+            ],
           ),
+          if (isPdf)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'PDF Document',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isMe
+                      ? Colors.white70
+                      : theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                ),
+              ),
+            ),
         ],
       ),
     );

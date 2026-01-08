@@ -121,7 +121,14 @@ class MessageModel extends MessageEntity {
       return null;
     }
 
-    // Some backends send only the filename in `message` for media.
+    String resolveUrl(String path) {
+      if (path.startsWith('http')) return path;
+      final base = ApiEndpoints.imageUrl;
+      final normalizedBase = base.endsWith('/') ? base : '$base/';
+      final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+      return '$normalizedBase$normalizedPath';
+    }
+
     if ((mediaUrl == null || mediaUrl.isEmpty) && extractedText.isNotEmpty) {
       final inferred = inferTypeFromPath(extractedText);
       if (inferred != null &&
@@ -161,6 +168,16 @@ class MessageModel extends MessageEntity {
           filename.startsWith('/') ? filename.substring(1) : filename;
       mediaUrl = '$normalizedBase$normalizedPath';
       extractedText = '';
+    }
+
+    if (mediaUrl != null && mediaUrl.isNotEmpty) {
+      if (type == null || type.isEmpty || type.toLowerCase() == 'text') {
+        final inferred = inferTypeFromPath(mediaUrl);
+        if (inferred != null) type = inferred;
+      }
+      if (!mediaUrl.startsWith('http')) {
+        mediaUrl = resolveUrl(mediaUrl);
+      }
     }
 
     final textValue =

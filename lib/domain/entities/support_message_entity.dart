@@ -22,23 +22,18 @@ class SupportMessageEntity {
   });
 }
 
+extension SupportMessageEntityMapper on SupportMessageEntity {
+  MessageEntity toMessageEntity({int? currentUserId}) {
+    final isMe =
+        senderId != null && currentUserId != null && senderId == currentUserId;
 
-extension SupportMessageMapper on SupportMessageEntity {
-  MessageEntity toMessageEntity({
-    required int? currentUserId,
-  }) {
     return MessageEntity(
       id: id,
-      senderId: senderId,
       text: message,
-      // بما أن رسالة الدعم:
-      // isAdmin == true  => الرسالة من الدعم
-      // isAdmin == false => من المستخدم
-      isSender: !isAdmin && senderId == currentUserId,
       type: type,
-      isRead: isRead,
-      createdAt: createdAt,
       mediaUrl: mediaUrl,
+      createdAt: createdAt,
+      isSender: isMe,
       localFilePath: null,
     );
   }

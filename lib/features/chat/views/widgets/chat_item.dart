@@ -26,11 +26,11 @@ class ChatItem extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: theme.cardColor,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.gray600.withOpacity(0.35)),
+          border: Border.all(color: AppColors.gray200),
         ),
         child: Row(
           children: [
@@ -52,8 +52,8 @@ class ChatItem extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         CircleAvatar(
-          radius: 22,
-          backgroundColor: theme.colorScheme.surface,
+          radius: 20,
+          backgroundColor: AppColors.gray100,
           backgroundImage: hasImage ? NetworkImage(chat.image) : null,
           child:
               hasImage
@@ -95,7 +95,7 @@ class ChatItem extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 4),
@@ -104,7 +104,7 @@ class ChatItem extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.textTheme.bodySmall?.color?.withOpacity(0.75),
+            color: AppColors.gray500,
           ),
         ),
       ],
@@ -120,7 +120,7 @@ class ChatItem extends StatelessWidget {
         Text(
           chat.time,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.textTheme.bodySmall?.color?.withOpacity(0.65),
+            color: AppColors.gray400,
           ),
         ),
         const SizedBox(height: 6),

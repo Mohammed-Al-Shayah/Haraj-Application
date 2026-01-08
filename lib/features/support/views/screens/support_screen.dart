@@ -80,26 +80,44 @@ class _SupportScreenState extends State<SupportScreen> {
                   },
                   child: RefreshIndicator(
                     onRefresh: () => controller.loadChats(reset: true),
-                    child: ListView.builder(
-                      itemCount:
-                          controller.chats.length +
-                          (controller.isLoadingMore.value ? 1 : 0),
-                      itemBuilder: (_, index) {
-                        if (index >= controller.chats.length) {
-                          return const Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: Center(
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                    child:
+                        controller.chats.isEmpty
+                            ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
                               ),
+                              children: [
+                                SizedBox(
+                                  height: 200,
+                                  child: _buildEmptyState(context),
+                                ),
+                              ],
+                            )
+                            : ListView.builder(
+                              itemCount:
+                                  controller.chats.length +
+                                  (controller.isLoadingMore.value ? 1 : 0),
+                              itemBuilder: (_, index) {
+                                if (index >= controller.chats.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(12.0),
+                                    child: Center(
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return SupportItem(
+                                  support: controller.chats[index],
+                                );
+                              },
                             ),
-                          );
-                        }
-                        return SupportItem(support: controller.chats[index]);
-                      },
-                    ),
                   ),
                 ),
               ),
@@ -107,6 +125,33 @@ class _SupportScreenState extends State<SupportScreen> {
           );
         }),
       ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(Icons.support_agent, size: 54, color: theme.colorScheme.primary),
+        const SizedBox(height: 20),
+        Text(
+          AppStrings.supportEmptyTitle,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          AppStrings.supportEmptyMessage,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.textTheme.bodySmall?.color,
+          ),
+        ),
+      ],
     );
   }
 }

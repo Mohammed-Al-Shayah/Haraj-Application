@@ -430,6 +430,8 @@
   "submit": "Submit",
   "success_title": "Success",
   "support_title": "Technical Support",
+  "support_empty_title": "Need help? Send your details",
+  "support_empty_message": "Describe your issue or attach photos/files and our technical team will respond shortly.",
   "switch": "Rent",
   "tap_to_upload": "Tap to upload",
   "telephone_line": "Telephone line",

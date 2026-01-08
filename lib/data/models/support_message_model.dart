@@ -35,28 +35,9 @@ class SupportMessageModel extends SupportMessageEntity {
     bool hasKnownExtension(String value) {
       final lower = value.toLowerCase();
       const exts = [
-        '.png',
-        '.jpg',
-        '.jpeg',
-        '.heic',
-        '.webp',
-        '.gif',
-        '.pdf',
-        '.doc',
-        '.docx',
-        '.xls',
-        '.xlsx',
-        '.ppt',
-        '.pptx',
-        '.zip',
-        '.rar',
-        '.mp3',
-        '.wav',
-        '.aac',
-        '.mp4',
-        '.mov',
-        '.avi',
-        '.mkv',
+        '.png', '.jpg', '.jpeg', '.heic', '.webp', '.gif',
+        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+        '.zip', '.rar', '.mp3', '.wav', '.aac', '.mp4', '.mov', '.avi', '.mkv',
       ];
       return exts.any((ext) => lower.endsWith(ext));
     }
@@ -140,7 +121,7 @@ class SupportMessageModel extends SupportMessageEntity {
       senderId: senderId,
       isAdmin: isAdmin,
       isRead: true,
-      createdAt: DateTime.now(),
+      createdAt: DateTime.now(), // ✅ مهم
     );
   }
 }

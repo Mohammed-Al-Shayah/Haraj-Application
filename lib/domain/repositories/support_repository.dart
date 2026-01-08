@@ -7,7 +7,6 @@ abstract class SupportRepository {
     required int page,
     int limit,
     String? search,
-    int? userId,
   });
 
   Future<PaginatedResult<SupportMessageEntity>> getMessages({

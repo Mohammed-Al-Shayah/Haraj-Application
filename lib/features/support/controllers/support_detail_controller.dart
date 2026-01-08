@@ -1,11 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
+import 'package:haraj_adan_app/core/network/error/error_model.dart';
 import 'package:haraj_adan_app/core/network/socket_service.dart';
+import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/core/storage/user_storage.dart';
+import 'package:haraj_adan_app/core/theme/strings.dart';
+import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:haraj_adan_app/data/models/support_message_model.dart';
+import 'package:haraj_adan_app/domain/entities/paginated_result.dart';
 import 'package:haraj_adan_app/domain/entities/support_message_entity.dart';
 import 'package:haraj_adan_app/domain/repositories/support_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,6 +24,7 @@ class SupportDetailController extends GetxController {
   final SocketService? initialSocket;
 
   final int? initialUserId;
+  final int? partnerId;
 
   SupportDetailController(
     this.repository,
@@ -24,10 +32,11 @@ class SupportDetailController extends GetxController {
     required this.chatId,
     required this.chatName,
     this.initialUserId,
+    this.partnerId,
   });
 
-
   final messages = <SupportMessageEntity>[].obs;
+  final partnerPresence = Rxn<PresenceStatus>();
 
   final isLoading = true.obs;
   final isLoadingMore = false.obs;
@@ -38,28 +47,42 @@ class SupportDetailController extends GetxController {
 
   SocketService? socket;
 
-  int _page = 1;
   static const int _pageSize = 20;
 
   int? _currentUserId;
   int? get currentUserId => _currentUserId;
+
   String? _token;
 
   bool _triedAltSocketPath = false;
   bool _listenersAttached = false;
+
   Timer? _syncTimer;
   bool _isSyncing = false;
   bool _pendingSyncAfterLoad = false;
+  bool _isHandlingUnauthorized = false;
+
+  bool _isAdminUser = false;
+  bool _socketReady = false;
+  int _nextOlderPage = 1;
+  _PagePayload? _latestPagePayload;
+
+  bool _userScrolledUp = false;
+
+  DateTime? _lastLoadMoreAt;
+  static const Duration _loadMoreCooldown = Duration(milliseconds: 0);
 
   void _log(String message, [dynamic data]) {
-    // ignore: avoid_print
-    print('[SupportDetail] $message${data != null ? ' => $data' : ''}');
+    if (kDebugMode) {
+      print('[SupportDetail] $message${data != null ? ' => $data' : ''}');
+    }
   }
 
   @override
   void onInit() {
     super.onInit();
     scrollController.addListener(_onScroll);
+    update();
     _init();
   }
 
@@ -72,28 +95,52 @@ class SupportDetailController extends GetxController {
     super.onClose();
   }
 
+  // ---------------------------
+  // Infinite scroll up
   void _onScroll() {
     if (!scrollController.hasClients) return;
     if (isLoading.value || isLoadingMore.value) return;
+    if (!hasMore.value) return;
 
-    if (scrollController.position.pixels <=
-        scrollController.position.minScrollExtent + 120) {
-      loadMessages();
+    final direction = scrollController.position.userScrollDirection;
+
+    if (direction == ScrollDirection.forward) {
+      _userScrolledUp = true;
     }
+    if (!_userScrolledUp) return;
+
+    final isNearTop =
+        scrollController.position.pixels <=
+        scrollController.position.minScrollExtent + 120;
+
+    if (!isNearTop) return;
+
+    final now = DateTime.now();
+    if (_lastLoadMoreAt != null &&
+        now.difference(_lastLoadMoreAt!) < _loadMoreCooldown) {
+      return;
+    }
+    _lastLoadMoreAt = now;
+
+    loadMessages();
+    update();
   }
 
   Future<void> _init() async {
     _currentUserId = initialUserId ?? await getUserIdFromPrefs();
     await _loadToken();
+
     await loadMessages(reset: true);
     await _initSocket();
     _startSyncTimer();
+
     update();
   }
 
   Future<void> _loadToken() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('_accessToken') ?? prefs.getString('_loginToken');
+    _isAdminUser = _extractAdminFlag(prefs);
   }
 
   Future<void> _ensureToken() async {
@@ -104,50 +151,115 @@ class SupportDetailController extends GetxController {
   // ---------------------------
   Future<void> loadMessages({bool reset = false}) async {
     if (reset) {
-      _page = 1;
-      hasMore.value = true;
-    } else {
-      if (!hasMore.value || isLoadingMore.value) return;
+      _userScrolledUp = false;
+      _nextOlderPage = 1;
+      _latestPagePayload = null;
+      await _loadLatestPage();
+      return;
     }
 
-    if (reset) {
-      isLoading.value = true;
-    } else {
-      isLoadingMore.value = true;
-    }
+    if (!hasMore.value || isLoadingMore.value) return;
 
+    isLoadingMore.value = true;
     double? distanceFromBottom;
-    if (!reset && scrollController.hasClients) {
+    if (scrollController.hasClients) {
       final pos = scrollController.position;
       distanceFromBottom = pos.maxScrollExtent - pos.pixels;
     }
 
-    final result = await repository.getMessages(
-      chatId: chatId,
-      page: _page,
-      limit: _pageSize,
-    );
-
-    if (reset) {
-      messages.assignAll(result.items);
-      _scrollToBottom();
-    } else {
-      messages.insertAll(0, result.items);
+    try {
+      final result = await _fetchPage(_nextOlderPage);
+      final ordered = _sortedMessages(result.items);
+      for (final msg in ordered) {
+        _insertMessageInOrder(msg);
+      }
       _restoreScroll(distanceFromBottom);
+
+      _nextOlderPage -= 1;
+      hasMore.value = _nextOlderPage >= 1;
+    } on ErrorModel catch (error) {
+      _log('loadMessages error', error);
+      _handleError(error, title: AppStrings.supportTitle);
+    } catch (error, stack) {
+      _log('loadMessages unexpected', {'error': error, 'stack': stack});
+      AppSnack.error(AppStrings.errorTitle, 'Unable to load messages');
+    } finally {
+      isLoadingMore.value = false;
     }
 
-    hasMore.value = result.hasMore;
-    _page = result.page + 1;
-
-    isLoading.value = false;
-    isLoadingMore.value = false;
-
-    _sendReadReceiptsIfNeeded();
-    update();
     if (_pendingSyncAfterLoad && !isLoading.value && !isLoadingMore.value) {
       _pendingSyncAfterLoad = false;
       _syncLatest();
     }
+  }
+
+  Future<void> _loadLatestPage() async {
+    isLoading.value = true;
+    try {
+      _latestPagePayload = null;
+      final payload = await _resolveLatestPagePayload();
+      messages.assignAll(_sortedMessages(payload.result.items));
+      _scrollToBottom(force: true);
+      _nextOlderPage = payload.page - 1;
+      hasMore.value = _nextOlderPage >= 1;
+    } on ErrorModel catch (error) {
+      _log('loadLatestPage error', error);
+      _handleError(error, title: AppStrings.supportTitle);
+    } catch (error, stack) {
+      _log('loadLatestPage unexpected', {'error': error, 'stack': stack});
+      AppSnack.error(AppStrings.errorTitle, 'Unable to load messages');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<PaginatedResult<SupportMessageEntity>> _fetchPage(int page) {
+    return repository.getMessages(chatId: chatId, page: page, limit: _pageSize);
+  }
+
+  Future<_PagePayload> _resolveLatestPagePayload() async {
+    if (_latestPagePayload != null) return _latestPagePayload!;
+
+    int cursor = 1;
+    PaginatedResult<SupportMessageEntity>? candidate;
+
+    while (true) {
+      final result = await _fetchPage(cursor);
+      if (result.items.isEmpty) break;
+      candidate = result;
+      if (result.items.length < _pageSize) {
+        _latestPagePayload = _PagePayload(cursor, result);
+        return _latestPagePayload!;
+      }
+      cursor *= 2;
+    }
+
+    if (candidate == null) {
+      final first = await _fetchPage(1);
+      _latestPagePayload = _PagePayload(1, first);
+      return _latestPagePayload!;
+    }
+
+    int low = cursor ~/ 2;
+    int high = cursor;
+
+    while (low + 1 < high) {
+      final mid = (low + high) ~/ 2;
+      final result = await _fetchPage(mid);
+      if (result.items.isEmpty) {
+        high = mid;
+      } else {
+        candidate = result;
+        if (result.items.length < _pageSize) {
+          _latestPagePayload = _PagePayload(mid, result);
+          return _latestPagePayload!;
+        }
+        low = mid;
+      }
+    }
+
+    _latestPagePayload = _PagePayload(low, candidate ?? await _fetchPage(low));
+    return _latestPagePayload!;
   }
 
   // ---------------------------
@@ -169,6 +281,7 @@ class SupportDetailController extends GetxController {
 
     _registerSocketHandlers();
     _connectSocket(userId);
+    update();
   }
 
   void _connectSocket(int userId, {VoidCallback? onReady}) {
@@ -178,7 +291,10 @@ class SupportDetailController extends GetxController {
       _log('join support rooms', {'userId': userId, 'chatId': chatId});
       socket?.joinRoom(userId);
       socket?.joinSupportRoom(chatId);
+      if (_isAdminUser) socket?.joinSupportAdminsRoom();
+
       _sendReadReceiptsIfNeeded();
+      _socketReady = true;
       onReady?.call();
     }
 
@@ -188,9 +304,12 @@ class SupportDetailController extends GetxController {
         if ((_token ?? '').isNotEmpty) 'token': _token,
       };
       socket?.connect(query: query, onConnect: joinRooms);
+      update();
     } else {
       joinRooms();
+      update();
     }
+    update();
   }
 
   void _retrySocket() {
@@ -212,6 +331,7 @@ class SupportDetailController extends GetxController {
 
     _registerSocketHandlers();
     _connectSocket(userId);
+    update();
   }
 
   void _registerSocketHandlers() {
@@ -230,9 +350,22 @@ class SupportDetailController extends GetxController {
       _retrySocket();
     });
 
+    socket?.onDisconnect((_) {
+      _socketReady = false;
+    });
+
     socket?.onNewSupportMessage(_handleIncomingSupportMessage);
 
+    socket?.onUserOnline(
+      (data) => _handlePresenceStatus(data, PresenceStatus.online),
+    );
+    socket?.onUserOffline(
+      (data) => _handlePresenceStatus(data, PresenceStatus.offline),
+    );
+    socket?.onPresenceUpdate(_handlePresenceUpdate);
+
     socket?.onSupportMessagesRead(_handleSupportMessagesRead);
+    update();
   }
 
   // ---------------------------
@@ -245,23 +378,25 @@ class SupportDetailController extends GetxController {
 
     await _ensureToken();
 
-    // UI pending
     final pending = SupportMessageModel.pendingText(
       text: trimmed,
       senderId: userId,
-      isAdmin: false,
+      isAdmin: _isAdminUser,
     );
 
-    messages.add(pending);
-    _scrollToBottom();
+    _insertMessageInOrder(pending);
+    messages.refresh();
+    update();
+    _scrollToBottom(force: true);
 
     _sendViaSocket(userId: userId, text: trimmed);
+    update();
   }
 
   Future<void> uploadMedia({
     required String filePath,
     required String type,
-    bool isAdmin = false,
+    bool? isAdmin,
   }) async {
     final userId = _currentUserId ?? await getUserIdFromPrefs();
     _currentUserId = userId;
@@ -269,21 +404,33 @@ class SupportDetailController extends GetxController {
 
     isSending.value = true;
     try {
+      final effectiveAdmin = isAdmin ?? _isAdminUser;
+
       final uploaded = await repository.uploadMedia(
         chatId: chatId,
         userId: userId,
         type: type,
         filePath: filePath,
-        isAdmin: isAdmin,
+        isAdmin: effectiveAdmin,
       );
 
       if (uploaded != null) {
-        messages.add(uploaded);
-        _scrollToBottom();
+        _insertMessageInOrder(uploaded);
+        messages.refresh();
+        update();
+        _scrollToBottom(force: true);
         _sendReadReceiptsIfNeeded();
+        update();
       }
+    } on ErrorModel catch (error) {
+      _log('uploadMedia error', error);
+      _handleError(error, title: AppStrings.supportTitle);
+    } catch (error, stack) {
+      _log('uploadMedia unexpected', {'error': error, 'stack': stack});
+      AppSnack.error(AppStrings.errorTitle, 'Unable to upload media');
     } finally {
       isSending.value = false;
+      update();
     }
     update();
   }
@@ -306,7 +453,7 @@ class SupportDetailController extends GetxController {
           'type': 'text',
           'message': text,
           'sender_id': userId,
-          'is_admin': false,
+          'is_admin': _isAdminUser,
         };
 
         _log('emit sendSupportMessage', payload);
@@ -320,6 +467,7 @@ class SupportDetailController extends GetxController {
         _sendReadReceiptsIfNeeded();
       },
     );
+    update();
   }
 
   // ---------------------------
@@ -359,31 +507,75 @@ class SupportDetailController extends GetxController {
       if (pendingIndex != -1) {
         messages[pendingIndex] = message;
         messages.refresh();
-        _scrollToBottom();
+        update();
+        _scrollToBottom(force: true);
         _sendReadReceiptsIfNeeded();
         return;
       }
+      update();
     }
 
-    messages.add(message);
+    _insertMessageInOrder(message);
+    messages.refresh();
+    update();
     _scrollToBottom();
     _sendReadReceiptsIfNeeded();
+    update();
   }
 
+  void _handlePresenceStatus(dynamic data, PresenceStatus status) {
+    final payload = _coerceToMap(data);
+    if (payload == null) return;
+
+    final userId = _parseInt(
+      payload['userId'] ?? payload['user_id'] ?? payload['id'],
+    );
+    if (!_shouldUpdatePresence(userId)) return;
+
+    partnerPresence.value = status;
+    update();
+  }
+
+  void _handlePresenceUpdate(dynamic data) {
+    final payload = _coerceToMap(data);
+    if (payload == null) return;
+
+    final userId = _parseInt(
+      payload['userId'] ?? payload['user_id'] ?? payload['id'],
+    );
+    if (!_shouldUpdatePresence(userId)) return;
+
+    final onlineValue =
+        payload['isOnline'] ??
+        payload['online'] ??
+        payload['status'] ??
+        payload['is_online'];
+
+    final isOnline = _parseBool(onlineValue);
+    partnerPresence.value =
+        isOnline ? PresenceStatus.online : PresenceStatus.offline;
+    update();
+  }
+
+  // ---------------------------
   void _startSyncTimer() {
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(
       const Duration(seconds: 10),
       (_) => _syncLatest(),
     );
+    update();
   }
 
   Future<void> _syncLatest() async {
     if (_isSyncing) return;
+    if (socket?.isConnected == true || _socketReady) return;
+
     if (isLoading.value || isLoadingMore.value) {
       _pendingSyncAfterLoad = true;
       return;
     }
+
     final userId = _currentUserId ?? await getUserIdFromPrefs();
     _currentUserId = userId;
     if (userId == null) return;
@@ -396,32 +588,32 @@ class SupportDetailController extends GetxController {
         limit: _pageSize,
       );
       _mergeLatest(result.items);
+    } on ErrorModel catch (error) {
+      _log('syncLatest error', error);
+      _handleError(error, title: AppStrings.supportTitle);
+    } catch (error, stack) {
+      _log('syncLatest unexpected', {'error': error, 'stack': stack});
     } finally {
       _isSyncing = false;
     }
+    update();
   }
 
   void _mergeLatest(List<SupportMessageEntity> latest) {
     if (latest.isEmpty) return;
+
     final ordered = _normalizeLatestOrder(latest);
     final existingIds =
-        messages
-            .where((m) => m.id != null)
-            .map((m) => m.id!)
-            .toSet();
+        messages.where((m) => m.id != null).map((m) => m.id!).toSet();
 
     final userId = _currentUserId;
     var changed = false;
 
     for (final incoming in ordered) {
       final incomingId = incoming.id;
-      if (incomingId != null && existingIds.contains(incomingId)) {
-        continue;
-      }
+      if (incomingId != null && existingIds.contains(incomingId)) continue;
 
-      if (userId != null &&
-          incoming.senderId == userId &&
-          incomingId != null) {
+      if (userId != null && incoming.senderId == userId && incomingId != null) {
         final pendingIndex = messages.indexWhere(
           (m) =>
               m.id == null &&
@@ -434,20 +626,23 @@ class SupportDetailController extends GetxController {
           changed = true;
           continue;
         }
+        update();
       }
 
-      messages.add(incoming);
-      if (incomingId != null) {
-        existingIds.add(incomingId);
-      }
+      _insertMessageInOrder(incoming);
+      if (incomingId != null) existingIds.add(incomingId);
       changed = true;
+      update();
     }
 
     if (changed) {
       messages.refresh();
+      update();
       _scrollToBottom();
       _sendReadReceiptsIfNeeded();
+      update();
     }
+    update();
   }
 
   List<SupportMessageEntity> _normalizeLatestOrder(
@@ -459,6 +654,7 @@ class SupportDetailController extends GetxController {
     if (first != null && last != null && first.isAfter(last)) {
       return latest.reversed.toList();
     }
+    update();
     return latest;
   }
 
@@ -490,6 +686,9 @@ class SupportDetailController extends GetxController {
               ),
             )
             .toList();
+
+    messages.refresh();
+    update();
   }
 
   void _sendReadReceiptsIfNeeded() {
@@ -510,24 +709,25 @@ class SupportDetailController extends GetxController {
     if (unreadIds.isEmpty) return;
 
     socket?.sendSupportReadReceipt(chatId, unreadIds);
+    update();
   }
 
+  // ---------------------------
   bool isFromCurrentUser(SupportMessageEntity msg) {
     final id = _currentUserId;
-    if (id == null) return !msg.isAdmin;
+    if (id == null) return false;
+    update();
     return msg.senderId == id;
   }
 
   // ---------------------------
-  void _scrollToBottom() {
+
+  void _scrollToBottom({bool force = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!scrollController.hasClients) return;
-      scrollController.animateTo(
-        scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
+      scrollController.jumpTo(scrollController.position.minScrollExtent);
     });
+    update();
   }
 
   void _restoreScroll(double? distanceFromBottom) {
@@ -541,11 +741,116 @@ class SupportDetailController extends GetxController {
       );
       scrollController.jumpTo(target);
     });
+    update();
   }
 
+  // ---------------------------
+  List<SupportMessageEntity> _sortedMessages(List<SupportMessageEntity> items) {
+    final copy = List<SupportMessageEntity>.from(items);
+    copy.sort((a, b) => _compareMessages(b, a));
+    update();
+    return copy;
+  }
+
+  void _insertMessageInOrder(SupportMessageEntity message) {
+    for (var index = 0; index < messages.length; index++) {
+      if (_compareMessages(message, messages[index]) > 0) {
+        messages.insert(index, message);
+        return;
+      }
+    }
+    messages.add(message);
+    update();
+  }
+
+  int _compareMessages(SupportMessageEntity a, SupportMessageEntity b) {
+    final primary = _messageTimestamp(a).compareTo(_messageTimestamp(b));
+    if (primary != 0) return primary;
+    final aId = a.id ?? 0;
+    final bId = b.id ?? 0;
+    return aId.compareTo(bId);
+  }
+
+  DateTime _messageTimestamp(SupportMessageEntity msg) {
+    if (msg.createdAt != null) return msg.createdAt!;
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  // ---------------------------
+  void _handleError(ErrorModel error, {String? title}) {
+    final header = title ?? AppStrings.errorTitle;
+    if (_isUnauthorized(error)) {
+      AppSnack.error(header, AppStrings.loginRequired);
+      _handleUnauthorized();
+      return;
+    }
+    AppSnack.error(header, error.message);
+  }
+
+  bool _isUnauthorized(ErrorModel error) {
+    final status = error.status.toLowerCase();
+    final message = error.message.toLowerCase();
+    return status.contains('401') ||
+        status.contains('unauthor') ||
+        message.contains('401') ||
+        message.contains('unauthor') ||
+        message.contains('expired');
+  }
+
+  Future<void> _handleUnauthorized() async {
+    if (_isHandlingUnauthorized) return;
+    _isHandlingUnauthorized = true;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('_accessToken');
+    await prefs.remove('_loginToken');
+    await prefs.remove('_userData');
+
+    Get.offAllNamed(Routes.loginScreen);
+    update();
+  }
+
+  // ---------------------------
   int? _parseInt(dynamic value) {
     if (value is num) return value.toInt();
     return int.tryParse(value?.toString() ?? '');
+  }
+
+  bool _shouldUpdatePresence(int? userId) {
+    if (partnerId == null) return false;
+    if (userId == null) return false;
+    return userId == partnerId;
+  }
+
+  bool _parseBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final lower = value.toLowerCase();
+      return lower == 'true' ||
+          lower == '1' ||
+          lower == 'online' ||
+          lower == 'available';
+    }
+    return false;
+  }
+
+  bool _extractAdminFlag(SharedPreferences prefs) {
+    final userJson = prefs.getString('_userData');
+    if (userJson == null) return false;
+    try {
+      final decoded = jsonDecode(userJson);
+      if (decoded is Map<String, dynamic>) {
+        final candidate =
+            decoded['is_admin'] ??
+            decoded['isAdmin'] ??
+            decoded['admin'] ??
+            decoded['role'] ??
+            decoded['user_type'];
+        if (candidate != null) return _parseBool(candidate);
+      }
+    } catch (_) {}
+    return false;
   }
 
   Map<String, dynamic>? _coerceToMap(dynamic data) {
@@ -592,6 +897,7 @@ class SupportDetailController extends GetxController {
           chat['id'] ?? chat['support_chat_id'] ?? chat['chat_id'],
         );
       }
+      update();
     }
 
     final rawNested = data['message'] ?? data['data'] ?? data['payload'];
@@ -599,6 +905,7 @@ class SupportDetailController extends GetxController {
         rawNested is Map<String, dynamic>
             ? Map<String, dynamic>.from(rawNested)
             : null;
+
     final result = nested ?? Map<String, dynamic>.from(data);
 
     if (chatIdValue != null) {
@@ -608,7 +915,6 @@ class SupportDetailController extends GetxController {
       result.putIfAbsent('chatId', () => chatIdValue);
     }
 
-    // normalize common fields
     for (final key in [
       'sender_id',
       'senderId',
@@ -624,4 +930,13 @@ class SupportDetailController extends GetxController {
 
     return result;
   }
+}
+
+enum PresenceStatus { online, offline }
+
+class _PagePayload {
+  final int page;
+  final PaginatedResult<SupportMessageEntity> result;
+
+  _PagePayload(this.page, this.result);
 }
