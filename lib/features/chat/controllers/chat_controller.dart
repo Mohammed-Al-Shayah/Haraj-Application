@@ -22,6 +22,7 @@ class ChatController extends GetxController {
 
   final searchController = TextEditingController();
   final unreadTotal = 0.obs;
+  final notificationBadge = 0.obs;
 
   int _page = 1;
   static const int _pageSize = 10;
@@ -142,8 +143,15 @@ class ChatController extends GetxController {
     unreadTotal.value = chats.fold<int>(0, (sum, c) => sum + c.unreadCount);
   }
 
-  void markChatRead(int chatId, {required String lastMessage, required String lastTime}) {
-    _readMarkers[chatId] = _ReadMarker(lastMessage: lastMessage, lastTime: lastTime);
+  void markChatRead(
+    int chatId, {
+    required String lastMessage,
+    required String lastTime,
+  }) {
+    _readMarkers[chatId] = _ReadMarker(
+      lastMessage: lastMessage,
+      lastTime: lastTime,
+    );
     _markersDirty = true;
     unawaited(_saveMarkers());
 
@@ -152,7 +160,8 @@ class ChatController extends GetxController {
 
     final current = chats[idx];
     final updated = current.copyWith(
-      message: lastMessage.trim().isNotEmpty ? lastMessage.trim() : current.message,
+      message:
+          lastMessage.trim().isNotEmpty ? lastMessage.trim() : current.message,
       time: lastTime.trim().isNotEmpty ? lastTime.trim() : current.time,
       unreadCount: 0,
     );
@@ -186,7 +195,8 @@ class ChatController extends GetxController {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      _token = prefs.getString('_accessToken') ?? prefs.getString('_loginToken');
+      _token =
+          prefs.getString('_accessToken') ?? prefs.getString('_loginToken');
 
       final uri = Uri.parse(ApiEndpoints.baseUrl);
       _baseSocketUrl = '${uri.scheme}://${uri.host}';
@@ -221,6 +231,7 @@ class ChatController extends GetxController {
 
     void joinRooms() {
       socket!.joinRoom(userId);
+      socket!.countChatNotifications(userId);
     }
 
     if (socket!.isConnected != true) {
@@ -254,23 +265,50 @@ class ChatController extends GetxController {
   }
 
   void _handleNotificationCount(dynamic data) {
-    int? parseInt(dynamic value) {
-      if (value is num) return value.toInt();
-      return int.tryParse(value?.toString() ?? '');
+    final payload = _coerceToMap(data);
+    if (payload == null) return;
+
+    final map = payload.map((k, v) => MapEntry(k.toString(), v));
+    final chatId = _parseInt(map['chat_id'] ?? map['chatId']);
+    final count = _parseInt(map['count'] ?? map['unread']);
+    final changed = _parseBool(map['changed'] ?? map['hasChanged']);
+    final success = map['success'];
+
+    var badgeUpdatedFromEvent = false;
+
+    if ((success == true ||
+            (success is String && success.toLowerCase() == 'true')) &&
+        count != null &&
+        chatId == null) {
+      notificationBadge.value = count;
+      badgeUpdatedFromEvent = true;
+    } else if (count != null && chatId == null) {
+      notificationBadge.value = count;
+      badgeUpdatedFromEvent = true;
     }
 
-    if (data is! Map) return;
+    if (changed) {
+      final userId = _currentUserId;
+      if (userId != null) {
+        socket?.countChatNotifications(userId);
+      }
+    }
 
-    final map = data.map((k, v) => MapEntry(k.toString(), v));
-    final chatId = parseInt(map['chat_id'] ?? map['chatId']);
-    final count = parseInt(map['count'] ?? map['unread']);
-
-    if (chatId == null || count == null) return;
+    if (chatId == null || count == null) {
+      if (!badgeUpdatedFromEvent) {
+        notificationBadge.value = unreadTotal.value;
+      }
+      return;
+    }
 
     final idx = chats.indexWhere((c) => c.id == chatId);
-    if (idx == -1) return;
+    if (idx == -1) {
+      if (!badgeUpdatedFromEvent) {
+        notificationBadge.value = unreadTotal.value;
+      }
+      return;
+    }
 
-    // If marker says already read => force to 0
     final marker = _readMarkers[chatId];
     if (marker != null && marker.matches(chats[idx])) {
       if (chats[idx].unreadCount != 0) {
@@ -278,10 +316,12 @@ class ChatController extends GetxController {
         chats.refresh();
       }
       unreadTotal.value = chats.fold<int>(0, (sum, c) => sum + c.unreadCount);
+      if (!badgeUpdatedFromEvent) {
+        notificationBadge.value = unreadTotal.value;
+      }
       return;
     }
 
-    // if backend says there are unread => remove local marker
     if (count > 0 && _readMarkers.remove(chatId) != null) {
       _markersDirty = true;
       unawaited(_saveMarkers());
@@ -290,10 +330,13 @@ class ChatController extends GetxController {
     chats[idx] = chats[idx].copyWith(unreadCount: count);
     chats.refresh();
     unreadTotal.value = chats.fold<int>(0, (sum, c) => sum + c.unreadCount);
+
+    if (!badgeUpdatedFromEvent) {
+      notificationBadge.value = unreadTotal.value;
+    }
   }
 
   // ---------------------------
-  // Read markers
   List<ChatEntity> _applyReadMarkers(List<ChatEntity> items) {
     if (_readMarkers.isEmpty) return items;
 
@@ -312,7 +355,9 @@ class ChatController extends GetxController {
       }
 
       if (marker.matches(chat)) {
-        updated.add(chat.unreadCount == 0 ? chat : chat.copyWith(unreadCount: 0));
+        updated.add(
+          chat.unreadCount == 0 ? chat : chat.copyWith(unreadCount: 0),
+        );
       } else {
         _readMarkers.remove(id);
         _markersDirty = true;
@@ -351,7 +396,6 @@ class ChatController extends GetxController {
         });
       }
     } catch (_) {
-      // ignore corrupted cache
     }
   }
 
@@ -375,6 +419,51 @@ class ChatController extends GetxController {
     }
 
     await prefs.setString(_markersKey(userId), jsonEncode(payload));
+  }
+
+  Map<String, dynamic>? _coerceToMap(dynamic data) {
+    dynamic current = data;
+    if (current is String) {
+      try {
+        current = jsonDecode(current);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    if (current is List) {
+      for (final item in current.reversed) {
+        final coerced = _coerceToMap(item);
+        if (coerced != null) {
+          return coerced;
+        }
+      }
+      return null;
+    }
+
+    if (current is Map<String, dynamic>) {
+      return current;
+    }
+    if (current is Map) {
+      return current.map((k, v) => MapEntry(k.toString(), v));
+    }
+
+    return null;
+  }
+
+  bool _parseBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final lower = value.toLowerCase();
+      return lower == 'true' || lower == '1';
+    }
+    return false;
+  }
+
+  int? _parseInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
   }
 
   void _finishLoading(bool reset) {

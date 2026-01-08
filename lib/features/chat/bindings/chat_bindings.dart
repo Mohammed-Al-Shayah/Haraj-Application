@@ -9,19 +9,35 @@ import 'package:haraj_adan_app/features/chat/controllers/chat_controller.dart';
 class ChatBindings extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<Dio>(() => Dio(), fenix: true);
-    Get.lazyPut<ApiClient>(() => ApiClient(client: Get.find<Dio>()), fenix: true);
+    if (!Get.isRegistered<Dio>()) {
+      Get.lazyPut<Dio>(() => Dio(), fenix: true);
+    }
 
-    Get.lazyPut<ChatRemoteDataSource>(
-      () => ChatRemoteDataSourceImpl(Get.find<ApiClient>()),
-      fenix: true,
-    );
+    if (!Get.isRegistered<ApiClient>()) {
+      Get.lazyPut<ApiClient>(
+        () => ApiClient(client: Get.find<Dio>()),
+        fenix: true,
+      );
+    }
 
-    Get.lazyPut<ChatRepository>(
-      () => ChatRepositoryImpl(Get.find<ChatRemoteDataSource>()),
-      fenix: true,
-    );
+    if (!Get.isRegistered<ChatRemoteDataSource>()) {
+      Get.lazyPut<ChatRemoteDataSource>(
+        () => ChatRemoteDataSourceImpl(Get.find<ApiClient>()),
+        fenix: true,
+      );
+    }
 
-    Get.lazyPut<ChatController>(() => ChatController(Get.find<ChatRepository>()));
+    if (!Get.isRegistered<ChatRepository>()) {
+      Get.lazyPut<ChatRepository>(
+        () => ChatRepositoryImpl(Get.find<ChatRemoteDataSource>()),
+        fenix: true,
+      );
+    }
+
+    if (!Get.isRegistered<ChatController>()) {
+      Get.lazyPut<ChatController>(
+        () => ChatController(Get.find<ChatRepository>()),
+      );
+    }
   }
 }

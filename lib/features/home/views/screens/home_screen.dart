@@ -16,9 +16,18 @@ import '../widgets/featured_ads_section.dart';
 import '../widgets/home_bar.dart';
 import '../widgets/search_card.dart';
 import '../../../../core/widgets/side_menu.dart';
+import '../../../chat/bindings/chat_bindings.dart';
+import '../../../chat/controllers/chat_controller.dart';
+import '../../../support/bindings/support_bindings.dart';
+import '../../../support/controllers/support_controller.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen._({super.key, required this.controller});
+  const HomeScreen._({
+    super.key,
+    required this.controller,
+    required this.chatController,
+    required this.supportController,
+  });
 
   factory HomeScreen({Key? key}) {
     final repo = HomeRepositoryImpl(
@@ -38,15 +47,30 @@ class HomeScreen extends StatelessWidget {
       permanent: true,
     );
 
-    return HomeScreen._(key: key, controller: homeController);
+    ChatBindings().dependencies();
+    final chatController = Get.find<ChatController>();
+    SupportBindings().dependencies();
+    final supportController = Get.find<SupportController>();
+
+    return HomeScreen._(
+      key: key,
+      controller: homeController,
+      chatController: chatController,
+      supportController: supportController,
+    );
   }
 
   final HomeController controller;
+  final ChatController chatController;
+  final SupportController supportController;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const HomeBar(),
+      appBar: HomeBar(
+        chatController: chatController,
+        supportController: supportController,
+      ),
       drawer: SideMenu(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {

@@ -9,21 +9,35 @@ import 'package:haraj_adan_app/features/support/controllers/support_controller.d
 class SupportBindings extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<Dio>(() => Dio(), fenix: true);
-    Get.lazyPut<ApiClient>(() => ApiClient(client: Get.find<Dio>()), fenix: true);
+    if (!Get.isRegistered<Dio>()) {
+      Get.lazyPut<Dio>(() => Dio(), fenix: true);
+    }
 
-    Get.lazyPut<SupportRemoteDataSource>(
-      () => SupportRemoteDataSourceImpl(Get.find<ApiClient>()),
-      fenix: true,
-    );
+    if (!Get.isRegistered<ApiClient>()) {
+      Get.lazyPut<ApiClient>(
+        () => ApiClient(client: Get.find<Dio>()),
+        fenix: true,
+      );
+    }
 
-    Get.lazyPut<SupportRepository>(
-      () => SupportRepositoryImpl(Get.find<SupportRemoteDataSource>()),
-      fenix: true,
-    );
+    if (!Get.isRegistered<SupportRemoteDataSource>()) {
+      Get.lazyPut<SupportRemoteDataSource>(
+        () => SupportRemoteDataSourceImpl(Get.find<ApiClient>()),
+        fenix: true,
+      );
+    }
 
-    Get.lazyPut<SupportController>(
-      () => SupportController(Get.find<SupportRepository>()),
-    );
+    if (!Get.isRegistered<SupportRepository>()) {
+      Get.lazyPut<SupportRepository>(
+        () => SupportRepositoryImpl(Get.find<SupportRemoteDataSource>()),
+        fenix: true,
+      );
+    }
+
+    if (!Get.isRegistered<SupportController>()) {
+      Get.lazyPut<SupportController>(
+        () => SupportController(Get.find<SupportRepository>()),
+      );
+    }
   }
 }

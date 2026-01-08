@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
@@ -15,6 +16,8 @@ class SupportController extends GetxController {
   SupportController(this.repository);
 
   final chats = <SupportChatEntity>[].obs;
+
+  final supportNotificationBadge = 0.obs;
 
   final isLoading = true.obs;
   final isLoadingMore = false.obs;
@@ -78,10 +81,7 @@ class SupportController extends GetxController {
       _handleError(error, title: AppStrings.supportTitle);
     } catch (error, stack) {
       _log('loadChats unexpected', {'error': error, 'stack': stack});
-      AppSnack.error(
-        AppStrings.errorTitle,
-        'Unable to load chats',
-      );
+      AppSnack.error(AppStrings.errorTitle, 'Unable to load chats');
     } finally {
       isLoading.value = false;
       isLoadingMore.value = false;
@@ -101,10 +101,9 @@ class SupportController extends GetxController {
   }
 
   void _log(String message, [dynamic data]) {
-    // ignore: avoid_print
-    print(
-      '[SupportController] $message${data != null ? ' => $data' : ''}',
-    );
+    if (kDebugMode) {
+      print('[SupportController] $message${data != null ? ' => $data' : ''}');
+    }
   }
 
   void _handleError(ErrorModel error, {String? title}) {
@@ -135,5 +134,9 @@ class SupportController extends GetxController {
     await prefs.remove('_loginToken');
     await prefs.remove('_userData');
     Get.offAllNamed(Routes.loginScreen);
+  }
+
+  void updateNotificationBadge(int count) {
+    supportNotificationBadge.value = count;
   }
 }

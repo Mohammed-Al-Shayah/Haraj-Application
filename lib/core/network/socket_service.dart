@@ -17,6 +17,7 @@ class SocketEvents {
   static const message = 'message';
 
   static const countChatNotifications = 'countChatNotifications';
+  static const countUnreadMessages = 'countUnreadMessages';
 
   // Support chat
   static const joinSupportChat = 'joinSupportChat';
@@ -192,6 +193,18 @@ class SocketService {
 
   void onNotificationCount(void Function(dynamic data) handler) {
     on(SocketEvents.countChatNotifications, handler);
+  }
+
+  void countChatNotifications(int userId) {
+    emit(SocketEvents.countChatNotifications, {'userId': userId});
+  }
+
+  void countUnreadMessages(int userId) {
+    emit(SocketEvents.countUnreadMessages, {'userId': userId});
+  }
+
+  void onSupportNotificationCount(void Function(dynamic data) handler) {
+    on(SocketEvents.countUnreadMessages, handler);
   }
 
   // -------------------------

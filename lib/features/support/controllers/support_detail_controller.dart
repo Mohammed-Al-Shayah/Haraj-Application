@@ -12,6 +12,7 @@ import 'package:haraj_adan_app/core/storage/user_storage.dart';
 import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:haraj_adan_app/data/models/support_message_model.dart';
+import 'package:haraj_adan_app/features/support/controllers/support_controller.dart';
 import 'package:haraj_adan_app/domain/entities/paginated_result.dart';
 import 'package:haraj_adan_app/domain/entities/support_message_entity.dart';
 import 'package:haraj_adan_app/domain/repositories/support_repository.dart';
@@ -96,7 +97,6 @@ class SupportDetailController extends GetxController {
   }
 
   // ---------------------------
-  // Infinite scroll up
   void _onScroll() {
     if (!scrollController.hasClients) return;
     if (isLoading.value || isLoadingMore.value) return;
@@ -292,6 +292,7 @@ class SupportDetailController extends GetxController {
       socket?.joinRoom(userId);
       socket?.joinSupportRoom(chatId);
       if (_isAdminUser) socket?.joinSupportAdminsRoom();
+      socket?.countUnreadMessages(userId);
 
       _sendReadReceiptsIfNeeded();
       _socketReady = true;
@@ -355,6 +356,7 @@ class SupportDetailController extends GetxController {
     });
 
     socket?.onNewSupportMessage(_handleIncomingSupportMessage);
+    socket?.onSupportNotificationCount(_handleSupportNotificationCount);
 
     socket?.onUserOnline(
       (data) => _handlePresenceStatus(data, PresenceStatus.online),
@@ -691,6 +693,31 @@ class SupportDetailController extends GetxController {
     update();
   }
 
+  void _handleSupportNotificationCount(dynamic data) {
+    final payload = _coerceToMap(data);
+    if (payload == null) return;
+
+    final map = payload.map((k, v) => MapEntry(k.toString(), v));
+    final count = _parseInt(map['count'] ?? map['unread']);
+    final changed = _parseBool(map['changed'] ?? map['hasChanged']);
+
+    if (count != null) {
+      final supportController =
+          Get.isRegistered<SupportController>()
+              ? Get.find<SupportController>()
+              : null;
+      supportController?.updateNotificationBadge(count);
+    }
+
+    if (changed) {
+      final userId = _currentUserId;
+      if (userId != null) {
+        socket?.countUnreadMessages(userId);
+      }
+    }
+    update();
+  }
+
   void _sendReadReceiptsIfNeeded() {
     final userId = _currentUserId;
     if (userId == null) return;
@@ -709,6 +736,7 @@ class SupportDetailController extends GetxController {
     if (unreadIds.isEmpty) return;
 
     socket?.sendSupportReadReceipt(chatId, unreadIds);
+    socket?.countUnreadMessages(userId);
     update();
   }
 

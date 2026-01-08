@@ -271,10 +271,7 @@ class ChatDetailController extends GetxController {
     if (latest.isEmpty) return;
     final ordered = _normalizeLatestOrder(latest);
     final existingIds =
-        messages
-            .where((m) => m.id != null)
-            .map((m) => m.id!)
-            .toSet();
+        messages.where((m) => m.id != null).map((m) => m.id!).toSet();
 
     final userId = _currentUserId;
     var changed = false;
@@ -285,9 +282,7 @@ class ChatDetailController extends GetxController {
         continue;
       }
 
-      if (userId != null &&
-          incoming.senderId == userId &&
-          incomingId != null) {
+      if (userId != null && incoming.senderId == userId && incomingId != null) {
         final pendingIndex = messages.indexWhere(
           (m) =>
               m.id == null &&
@@ -495,6 +490,9 @@ class ChatDetailController extends GetxController {
       userId: _currentUserId,
       receiverId: otherUserId,
     );
+    if (_currentUserId != null) {
+      socket?.countChatNotifications(_currentUserId!);
+    }
     _updateReadMarker();
   }
 
