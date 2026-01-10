@@ -29,12 +29,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   }) async {
     final res = await apiClient.get(
       ApiEndpoints.chatList,
-      queryParams: {
-        'page': page,
-        'limit': limit,
-        'userId': userId,
-        if (search != null && search.isNotEmpty) 'search': search,
-      },
+      queryParams: {'page': page, 'limit': limit, 'userId': userId},
     );
 
     final list = _parser.extractList(res);
