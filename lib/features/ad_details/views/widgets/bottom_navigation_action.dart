@@ -1,11 +1,6 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'package:haraj_adan_app/core/network/api_client.dart';
-import 'package:haraj_adan_app/core/network/endpoints.dart';
-import 'package:haraj_adan_app/core/routes/routes.dart';
-import 'package:haraj_adan_app/core/storage/user_storage.dart';
 import 'package:haraj_adan_app/core/theme/assets.dart';
 import 'package:haraj_adan_app/core/theme/color.dart';
 import 'package:haraj_adan_app/core/theme/strings.dart';
@@ -13,6 +8,7 @@ import 'package:haraj_adan_app/core/theme/typography.dart';
 import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:haraj_adan_app/core/widgets/primary_button.dart';
 import 'package:haraj_adan_app/features/ad_details/controllers/ad_details_controller.dart';
+import 'package:haraj_adan_app/features/ad_details/controllers/bottom_navigation_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -21,7 +17,9 @@ import '../../../../core/utils/constants.dart';
 class BottomNavigationAction extends StatelessWidget {
   BottomNavigationAction({super.key});
 
-  final AdDetailsController controller = Get.find<AdDetailsController>();
+  final AdDetailsController _controller = Get.find<AdDetailsController>();
+  final BottomNavigationController _actionController =
+      Get.find<BottomNavigationController>();
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +29,7 @@ class BottomNavigationAction extends StatelessWidget {
         children: [
           Expanded(
             child: PrimaryButton(
-              onPressed: () => _showOwnerCallSheet(),
+              onPressed: _showOwnerCallSheet,
               title: AppStrings.callButtonText,
               backgroundColor: AppColors.primary,
               textColor: AppColors.white,
@@ -42,7 +40,7 @@ class BottomNavigationAction extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: PrimaryButton(
-              onPressed: () => _openChatWithOwner(),
+              onPressed: _actionController.openChatWithOwner,
               title: AppStrings.sendMessageButtonText,
               backgroundColor: AppColors.secondary,
               textColor: AppColors.black75,
@@ -56,7 +54,7 @@ class BottomNavigationAction extends StatelessWidget {
   }
 
   void _showOwnerCallSheet() {
-    final ad = controller.ad.value;
+    final ad = _controller.ad.value;
     final ownerName = ad?.ownerName ?? 'Owner Name';
     final phone = ad?.ownerPhone ?? AppConstants.ownerPhoneNumber;
     if (phone.isEmpty) {
@@ -71,260 +69,6 @@ class BottomNavigationAction extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
     );
-  }
-
-  Future<void> _openChatWithOwner() async {
-    final ad = controller.ad.value;
-    final ownerId = ad?.ownerId;
-    final adId = ad?.id ?? controller.adId;
-    final ownerName =
-        (ad?.ownerName ?? '').trim().isEmpty ? 'Owner' : ad!.ownerName!.trim();
-
-    if (ownerId == null) {
-      AppSnack.error('Error', 'Owner info is not available.');
-      return;
-    }
-
-    final currentUserId = await getUserIdFromPrefs();
-    if (currentUserId == null) {
-      AppSnack.error('Error', 'Please log in to start a chat.');
-      return;
-    }
-
-    try {
-      final api = ApiClient(client: Dio());
-      final chatData =
-          await _findExistingChat(
-            apiClient: api,
-            currentUserId: currentUserId,
-            ownerId: ownerId,
-            fallbackName: ownerName,
-          ) ??
-          await _createChatWithOwner(
-            apiClient: api,
-            currentUserId: currentUserId,
-            ownerId: ownerId,
-            fallbackName: ownerName,
-            adId: adId,
-          );
-
-      if (chatData == null) {
-        AppSnack.error('Error', 'Unable to open chat right now.');
-        return;
-      }
-
-      Get.toNamed(
-        Routes.chatDetailsScreen,
-        arguments: {
-          'chatId': chatData.chatId,
-          'chatName': chatData.chatTitle,
-          'otherUserId': chatData.otherUserId,
-        },
-      );
-    } catch (_) {
-      AppSnack.error('Error', 'Failed to open chat.');
-    }
-  }
-
-  Future<_ChatLaunchData?> _findExistingChat({
-    required int currentUserId,
-    required int ownerId,
-    required String fallbackName,
-    ApiClient? apiClient,
-  }) async {
-    final api = apiClient ?? ApiClient(client: Dio());
-    final attempts = <dynamic>[
-      await api.get(
-        ApiEndpoints.chatList,
-        queryParams: {'page': 1, 'limit': 50},
-      ),
-      await api.get(
-        ApiEndpoints.chatList,
-        queryParams: {
-          'page': 1,
-          'limit': 50,
-          'userId': currentUserId,
-          'user_id': currentUserId,
-        },
-      ),
-    ];
-
-    for (final res in attempts) {
-      final parsed = _parseChatResponse(res, ownerId, fallbackName);
-      if (parsed != null) return parsed;
-    }
-    return null;
-  }
-
-  Future<_ChatLaunchData?> _createChatWithOwner({
-    required int currentUserId,
-    required int ownerId,
-    required String fallbackName,
-    required int adId,
-    ApiClient? apiClient,
-  }) async {
-    final api = apiClient ?? ApiClient(client: Dio());
-    final attempts = <_ChatCreateAttempt>[];
-    if (adId > 0) {
-      attempts.add(_ChatCreateAttempt(data: {'adId': adId}));
-      attempts.add(_ChatCreateAttempt(data: {'ad_id': adId}));
-      attempts.add(
-        _ChatCreateAttempt(
-          data: <String, dynamic>{},
-          query: {'adId': adId},
-        ),
-      );
-      attempts.add(
-        _ChatCreateAttempt(
-          data: <String, dynamic>{},
-          query: {'ad_id': adId},
-        ),
-      );
-    }
-    attempts.add(_ChatCreateAttempt(data: <String, dynamic>{}));
-
-    for (final attempt in attempts) {
-      try {
-        final res = await api.post(
-          ApiEndpoints.chats,
-          data: attempt.data,
-          queryParameters: attempt.query,
-        );
-        final created = _parseChatResponse(res, ownerId, fallbackName);
-        if (created != null) return created;
-      } catch (_) {
-        // Try next payload variation.
-      }
-    }
-
-    final found = await _findExistingChat(
-      apiClient: api,
-      currentUserId: currentUserId,
-      ownerId: ownerId,
-      fallbackName: fallbackName,
-    );
-    if (found != null) return found;
-
-    return _findExistingChat(
-      apiClient: api,
-      currentUserId: currentUserId,
-      ownerId: ownerId,
-      fallbackName: fallbackName,
-    );
-  }
-
-  _ChatLaunchData? _parseChatResponse(
-    dynamic res,
-    int ownerId,
-    String fallbackName,
-  ) {
-    final mapCandidate = _extractMap(res);
-    if (mapCandidate != null) {
-      final parsed = _parseChat(mapCandidate, ownerId, fallbackName);
-      if (parsed != null) return parsed;
-    }
-
-    final data = _extractList(res);
-    for (final item in data) {
-      if (item is! Map<String, dynamic>) continue;
-      final parsed = _parseChat(item, ownerId, fallbackName);
-      if (parsed != null) return parsed;
-    }
-    return null;
-  }
-
-  List<dynamic> _extractList(dynamic res) {
-    if (res is Map<String, dynamic>) {
-      final data = res['data'];
-      if (data is List) return data;
-      if (data is Map && data['data'] is List) return data['data'] as List;
-    }
-    if (res is List) return res;
-    return const [];
-  }
-
-  Map<String, dynamic>? _extractMap(dynamic res) {
-    if (res is Map<String, dynamic>) {
-      final data = res['data'];
-      if (data is Map<String, dynamic>) return data;
-      final result = res['result'];
-      if (result is Map<String, dynamic>) return result;
-      final chat = res['chat'];
-      if (chat is Map<String, dynamic>) return chat;
-      if (res['id'] != null ||
-          res['chat_id'] != null ||
-          res['chatId'] != null) {
-        return res;
-      }
-    }
-    return null;
-  }
-
-  _ChatLaunchData? _parseChat(
-    Map<String, dynamic> item,
-    int ownerId,
-    String fallbackName,
-  ) {
-    final members = item['members'];
-    int? chatId;
-    String chatTitle = fallbackName;
-    int otherUserId = ownerId;
-
-    if (members is List) {
-      for (final member in members) {
-        if (member is! Map) continue;
-        final uid = _toInt(member['user_id'] ?? member['userId']);
-        if (uid == ownerId) {
-          otherUserId = uid ?? ownerId;
-          chatId = _toInt(item['id'] ?? item['chat_id'] ?? item['chatId']);
-          final user = member['users'];
-          if (user is Map && (user['name']?.toString().isNotEmpty ?? false)) {
-            chatTitle = user['name'].toString();
-          }
-          break;
-        }
-      }
-    }
-
-    chatId ??= _toInt(item['id'] ?? item['chat_id'] ?? item['chatId']);
-    final title = _extractUserName(item) ?? chatTitle;
-    final other =
-        _toInt(
-          item['other_user_id'] ??
-              item['receiver_id'] ??
-              item['receiverId'] ??
-              item['user_id'] ??
-              item['userId'],
-        ) ??
-        _toInt(item['owner_id'] ?? item['ownerId']) ??
-        otherUserId;
-
-    if (chatId == null) return null;
-    return _ChatLaunchData(
-      chatId: chatId,
-      chatTitle: title,
-      otherUserId: other,
-    );
-  }
-
-  int? _toInt(dynamic value) {
-    if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '');
-  }
-
-  String? _extractUserName(Map<String, dynamic> data) {
-    final user = data['user'] ?? data['owner'] ?? data['receiver'];
-    if (user is Map) {
-      final name = user['name'] ?? user['user_name'];
-      if (name != null && name.toString().trim().isNotEmpty) {
-        return name.toString();
-      }
-    }
-    final directName = data['name'] ?? data['user_name'];
-    if (directName != null && directName.toString().trim().isNotEmpty) {
-      return directName.toString();
-    }
-    return null;
   }
 }
 
@@ -429,23 +173,4 @@ class PhoneCallService {
       AppSnack.error('Error', 'Could not launch phone call');
     }
   }
-}
-
-class _ChatLaunchData {
-  final int chatId;
-  final String chatTitle;
-  final int otherUserId;
-
-  _ChatLaunchData({
-    required this.chatId,
-    required this.chatTitle,
-    required this.otherUserId,
-  });
-}
-
-class _ChatCreateAttempt {
-  final Map<String, dynamic> data;
-  final Map<String, dynamic>? query;
-
-  _ChatCreateAttempt({required this.data, this.query});
 }

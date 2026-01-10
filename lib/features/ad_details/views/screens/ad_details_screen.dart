@@ -8,6 +8,7 @@ import 'package:haraj_adan_app/core/widgets/main_bar.dart';
 import 'package:haraj_adan_app/data/datasources/likes_remote_datasource.dart';
 import 'package:haraj_adan_app/data/repositories/likes_repository_impl.dart';
 import 'package:haraj_adan_app/features/ad_details/controllers/ad_details_controller.dart';
+import 'package:haraj_adan_app/features/ad_details/controllers/bottom_navigation_controller.dart';
 import 'package:haraj_adan_app/features/ad_details/views/widgets/bottom_navigation_action.dart';
 import 'package:haraj_adan_app/features/ad_details/views/widgets/ad_details_image_slider.dart';
 import 'package:haraj_adan_app/features/ad_details/views/widgets/ad_title_and_price.dart';
@@ -40,7 +41,7 @@ class AdDetailsScreen extends StatelessWidget {
 
     final apiClient = ApiClient(client: Dio());
 
-    Get.put(
+    final adController = Get.put(
       AdDetailsController(
         repository: AdDetailsRepositoryImpl(
           AdDetailsRemoteDataSourceImpl(apiClient),
@@ -51,6 +52,15 @@ class AdDetailsScreen extends StatelessWidget {
         adId: adId,
       ),
     );
+
+    if (!Get.isRegistered<BottomNavigationController>()) {
+      Get.put(
+        BottomNavigationController(
+          adDetailsController: adController,
+          apiClient: apiClient,
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: MainBar(

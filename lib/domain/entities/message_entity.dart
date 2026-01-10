@@ -1,6 +1,7 @@
 class MessageEntity {
   final int? id;
   final int? senderId;
+  final int? chatId;
   final String text;
   final bool isSender;
   final String? type;
@@ -12,6 +13,7 @@ class MessageEntity {
   MessageEntity({
     this.id,
     this.senderId,
+    this.chatId,
     required this.text,
     required this.isSender,
     this.type,

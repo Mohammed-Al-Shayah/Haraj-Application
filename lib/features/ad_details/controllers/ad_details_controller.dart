@@ -347,6 +347,150 @@ class AdDetailsController extends GetxController {
     return translated;
   }
 
+  Future<ChatLaunchData?> findExistingChat({
+    required int currentUserId,
+    required int ownerId,
+    required String fallbackName,
+    ApiClient? apiClient,
+  }) async {
+    final api = apiClient ?? ApiClient(client: Dio());
+    final attempts = <dynamic>[
+      await api.get(
+        ApiEndpoints.chatList,
+        queryParams: {'page': 1, 'limit': 50},
+      ),
+      await api.get(
+        ApiEndpoints.chatList,
+        queryParams: {
+          'page': 1,
+          'limit': 50,
+          'userId': currentUserId,
+          'user_id': currentUserId,
+        },
+      ),
+    ];
+
+    for (final res in attempts) {
+      final parsed = _parseChatResponse(res, ownerId, fallbackName);
+      if (parsed != null) return parsed;
+    }
+    return null;
+  }
+
+  ChatLaunchData? _parseChatResponse(
+    dynamic res,
+    int ownerId,
+    String fallbackName,
+  ) {
+    final mapCandidate = _extractMap(res);
+    if (mapCandidate != null) {
+      final parsed = _parseChat(mapCandidate, ownerId, fallbackName);
+      if (parsed != null) return parsed;
+    }
+
+    final data = _extractList(res);
+    for (final item in data) {
+      if (item is! Map<String, dynamic>) continue;
+      final parsed = _parseChat(item, ownerId, fallbackName);
+      if (parsed != null) return parsed;
+    }
+    return null;
+  }
+
+  List<dynamic> _extractList(dynamic res) {
+    if (res is Map<String, dynamic>) {
+      final data = res['data'];
+      if (data is List) return data;
+      if (data is Map && data['data'] is List) return data['data'] as List;
+    }
+    if (res is List) return res;
+    return const [];
+  }
+
+  Map<String, dynamic>? _extractMap(dynamic res) {
+    if (res is Map<String, dynamic>) {
+      final data = res['data'];
+      if (data is Map<String, dynamic>) return data;
+      final result = res['result'];
+      if (result is Map<String, dynamic>) return result;
+      final chat = res['chat'];
+      if (chat is Map<String, dynamic>) return chat;
+      if (res['id'] != null ||
+          res['chat_id'] != null ||
+          res['chatId'] != null) {
+        return res;
+      }
+    }
+    return null;
+  }
+
+  ChatLaunchData? _parseChat(
+    Map<String, dynamic> item,
+    int ownerId,
+    String fallbackName,
+  ) {
+    final members = item['members'];
+    int? chatId;
+    String chatTitle = fallbackName;
+    int otherUserId = ownerId;
+
+    if (members is List) {
+      for (final member in members) {
+        if (member is! Map) continue;
+        final uid = _toInt(member['user_id'] ?? member['userId']);
+        if (uid == ownerId) {
+          otherUserId = uid ?? ownerId;
+          chatId = _toInt(item['id'] ?? item['chat_id'] ?? item['chatId']);
+          final user = member['users'];
+          if (user is Map && (user['name']?.toString().isNotEmpty ?? false)) {
+            chatTitle = user['name'].toString();
+          }
+          break;
+        }
+      }
+    }
+
+    chatId ??= _toInt(item['id'] ?? item['chat_id'] ?? item['chatId']);
+    final title = _extractUserName(item) ?? chatTitle;
+    final other =
+        _toInt(
+          item['other_user_id'] ??
+              item['receiver_id'] ??
+              item['receiverId'] ??
+              item['user_id'] ??
+              item['userId'],
+        ) ??
+        _toInt(item['owner_id'] ?? item['ownerId']) ??
+        otherUserId;
+
+    if (chatId == null) return null;
+    return ChatLaunchData(
+      chatId: chatId,
+      chatTitle: title,
+      otherUserId: other,
+    );
+  }
+
+  int? _toInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  String? _extractUserName(Map<String, dynamic> data) {
+    final user = data['user'] ?? data['owner'] ?? data['receiver'];
+    if (user is Map) {
+      final name = user['name'] ?? user['user_name'];
+      if (name != null && name.toString().trim().isNotEmpty) {
+        return name.toString();
+      }
+    }
+    final directName = data['name'] ?? data['user_name'];
+    if (directName != null && directName.toString().trim().isNotEmpty) {
+      return directName.toString();
+    }
+    return null;
+  }
+
   @override
   void onClose() {
     if (Get.isRegistered<HomeController>()) {
@@ -354,4 +498,16 @@ class AdDetailsController extends GetxController {
     }
     super.onClose();
   }
+}
+
+class ChatLaunchData {
+  final int chatId;
+  final String chatTitle;
+  final int otherUserId;
+
+  ChatLaunchData({
+    required this.chatId,
+    required this.chatTitle,
+    required this.otherUserId,
+  });
 }

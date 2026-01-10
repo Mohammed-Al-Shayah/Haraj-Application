@@ -86,7 +86,7 @@ class ChatController extends GetxController {
     }
 
     await _loadMarkersIfNeeded(userId);
-    await _initSocket(); // ensure socket exists
+    await _initSocket();
 
     final search = searchController.text.trim();
     final result = await repository.getChats(
@@ -97,11 +97,12 @@ class ChatController extends GetxController {
     );
 
     final adjusted = _applyReadMarkers(result.items);
+    final filtered = _filterChatsByName(adjusted, search);
 
     if (reset) {
-      chats.assignAll(adjusted);
+      chats.assignAll(filtered);
     } else {
-      chats.addAll(adjusted);
+      chats.addAll(filtered);
     }
 
     unreadTotal.value = chats.fold<int>(0, (sum, c) => sum + c.unreadCount);
@@ -166,7 +167,6 @@ class ChatController extends GetxController {
       unreadCount: 0,
     );
 
-    // keep list ordering: move chat to top
     if (idx == 0) {
       chats[0] = updated;
     } else {
@@ -178,7 +178,6 @@ class ChatController extends GetxController {
     unreadTotal.value = chats.fold<int>(0, (sum, c) => sum + c.unreadCount);
   }
 
-  // ---------------------------
   // Socket lifecycle
   Future<void> _initSocket() async {
     _currentUserId ??= await getUserIdFromPrefs();
@@ -395,8 +394,7 @@ class ChatController extends GetxController {
           );
         });
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _saveMarkers() async {
@@ -469,6 +467,14 @@ class ChatController extends GetxController {
   void _finishLoading(bool reset) {
     isLoading.value = false;
     isLoadingMore.value = false;
+  }
+
+  List<ChatEntity> _filterChatsByName(List<ChatEntity> items, String search) {
+    final query = search.trim().toLowerCase();
+    if (query.isEmpty) return items;
+    return items
+        .where((chat) => chat.name.toLowerCase().contains(query))
+        .toList();
   }
 }
 

@@ -67,11 +67,12 @@ class SupportController extends GetxController {
         limit: _pageSize,
         search: search.isEmpty ? null : search,
       );
+      final filtered = _filterSupportChatsByName(result.items, search);
 
       if (reset) {
-        chats.assignAll(result.items);
+        chats.assignAll(filtered);
       } else {
-        chats.addAll(result.items);
+        chats.addAll(filtered);
       }
 
       hasMore.value = result.hasMore;
@@ -138,5 +139,16 @@ class SupportController extends GetxController {
 
   void updateNotificationBadge(int count) {
     supportNotificationBadge.value = count;
+  }
+
+  List<SupportChatEntity> _filterSupportChatsByName(
+    List<SupportChatEntity> items,
+    String search,
+  ) {
+    final query = search.trim().toLowerCase();
+    if (query.isEmpty) return items;
+    return items
+        .where((chat) => chat.name.toLowerCase().contains(query))
+        .toList();
   }
 }

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:haraj_adan_app/core/network/endpoints.dart';
 import 'package:haraj_adan_app/core/network/socket_service.dart';
 import 'package:haraj_adan_app/core/storage/user_storage.dart';
+import 'package:haraj_adan_app/core/utils/chat_cache.dart';
 import 'package:haraj_adan_app/data/models/message_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -61,6 +62,7 @@ class ChatDetailController extends GetxController {
     await loadMessages(reset: true);
     await _initSocket();
     _startSyncTimer();
+    _cacheChatId();
   }
 
   Future<void> loadMessages({bool reset = false}) async {
@@ -100,9 +102,10 @@ class ChatDetailController extends GetxController {
     );
 
     if (otherUserId == null && result.items.isNotEmpty) {
-      otherUserId = result.items
+      final candidate = result.items
           .map((m) => m.senderId)
           .firstWhere((id) => id != null && id != userId, orElse: () => null);
+      _ensureOtherUserId(candidate);
     }
 
     if (reset) {
@@ -132,6 +135,7 @@ class ChatDetailController extends GetxController {
     if (reset) {
       _clearUnreadInList();
     }
+    _cacheChatId();
     update();
     if (_pendingSyncAfterLoad && !isLoading.value && !isLoadingMore.value) {
       _pendingSyncAfterLoad = false;
@@ -201,6 +205,14 @@ class ChatDetailController extends GetxController {
 
     final userId = _currentUserId;
     final incoming = MessageModel.fromMap(messageData, currentUserId: userId);
+    if (otherUserId == null &&
+        incoming.senderId != null &&
+        incoming.senderId != userId) {
+      _ensureOtherUserId(incoming.senderId);
+    }
+    if (incomingChatId != null) {
+      _cacheChatId(incomingChatId);
+    }
     final incomingId = incoming.id;
     if (incomingId != null &&
         messages.any((m) => m.id != null && m.id == incomingId)) {
@@ -227,6 +239,21 @@ class ChatDetailController extends GetxController {
     messages.add(incoming);
     _scrollToBottom();
     _markRead();
+  }
+
+  void _ensureOtherUserId(int? candidate) {
+    if (candidate == null) return;
+    if (otherUserId == candidate) return;
+    otherUserId = candidate;
+    _cacheChatId();
+  }
+
+  void _cacheChatId([int? overrideChatId]) {
+    final ownerId = otherUserId;
+    if (ownerId == null) return;
+    final idToCache = overrideChatId ?? chatId;
+    if (idToCache <= 0) return;
+    unawaited(ChatCache.setChatIdForUser(ownerId, idToCache));
   }
 
   void _startSyncTimer() {

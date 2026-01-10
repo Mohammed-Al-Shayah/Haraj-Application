@@ -6,6 +6,7 @@ class MessageModel extends MessageEntity {
   MessageModel({
     super.id,
     super.senderId,
+    super.chatId,
     required super.text,
     required super.isSender,
     super.type,
@@ -182,10 +183,12 @@ class MessageModel extends MessageEntity {
 
     final textValue =
         (type != null && type.toLowerCase() == 'image') ? '' : extractedText;
+    final parsedChatId = parseInt(map['chat_id'] ?? map['chatId']);
 
     return MessageModel(
       id: parseInt(map['id'] ?? map['message_id']),
       senderId: parseInt(map['sender_id'] ?? map['senderId'] ?? map['user_id']),
+      chatId: parsedChatId,
       text: textValue,
       isSender: extractIsSender(map),
       type: type,

@@ -42,7 +42,6 @@ class ChatDetailRemoteDataSourceImpl implements ChatDetailRemoteDataSource {
       ApiEndpoints.chatMessages,
       queryParams: {
         if (chatId != null) ...{'chat_id': chatId, 'chatId': chatId},
-        // Keep backend compatibility:
         'userId': otherUserId ?? currentUserId,
         'page': page,
         'limit': limit,
