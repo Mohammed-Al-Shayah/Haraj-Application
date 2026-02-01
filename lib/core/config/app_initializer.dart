@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:localize_and_translate/localize_and_translate.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../theme/color.dart';
 import '../utils/localization.dart';
@@ -12,6 +13,15 @@ Future<void> appInitializer() async {
 
   /// Initialize localization
   await Localization.initialize();
+
+  /// Prefer the device language on startup (fallback to English).
+  final deviceLanguage =
+      WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+  final initialLanguage =
+      (deviceLanguage == 'ar' || deviceLanguage == 'en')
+          ? deviceLanguage
+          : 'en';
+  await LocalizeAndTranslate.setLanguageCode(initialLanguage);
 
   /// Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(

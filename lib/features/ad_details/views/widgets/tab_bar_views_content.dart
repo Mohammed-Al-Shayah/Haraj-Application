@@ -8,9 +8,19 @@ class TabBarViewsContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const TabBarView(
-      physics: NeverScrollableScrollPhysics(),
-      children: [AdDetailsTabBar(), DescriptionTabBar(), LocationTabBar()],
+    final controller = DefaultTabController.of(context);
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return IndexedStack(
+          index: controller.index,
+          children: const [
+            AdDetailsTabBar(),
+            DescriptionTabBar(),
+            LocationTabBar(),
+          ],
+        );
+      },
     );
   }
 }

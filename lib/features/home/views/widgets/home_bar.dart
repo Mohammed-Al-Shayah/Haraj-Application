@@ -33,7 +33,7 @@ class HomeBar extends StatelessWidget implements PreferredSizeWidget {
               IconButton(
                 onPressed: () => Get.toNamed(Routes.myAccountScreen),
                 icon: SvgPicture.asset(
-                  AppAssets.userIcon,
+                  AppAssets.userSvgIcon,
                   width: 24,
                   height: 24,
                 ),

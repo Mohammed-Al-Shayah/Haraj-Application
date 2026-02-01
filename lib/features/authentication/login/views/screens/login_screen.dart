@@ -25,7 +25,7 @@ class LoginScreen extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 20),
-                AuthenticationBar(text: AppStrings.logIn),
+                AuthenticationBar(text: AppStrings.logIn, showBack: false),
                 const SizedBox(height: 20),
 
                 Obx(
@@ -95,10 +95,8 @@ class LoginScreen extends StatelessWidget {
                                     controller.countryCode.value =
                                         country.dialCode ?? '+967';
                                   },
-                                  initialSelection: 'IL',
-                                  favorite: ['+972', 'IL'],
-                                  // initialSelection: 'YE',
-                                  // favorite: ['+967', 'YE'],
+                                  initialSelection: 'YE',
+                                  favorite: ['+967', 'YE'],
                                   showFlag: true,
                                   showDropDownButton: true,
                                 ),

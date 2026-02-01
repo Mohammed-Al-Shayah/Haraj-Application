@@ -3,9 +3,9 @@ import 'package:haraj_adan_app/core/theme/strings.dart';
 import '../../../../../core/theme/typography.dart';
 
 class VerificationMessage extends StatelessWidget {
-  final String mobile;
+  final String contact;
 
-  const VerificationMessage({super.key, required this.mobile});
+  const VerificationMessage({super.key, required this.contact});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +15,7 @@ class VerificationMessage extends StatelessWidget {
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14),
         children: [
           TextSpan(text: AppStrings.verificationMessage),
-          TextSpan(text: mobile, style: AppTypography.bold14),
+          TextSpan(text: contact, style: AppTypography.bold14),
         ],
       ),
     );

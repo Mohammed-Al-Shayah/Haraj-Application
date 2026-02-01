@@ -27,7 +27,7 @@ class MyAccountContent extends StatelessWidget {
           const SizedBox(height: 10),
           _buildAdvertisementManagementSection(controller),
           const SizedBox(height: 16),
-          _buildMessagesAndInfoSection(controller, isRtl),
+          _buildMessagesAndInfoSection(context, controller, isRtl),
           const SizedBox(height: 16),
           _buildFavouritesSection(controller, isRtl),
           const SizedBox(height: 16),
@@ -178,6 +178,7 @@ class MyAccountContent extends StatelessWidget {
   }
 
   Widget _buildMessagesAndInfoSection(
+    BuildContext context,
     MyAccountController controller,
     bool isRtl,
   ) {
@@ -222,6 +223,31 @@ class MyAccountContent extends StatelessWidget {
                 ),
                 onTap: () => Get.toNamed(Routes.permissionsScreen),
               ),
+              const Divider(height: 1, indent: 15, endIndent: 20),
+              Obx(() {
+                final langCode = controller.currentLanguage.value;
+                final langLabel =
+                    langCode == 'ar' ? AppStrings.arabic : AppStrings.english;
+                return _customTile(
+                  title: AppStrings.chooseLanguage,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(langLabel, style: AppTypography.normal12),
+                      const SizedBox(width: 6),
+                      SvgPicture.asset(
+                        isRtl ? AppAssets.arrowLeftIcon : AppAssets.arrowRightIcon,
+                        width: 24,
+                        colorFilter: const ColorFilter.mode(
+                          AppColors.primary,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ],
+                  ),
+                  onTap: () => _showLanguageSheet(context, controller),
+                );
+              }),
             ],
           ),
         ),
@@ -273,5 +299,66 @@ class MyAccountContent extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _showLanguageSheet(
+    BuildContext context,
+    MyAccountController controller,
+  ) {
+    final current = controller.currentLanguage.value;
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(AppStrings.chooseLanguage, style: AppTypography.bold14),
+                const SizedBox(height: 12),
+                _languageOption(
+                  title: AppStrings.arabic,
+                  isSelected: current == 'ar',
+                  onSelect: () => _applyLanguage(sheetContext, controller, 'ar'),
+                ),
+                _languageOption(
+                  title: AppStrings.english,
+                  isSelected: current == 'en',
+                  onSelect: () => _applyLanguage(sheetContext, controller, 'en'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _languageOption({
+    required String title,
+    required bool isSelected,
+    required VoidCallback onSelect,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(title, style: AppTypography.medium14),
+      trailing:
+          isSelected ? const Icon(Icons.check, color: AppColors.primary) : null,
+      onTap: onSelect,
+    );
+  }
+
+  void _applyLanguage(
+    BuildContext context,
+    MyAccountController controller,
+    String code,
+  ) {
+    controller.updateLanguage(code);
+    Navigator.of(context).pop();
   }
 }

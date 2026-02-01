@@ -35,6 +35,7 @@ class AppStrings {
   static String get andText => 'and'.tr();
   static String get privacyPolicy => 'privacy_policy'.tr();
   static String get emailVerification => 'email_verification'.tr();
+  static String get phoneVerification => 'phone_verification'.tr();
   static String get verificationMessage => 'verification_message'.tr();
   static String get verify => 'verify'.tr();
   static String get didNotReceiveCode => 'did_not_receive_code'.tr();
@@ -199,6 +200,11 @@ class AppStrings {
   static String get tapToUpload => 'tap_to_upload'.tr();
   static String get amount => 'amount'.tr();
   static String get enterAmount => 'enter_amount'.tr();
+  static String get bankTransferDetailsTitle =>
+      'bank_transfer_details_title'.tr();
+  static String get bankAlAmqi => 'bank_al_amqi'.tr();
+  static String get bankAlBusiri => 'bank_al_busiri'.tr();
+  static String get bankAlKuraimi => 'bank_al_kuraimi'.tr();
   static String get submit => 'submit'.tr();
   static String get depositInvoiceAndAmountRequired =>
       'deposit_invoice_and_amount_required'.tr();
@@ -222,6 +228,7 @@ class AppStrings {
   static String get messagesText => 'messages_text'.tr();
   static String get permissionsText => 'permissions_text'.tr();
   static String get favouritesText => 'favourites_text'.tr();
+  static String get noItems => 'no_items'.tr();
   static String get successTitle => 'success_title'.tr();
   static String get errorTitle => 'error_title'.tr();
   static String get loginRequired => 'login_required'.tr();

@@ -6,8 +6,9 @@ import '../../theme/typography.dart';
 
 class AuthenticationBar extends StatelessWidget {
   final String text;
+  final bool showBack;
 
-  const AuthenticationBar({super.key, required this.text});
+  const AuthenticationBar({super.key, required this.text, this.showBack = true});
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +20,12 @@ class AuthenticationBar extends StatelessWidget {
       height: 64.0,
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: SvgPicture.asset(arrowIcon),
-          ),
+          showBack
+              ? GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: SvgPicture.asset(arrowIcon),
+              )
+              : const SizedBox(width: 24),
           const Spacer(),
           Text(text, style: AppTypography.semiBold16),
           const Spacer(),

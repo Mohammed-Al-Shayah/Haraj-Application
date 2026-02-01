@@ -14,7 +14,11 @@ extension RegisterExtension on RegisterController {
 
     Get.offNamed(
       Routes.verificationScreen,
-      arguments: {"mobile": phoneController.text},
+      arguments: {
+        "contact": phoneController.text,
+        "isEmail": false,
+        "mobile": phoneController.text,
+      },
     );
   } catch (e) {
       AppSnack.error("Registration Error", e.toString());

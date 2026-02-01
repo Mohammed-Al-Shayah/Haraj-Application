@@ -12,7 +12,7 @@ import 'package:localize_and_translate/localize_and_translate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MyAccountController extends GetxController {
-  final currentLanguage = LocalizeAndTranslate.getLanguageCode();
+  final RxString currentLanguage = ''.obs;
   final AuthApi authApi = AuthApi(ApiClient(client: Dio()));
 
   final TextEditingController nameController = TextEditingController();
@@ -32,6 +32,7 @@ class MyAccountController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    currentLanguage.value = LocalizeAndTranslate.getLanguageCode();
     getUserData();
     loadAdsStats();
   }
@@ -46,6 +47,12 @@ class MyAccountController extends GetxController {
 
   void onLogout() {
     authApi.logout();
+  }
+
+  void updateLanguage(String languageCode) {
+    currentLanguage.value = languageCode;
+    LocalizeAndTranslate.setLanguageCode(languageCode);
+    Get.updateLocale(Locale(languageCode));
   }
 
   void getUserData() async {

@@ -22,80 +22,85 @@ class _LocationTabBarState extends State<LocationTabBar> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final mapHeight = (screenHeight * 0.3).clamp(220.0, 360.0).toDouble();
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Stack(
-        children: [
-          Listener(
-            onPointerDown: (_) {
-              _setParentScroll(enabled: false);
-            },
-            onPointerUp: (_) {
-              _setParentScroll(enabled: true);
-            },
-            child: MapWidget(
-              key: const ValueKey("mapWidget"),
-              mapOptions: MapOptions(
-                pixelRatio: MediaQuery.of(context).devicePixelRatio,
-              ),
-              cameraOptions: CameraOptions(
-                center: Point(coordinates: Position(initialLon, initialLat)),
-                zoom: 13.5,
-              ),
-              onTapListener: _onMapTap,
-              onMapCreated: (controller) async {
-                mapboxMap = controller;
-                await mapboxMap.gestures.updateSettings(
-                  GesturesSettings(
-                    rotateEnabled: true,
-                    pinchToZoomEnabled: true,
-                    scrollEnabled: true,
-                    doubleTapToZoomInEnabled: true,
-                    quickZoomEnabled: true,
-                  ),
-                );
-                _initPositionFromAd();
-                await _ensureManager();
-                await _refreshMarker();
-                setState(() => _mapReady = true);
+      child: SizedBox(
+        height: mapHeight,
+        child: Stack(
+          children: [
+            Listener(
+              onPointerDown: (_) {
+                _setParentScroll(enabled: false);
               },
-            ),
-          ),
-
-          Positioned(
-            right: 12,
-            bottom: 12,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FloatingActionButton(
-                  mini: true,
-                  heroTag: 'zoom_in',
-                  onPressed: _mapReady ? _zoomIn : null,
-                  child: const Icon(Icons.add),
+              onPointerUp: (_) {
+                _setParentScroll(enabled: true);
+              },
+              child: MapWidget(
+                key: const ValueKey("mapWidget"),
+                mapOptions: MapOptions(
+                  pixelRatio: MediaQuery.of(context).devicePixelRatio,
                 ),
-                const SizedBox(height: 8),
-                FloatingActionButton(
-                  mini: true,
-                  heroTag: 'zoom_out',
-                  onPressed: _mapReady ? _zoomOut : null,
-                  child: const Icon(Icons.remove),
+                cameraOptions: CameraOptions(
+                  center: Point(coordinates: Position(initialLon, initialLat)),
+                  zoom: 13.5,
                 ),
-              ],
+                onTapListener: _onMapTap,
+                onMapCreated: (controller) async {
+                  mapboxMap = controller;
+                  await mapboxMap.gestures.updateSettings(
+                    GesturesSettings(
+                      rotateEnabled: true,
+                      pinchToZoomEnabled: true,
+                      scrollEnabled: true,
+                      doubleTapToZoomInEnabled: true,
+                      quickZoomEnabled: true,
+                    ),
+                  );
+                  _initPositionFromAd();
+                  await _ensureManager();
+                  await _refreshMarker();
+                  setState(() => _mapReady = true);
+                },
+              ),
             ),
-          ),
 
-          Positioned(
-            left: 12,
-            bottom: 12,
-            child: FloatingActionButton(
-              mini: true,
-              heroTag: 'center',
-              onPressed: _mapReady ? _centerOnAden : null,
-              child: const Icon(Icons.my_location),
+            Positioned(
+              right: 12,
+              bottom: 12,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FloatingActionButton(
+                    mini: true,
+                    heroTag: 'zoom_in',
+                    onPressed: _mapReady ? _zoomIn : null,
+                    child: const Icon(Icons.add),
+                  ),
+                  const SizedBox(height: 8),
+                  FloatingActionButton(
+                    mini: true,
+                    heroTag: 'zoom_out',
+                    onPressed: _mapReady ? _zoomOut : null,
+                    child: const Icon(Icons.remove),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+
+            Positioned(
+              left: 12,
+              bottom: 12,
+              child: FloatingActionButton(
+                mini: true,
+                heroTag: 'center',
+                onPressed: _mapReady ? _centerOnAden : null,
+                child: const Icon(Icons.my_location),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -43,14 +43,22 @@ class LoginController extends GetxController {
       AppSnack.error("No Internet", "Please check your connection");
       return;
     }
-    loginUser();
+    final success = await loginUser();
+    if (!success) return;
+    final contact =
+        isEmailSelected.value
+            ? emailController.text
+            : "${countryCode.value}${phoneController.text}";
+    final mobile =
+        isEmailSelected.value
+            ? null
+            : "${countryCode.value}${phoneController.text}";
     Get.offNamed(
       Routes.verificationScreen,
       arguments: {
-        "mobile":
-            isEmailSelected.value
-                ? emailController.text
-                : "${countryCode.value}${phoneController.text}",
+        "contact": contact,
+        "isEmail": isEmailSelected.value,
+        if (mobile != null) "mobile": mobile,
       },
     );
   }

@@ -44,7 +44,7 @@ class PostAdDetailsForm extends StatelessWidget {
 
         children: [
           // Basic info
-          InputField(
+       InputField(
             controller: controller.titleCtrl,
 
             keyboardType: TextInputType.text,
@@ -56,19 +56,6 @@ class PostAdDetailsForm extends StatelessWidget {
             onChanged: (v) => postForm?.title.value = v,
           ),
 
-          const SizedBox(height: 20),
-
-          InputField(
-            controller: controller.locationCtrl,
-
-            keyboardType: TextInputType.text,
-
-            labelText: AppStrings.locationText,
-
-            hintText: AppStrings.locationText,
-
-            onChanged: (v) => postForm?.address.value = v,
-          ),
 
           const SizedBox(height: 20),
 
@@ -101,7 +88,21 @@ class PostAdDetailsForm extends StatelessWidget {
             onChanged: (v) => postForm?.descr.value = v,
           ),
 
-          const SizedBox(height: 15),
+          // const SizedBox(height: 15),
+
+   
+          const SizedBox(height: 20),
+                    InputField(
+            controller: controller.locationCtrl,
+
+            keyboardType: TextInputType.text,
+
+            labelText: AppStrings.locationText,
+
+            hintText: AppStrings.locationText,
+
+            onChanged: (v) => postForm?.address.value = v,
+          ),
 
           // ConditionStatus(controller: controller),
           const SizedBox(height: 20),

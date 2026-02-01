@@ -35,9 +35,7 @@ class MyAccountHeader extends StatelessWidget {
               children: [
                 const CircleAvatar(
                   radius: 40,
-                  backgroundImage: NetworkImage(
-                    'https://i.pinimg.com/736x/8c/6d/db/8c6ddb5fe6600fcc4b183cb2ee228eb7.jpg',
-                  ),
+                  backgroundImage: AssetImage('assets/images/user.jpg'),
                 ),
                 const SizedBox(width: 15),
                 Expanded(

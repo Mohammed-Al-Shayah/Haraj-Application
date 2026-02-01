@@ -128,9 +128,7 @@ class MyProfileScreen extends StatelessWidget {
                     children: [
                       const CircleAvatar(
                         radius: 40,
-                        backgroundImage: NetworkImage(
-                          'https://i.pinimg.com/736x/8c/6d/db/8c6ddb5fe6600fcc4b183cb2ee228eb7.jpg',
-                        ),
+                        backgroundImage: AssetImage(AppAssets.userIcon),
                       ),
                       Positioned(
                         bottom: 0,

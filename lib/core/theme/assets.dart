@@ -16,7 +16,8 @@ class AppAssets {
   static const String myAccountIcon = 'assets/icons/my_account.svg';
   static const String postAdIcon = 'assets/icons/post_ad.svg';
   static const String recentlyIcon = 'assets/icons/recently.svg';
-  static const String userIcon = 'assets/icons/user.svg';
+  static const String userIcon = 'assets/images/user.jpg';
+  static const String userSvgIcon = 'assets/icons/user.svg';
   static const String messageIcon = 'assets/icons/message.svg';
   static const String headphoneIcon = 'assets/icons/headphone.svg';
   static const String menuIcon = 'assets/icons/menu.svg';

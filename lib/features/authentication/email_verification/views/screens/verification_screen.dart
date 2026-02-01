@@ -14,6 +14,9 @@ class VerificationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final VerificationController controller = Get.put(VerificationController());
+    final args = Get.arguments ?? {};
+    final contact = (args['contact'] ?? args['mobile'] ?? '').toString();
+    final isEmail = args['isEmail'] == true;
 
     return SafeArea(
       child: Scaffold(
@@ -24,12 +27,17 @@ class VerificationScreen extends StatelessWidget {
               key: controller.formKey,
               child: Column(
                 children: [
-                  AuthenticationBar(text: AppStrings.emailVerification),
+                  AuthenticationBar(
+                    text:
+                        isEmail
+                            ? AppStrings.emailVerification
+                            : AppStrings.phoneVerification,
+                  ),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 20),
-                      VerificationMessage(mobile: Get.arguments['mobile']),
+                      VerificationMessage(contact: contact),
                       const SizedBox(height: 20),
                       VerificationCodeInput(otp: controller.otp),
                       const SizedBox(height: 20),

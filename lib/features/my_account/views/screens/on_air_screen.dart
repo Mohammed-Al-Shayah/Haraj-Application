@@ -5,6 +5,8 @@ import 'package:haraj_adan_app/core/network/api_client.dart';
 import 'package:haraj_adan_app/core/routes/routes.dart';
 import 'package:haraj_adan_app/features/my_account/views/widgets/ad_card_item.dart';
 import '../../../../core/theme/strings.dart';
+import '../../../../core/theme/typography.dart';
+import '../../../../core/theme/color.dart';
 import '../../../../core/widgets/main_bar.dart';
 import '../../../../core/widgets/side_menu.dart';
 import '../../../../data/datasources/on_air_remote_datasource.dart';
@@ -54,6 +56,14 @@ class _OnAirScreenState extends State<OnAirScreen> {
       body: Obx(() {
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.ads.isEmpty) {
+          return Center(
+            child: Text(
+              AppStrings.noItems,
+              style: AppTypography.normal14.copyWith(color: AppColors.gray600),
+            ),
+          );
         }
         return ListView.builder(
           itemCount: controller.ads.length,

@@ -59,35 +59,32 @@ class AdDetailsTabBar extends StatelessWidget {
               )
               .toList();
 
-      return SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DetailRow(
-                label: AppStrings.priceText,
-                value: '$currency${ad.price}',
-                valueTextColor: AppColors.primary,
-              ),
-              DetailRow(
-                label: AppStrings.listingDateText,
-                value: _formatDate(ad.createdAt),
-              ),
-              DetailRow(
-                label: AppStrings.adNumberText,
-                value: ad.id.toString(),
-                valueTextColor: AppColors.red,
-              ),
-              if (category != null && category.isNotEmpty)
-                DetailRow(label: AppStrings.categoryText, value: category),
-              ...attributeRows,
-              const SizedBox(height: 12.0),
-              const FeaturesSection(),
-              const QuestionsSection(),
-            ],
-          ),
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DetailRow(
+              label: AppStrings.priceText,
+              value: '$currency${ad.price}',
+              valueTextColor: AppColors.primary,
+            ),
+            DetailRow(
+              label: AppStrings.listingDateText,
+              value: _formatDate(ad.createdAt),
+            ),
+            DetailRow(
+              label: AppStrings.adNumberText,
+              value: ad.id.toString(),
+              valueTextColor: AppColors.red,
+            ),
+            if (category != null && category.isNotEmpty)
+              DetailRow(label: AppStrings.categoryText, value: category),
+            ...attributeRows,
+            const SizedBox(height: 12.0),
+            const FeaturesSection(),
+            const QuestionsSection(),
+          ],
         ),
       );
     });

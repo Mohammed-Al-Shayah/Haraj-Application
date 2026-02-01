@@ -15,10 +15,7 @@ class TabBarViews extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: TabBarSettings(),
           ),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 500.0),
-            child: const TabBarViewsContent(),
-          ),
+          const TabBarViewsContent(),
         ],
       ),
     );
