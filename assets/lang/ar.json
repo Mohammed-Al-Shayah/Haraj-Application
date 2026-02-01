@@ -1,4 +1,6 @@
 {
+  "location_disabled_title": "GPS لا يعمل",
+  "location_disabled_message": "يجب تشغيل خدمة الموقع GPS كي ترى الإعلانات القريبة منك.",
   "New": "جديد",
   "accounting_finance_banking": "المحاسبة والمالية والمصرفية",
   "ad_details_title": "تفاصيل الاعلان",

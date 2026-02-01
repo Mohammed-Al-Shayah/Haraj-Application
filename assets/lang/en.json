@@ -151,6 +151,8 @@
   "english": "English",
   "enter_amount": "Enter amount",
   "error_title": "Error",
+  "location_disabled_title": "GPS is off",
+  "location_disabled_message": "Turn on GPS location services to see ads near you.",
   "user_not_found": "User not found",
   "explore_message": "Sell, buy, and advertise everything with ease.",
   "false": "No",

@@ -232,6 +232,8 @@ class AppStrings {
   static String get successTitle => 'success_title'.tr();
   static String get errorTitle => 'error_title'.tr();
   static String get loginRequired => 'login_required'.tr();
+  static String get locationDisabledTitle => 'location_disabled_title'.tr();
+  static String get locationDisabledMessage => 'location_disabled_message'.tr();
   static String get profileNameRequired => 'profile_name_required'.tr();
   static String get profileContactRequired => 'profile_contact_required'.tr();
   static String get profileUpdateSuccess => 'profile_update_success'.tr();

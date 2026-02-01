@@ -1,4 +1,5 @@
 import 'package:haraj_adan_app/core/network/endpoints.dart';
+import 'package:haraj_adan_app/features/home/models/ads/ad_featured_history_model.dart';
 
 class AdDetailsModel {
   final int id;
@@ -21,6 +22,8 @@ class AdDetailsModel {
   final String? ownerName;
   final String? ownerPhone;
   final int? ownerId;
+  final List<AdFeaturedHistoryModel> featuredHistory;
+  final bool? featuredFlag;
 
   AdDetailsModel({
     required this.id,
@@ -43,7 +46,19 @@ class AdDetailsModel {
     this.ownerName,
     this.ownerPhone,
     this.ownerId,
+    required this.featuredHistory,
+    this.featuredFlag,
   });
+
+  bool get isFeatured {
+    if (featuredFlag == true) return true;
+    if (featuredHistory.isEmpty) return false;
+    final now = DateTime.now();
+    for (final item in featuredHistory) {
+      if (item.status && item.endDate.isAfter(now)) return true;
+    }
+    return false;
+  }
 
   factory AdDetailsModel.fromJson(Map<String, dynamic> json) {
     double toDouble(dynamic v) =>
@@ -207,6 +222,31 @@ class AdDetailsModel {
       return null;
     }
 
+    List<AdFeaturedHistoryModel> extractFeaturedHistory(
+      Map<String, dynamic> root,
+    ) {
+      final raw =
+          root['ad_featured_history'] ??
+          root['featured_history'] ??
+          root['featured'];
+      if (raw is bool) return const [];
+      final list =
+          raw is List
+              ? raw
+              : (raw is Map && raw['data'] is List ? raw['data'] as List : null);
+      if (list == null) return const [];
+      final out = <AdFeaturedHistoryModel>[];
+      for (final item in list) {
+        if (item is! Map<String, dynamic>) continue;
+        try {
+          out.add(AdFeaturedHistoryModel.fromJson(item));
+        } catch (_) {
+          // Ignore malformed featured items.
+        }
+      }
+      return out;
+    }
+
     return AdDetailsModel(
       id: json['id'] ?? 0,
       title: json['title']?.toString() ?? '',
@@ -235,6 +275,11 @@ class AdDetailsModel {
       ownerName: extractOwnerName(json),
       ownerPhone: extractOwnerPhone(json),
       ownerId: extractOwnerId(json),
+      featuredHistory: extractFeaturedHistory(json),
+      featuredFlag:
+          (json['featured'] is bool)
+              ? json['featured'] as bool
+              : null,
     );
   }
 }

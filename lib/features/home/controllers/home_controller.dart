@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:haraj_adan_app/core/theme/strings.dart';
 import 'package:haraj_adan_app/core/utils/app_snackbar.dart';
 import 'package:haraj_adan_app/features/home/controllers/all_featured_ext_controller.dart';
 import 'package:haraj_adan_app/features/home/controllers/banner_controller.dart';
@@ -105,8 +106,15 @@ class HomeController extends GetxController {
       final position = await _getCurrentPosition();
       if (position == null) {
         AppSnack.error(
-          'Location Disabled',
-          'Enable location services to see shopping ads near you.',
+          AppStrings.locationDisabledTitle,
+          AppStrings.locationDisabledMessage,
+        );
+        return;
+      }
+      if (position == null) {
+        AppSnack.error(
+          'لا يعمل',
+          'يجب تشغيل خدمة الموقع GPS كي ترى الإعلانات القريبة منك.',
         );
         return;
       }

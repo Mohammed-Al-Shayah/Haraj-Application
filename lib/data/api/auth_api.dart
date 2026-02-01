@@ -110,7 +110,7 @@ class AuthApi {
       final token = prefs.getString("_accessToken");
 
       if (token != null && token.isNotEmpty) {
-        await api.post(
+        await api.get(
           ApiEndpoints.logout,
           options: Options(headers: {'Authorization': 'Bearer $token'}),
         );
@@ -121,9 +121,10 @@ class AuthApi {
       Get.offAllNamed(Routes.loginScreen);
     } on DioException catch (e) {
       final data = e.response?.data;
-      final message = (data is Map<String, dynamic>)
-          ? data['message'] ?? data['error'] ?? 'Unknown error'
-          : e.message ?? 'Unknown error';
+      final message =
+          (data is Map<String, dynamic>)
+              ? data['message'] ?? data['error'] ?? 'Unknown error'
+              : e.message ?? 'Unknown error';
 
       AppSnack.error('Logout Error', message);
 

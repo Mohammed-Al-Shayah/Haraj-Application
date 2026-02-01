@@ -329,6 +329,8 @@ class AdDetailsController extends GetxController {
       ownerName: name ?? ad.ownerName,
       ownerPhone: phone ?? ad.ownerPhone,
       ownerId: ownerId ?? ad.ownerId,
+      featuredHistory: ad.featuredHistory,
+      featuredFlag: ad.featuredFlag,
     );
   }
 
@@ -464,11 +466,7 @@ class AdDetailsController extends GetxController {
         otherUserId;
 
     if (chatId == null) return null;
-    return ChatLaunchData(
-      chatId: chatId,
-      chatTitle: title,
-      otherUserId: other,
-    );
+    return ChatLaunchData(chatId: chatId, chatTitle: title, otherUserId: other);
   }
 
   int? _toInt(dynamic value) {
